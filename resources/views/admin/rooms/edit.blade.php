@@ -3,11 +3,11 @@
 <div class="p-6">
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800">রুম সম্পাদনা করুন</h1>
-        <p class="text-gray-600 mt-2">Edit Room Details</p>
+        <p class="text-gray-600 mt-2">Edit Room Details & Upload Images</p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-lg p-8 max-w-4xl">
-        <form action="{{ route('admin.rooms.update', $room) }}" method="POST">
+    <div class="bg-white rounded-xl shadow-lg p-8 max-w-6xl">
+        <form action="{{ route('admin.rooms.update', $room) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             
@@ -107,6 +107,50 @@
                 </div>
             </div>
 
+            <!-- Image Upload Section -->
+            <div class="mt-8 border-t pt-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-images mr-2 text-blue-600"></i>Room Images
+                </h3>
+                
+                <!-- Current Images -->
+                @if($room->images && count($room->images) > 0)
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Current Images</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        @foreach($room->images as $index => $image)
+                        <div class="relative group">
+                            <img src="{{ asset('storage/' . $image) }}" alt="Room Image" 
+                                class="w-full h-32 object-cover rounded-lg border-2 border-gray-200">
+                            <button type="button" onclick="removeImage({{ $index }})" 
+                                class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                            <input type="hidden" name="existing_images[]" value="{{ $image }}" id="existing_image_{{ $index }}">
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <!-- New Images Upload -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">
+                        <i class="fas fa-cloud-upload-alt mr-2"></i>Upload New Images (Multiple)
+                    </label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
+                        onclick="document.getElementById('images').click()">
+                        <i class="fas fa-images text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-600">Click to select room images or drag and drop</p>
+                        <p class="text-sm text-gray-500 mt-2">Supports: JPG, PNG, WEBP (Max 5MB each)</p>
+                    </div>
+                    <input type="file" name="images[]" id="images" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
+                </div>
+
+                <!-- Image Previews -->
+                <div id="imagePreview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 hidden"></div>
+            </div>
+
             <div class="flex gap-4 mt-8">
                 <button type="submit" 
                     class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg">
@@ -120,4 +164,37 @@
         </form>
     </div>
 </div>
+
+<script>
+function previewImages(input) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = '';
+    
+    if (input.files && input.files.length > 0) {
+        preview.classList.remove('hidden');
+        Array.from(input.files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview" class="w-full h-32 object-cover rounded-lg border-2 border-blue-300">
+                    <div class="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">New</div>
+                `;
+                preview.appendChild(div);
+            }
+            reader.readAsDataURL(file);
+        });
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+function removeImage(index) {
+    if (confirm('Remove this image?')) {
+        document.getElementById('existing_image_' + index).remove();
+        event.target.closest('.relative').remove();
+    }
+}
+</script>
 @endsection

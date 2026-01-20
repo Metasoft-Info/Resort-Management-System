@@ -68,9 +68,9 @@
                     <div class="text-3xl sm:text-4xl">🏞️</div>
                     <div>
                         <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-                            Tufan Resort
+                            {{ $resortInfo->resort_name ?? 'Tufan Resort' }}
                         </h1>
-                        <p class="text-xs text-gray-500 hidden sm:block">তুফান রিসোর্ট</p>
+                        <p class="text-xs text-gray-500 hidden sm:block">{{ $resortInfo->resort_tagline ?? 'তুফান রিসোর্ট' }}</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-1">
@@ -85,9 +85,6 @@
                     </a>
                     <a href="{{ route('about') }}" class="px-4 py-2 rounded-lg text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition font-medium {{ request()->routeIs('about') ? 'bg-primary-50 text-primary-700' : '' }}">
                         <i class="fas fa-info-circle mr-2"></i>About
-                    </a>
-                    <a href="{{ route('login') }}" class="ml-4 px-6 py-2 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-lg hover:from-primary-700 hover:to-accent-700 transition font-medium shadow-md">
-                        <i class="fas fa-user-shield mr-2"></i>Admin
                     </a>
                 </div>
                 <button class="md:hidden text-gray-700 hover:text-primary-600 transition">
@@ -109,21 +106,27 @@
                 <div>
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="text-4xl">🏞️</div>
-                        <h3 class="text-2xl font-bold">Tufan Resort</h3>
+                        <h3 class="text-2xl font-bold">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h3>
                     </div>
                     <p class="text-gray-300 leading-relaxed mb-4">
-                        Premium accommodation and event hosting services. Experience luxury and tranquility by the lake.
+                        {{ $resortInfo->footer_description ?? 'Premium accommodation and event hosting services. Experience luxury and tranquility by the lake.' }}
                     </p>
                     <div class="flex space-x-3">
-                        <a href="#" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition">
+                        @if($resortInfo && isset($resortInfo->social_links['facebook']))
+                        <a href="{{ $resortInfo->social_links['facebook'] }}" target="_blank" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition">
                             <i class="fab fa-facebook-f"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-accent-600 hover:bg-accent-700 rounded-full flex items-center justify-center transition">
+                        @endif
+                        @if($resortInfo && isset($resortInfo->social_links['instagram']))
+                        <a href="{{ $resortInfo->social_links['instagram'] }}" target="_blank" class="w-10 h-10 bg-accent-600 hover:bg-accent-700 rounded-full flex items-center justify-center transition">
                             <i class="fab fa-instagram"></i>
                         </a>
-                        <a href="#" class="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition">
+                        @endif
+                        @if($resortInfo && isset($resortInfo->social_links['twitter']))
+                        <a href="{{ $resortInfo->social_links['twitter'] }}" target="_blank" class="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition">
                             <i class="fab fa-twitter"></i>
                         </a>
+                        @endif
                     </div>
                 </div>
                 <div>
@@ -150,27 +153,33 @@
                         <i class="fas fa-phone mr-2 text-primary-400"></i>Contact
                     </h3>
                     <ul class="space-y-3 text-gray-300">
+                        @if($resortInfo && $resortInfo->email)
                         <li class="flex items-start">
                             <i class="fas fa-envelope mt-1 mr-3 text-primary-400"></i>
-                            <span>info@tufanresort.com</span>
+                            <span>{{ $resortInfo->email }}</span>
                         </li>
+                        @endif
+                        @if($resortInfo && $resortInfo->phone)
                         <li class="flex items-start">
                             <i class="fas fa-phone-alt mt-1 mr-3 text-primary-400"></i>
-                            <span>+880-123-456789</span>
+                            <span>{{ $resortInfo->phone }}</span>
                         </li>
+                        @endif
+                        @if($resortInfo && $resortInfo->address)
                         <li class="flex items-start">
                             <i class="fas fa-map-marker-alt mt-1 mr-3 text-primary-400"></i>
-                            <span>Lake View, Beautiful City<br>Bangladesh</span>
+                            <span>{!! nl2br(e($resortInfo->address)) !!}</span>
                         </li>
+                        @endif
                     </ul>
                 </div>
             </div>
             <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center">
                 <p class="text-gray-400 text-sm mb-4 sm:mb-0">
-                    &copy; {{ date('Y') }} Tufan Resort. All rights reserved.
+                    {{ $resortInfo->copyright_text ?? '&copy; ' . date('Y') . ' Tufan Resort. All rights reserved.' }}
                 </p>
                 <p class="text-gray-500 text-sm">
-                    Developed with <i class="fas fa-heart text-red-500"></i> in Bangladesh
+                    Developed with <i class="fas fa-heart text-red-500"></i> by Mir Javed Jeetu
                 </p>
             </div>
         </div>

@@ -50,6 +50,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/bookings/{booking}/add-payment', [BookingController::class, 'addPayment'])->name('bookings.add-payment');
     Route::post('/bookings/{booking}/add-extra-charges', [BookingController::class, 'addExtraCharges'])->name('bookings.add-extra-charges');
     Route::post('/bookings/{booking}/add-guest', [BookingController::class, 'addGuest'])->name('bookings.add-guest');
+    Route::post('/bookings/{booking}/process-refund', [BookingController::class, 'processRefund'])->name('bookings.process-refund');
+    Route::post('/bookings/{booking}/update-vat', [BookingController::class, 'updateVat'])->name('bookings.update-vat');
     
     // Premium Booking (Advanced Room Booking)
     Route::get('/premium-booking', [PremiumBookingController::class, 'index'])->name('premium-booking.index');
@@ -61,6 +63,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Convention Bookings
     Route::resource('convention-bookings', ConventionBookingController::class);
+    Route::get('/convention-bookings/customer/{phone}', [ConventionBookingController::class, 'searchCustomer'])->name('convention-bookings.search-customer');
+    Route::get('/convention-bookings/find-by-phone', [ConventionBookingController::class, 'findByPhone'])->name('convention-bookings.find-by-phone');
+    Route::post('/convention-bookings/check-availability', [ConventionBookingController::class, 'checkAvailability'])->name('convention-bookings.check-availability');
+    Route::get('/convention-bookings/available-halls', [ConventionBookingController::class, 'getAvailableHalls'])->name('convention-bookings.available-halls');
+    Route::post('/convention-bookings/{conventionBooking}/add-payment', [ConventionBookingController::class, 'addPayment'])->name('convention-bookings.add-payment');
+    Route::post('/convention-bookings/{conventionBooking}/update-status', [ConventionBookingController::class, 'updateStatus'])->name('convention-bookings.update-status');
     
     // Premium Convention (Advanced Hall Booking)
     Route::get('/premium-convention', [PremiumConventionController::class, 'index'])->name('premium-convention.index');
@@ -78,7 +86,16 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-    Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/resort-info', [SettingsController::class, 'updateResortInfo'])->name('settings.resort-info');
+    Route::post('/settings/navbar-links', [SettingsController::class, 'storeNavbarLink'])->name('settings.navbar-links.store');
+    Route::put('/settings/navbar-links/{navbarLink}', [SettingsController::class, 'updateNavbarLink'])->name('settings.navbar-links.update');
+    Route::delete('/settings/navbar-links/{navbarLink}', [SettingsController::class, 'destroyNavbarLink'])->name('settings.navbar-links.destroy');
+    Route::post('/settings/footer-sections', [SettingsController::class, 'storeFooterSection'])->name('settings.footer-sections.store');
+    Route::put('/settings/footer-sections/{footerSection}', [SettingsController::class, 'updateFooterSection'])->name('settings.footer-sections.update');
+    Route::delete('/settings/footer-sections/{footerSection}', [SettingsController::class, 'destroyFooterSection'])->name('settings.footer-sections.destroy');
+    Route::post('/settings/footer-links', [SettingsController::class, 'storeFooterLink'])->name('settings.footer-links.store');
+    Route::put('/settings/footer-links/{footerLink}', [SettingsController::class, 'updateFooterLink'])->name('settings.footer-links.update');
+    Route::delete('/settings/footer-links/{footerLink}', [SettingsController::class, 'destroyFooterLink'])->name('settings.footer-links.destroy');
     
     // Users
     Route::resource('users', UserController::class);

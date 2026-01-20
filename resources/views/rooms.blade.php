@@ -89,10 +89,10 @@
                                 <div class="text-xs text-gray-400 mt-1">+ VAT & Tax</div>
                             </div>
                             @if($room->status == 'available')
-                                <a href="{{ route('login') }}" class="group/btn px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl hover:from-primary-700 hover:to-accent-700 transition font-semibold shadow-md hover:shadow-xl transform hover:-translate-y-0.5 flex items-center">
-                                    Book Now
-                                    <i class="fas fa-arrow-right ml-2 group-hover/btn:translate-x-1 transition-transform"></i>
-                                </a>
+                                <button type="button" disabled class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl cursor-default font-semibold flex items-center shadow-sm">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    View Only (Contact Admin)
+                                </button>
                             @else
                                 <button disabled class="px-6 py-3 bg-gray-200 text-gray-400 rounded-xl cursor-not-allowed font-semibold flex items-center">
                                     <i class="fas fa-ban mr-2"></i>

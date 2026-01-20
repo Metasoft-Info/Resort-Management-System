@@ -30,6 +30,16 @@ class ConventionBooking extends Model
         return $this->belongsTo(ConventionHall::class, 'hall_id');
     }
 
+    public function conventionHall()
+    {
+        return $this->belongsTo(ConventionHall::class, 'hall_id');
+    }
+
+    public function foodPackage()
+    {
+        return $this->belongsTo(FoodPackage::class, 'food_package_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_id');

@@ -31,7 +31,20 @@ class RoomController extends Controller
             'max_guests' => 'nullable|integer',
             'number_of_beds' => 'nullable|integer',
             'status' => 'required|in:available,booked,maintenance',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
+
+        // Handle image uploads
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('rooms', 'public');
+                $imagePaths[] = $path;
+            }
+        }
+        
+        $validated['images'] = $imagePaths;
 
         Room::create($validated);
         return redirect()->route('admin.rooms.index')->with('success', 'Room created successfully');
@@ -51,7 +64,23 @@ class RoomController extends Controller
             'room_type_id' => 'required|exists:room_types,id',
             'price_per_night' => 'required|numeric',
             'status' => 'required|in:available,booked,maintenance',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+            'existing_images' => 'nullable|array',
         ]);
+
+        // Handle existing images
+        $existingImages = $request->input('existing_images', []);
+        
+        // Handle new image uploads
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('rooms', 'public');
+                $existingImages[] = $path;
+            }
+        }
+        
+        $validated['images'] = $existingImages;
 
         $room->update($validated);
         return redirect()->route('admin.rooms.index')->with('success', 'Room updated successfully');

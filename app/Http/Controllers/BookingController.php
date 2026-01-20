@@ -13,16 +13,30 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::with('room', 'createdBy');
+        $query = Booking::with('room.roomType', 'createdBy');
+        
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+        
+        // Payment status filter
+        if ($request->filled('payment_status') && $request->payment_status !== 'all') {
+            $query->where('payment_status', $request->payment_status);
+        }
         
         // Guest search functionality
-        if ($request->has('search') && $request->has('type')) {
+        if ($request->filled('search')) {
             $searchValue = $request->input('search');
-            $searchType = $request->input('type');
+            $searchType = $request->input('type', 'name');
             
             switch ($searchType) {
                 case 'phone':
-                    $query->where('customer_phone', 'like', "%{$searchValue}%");
+                    $query->where(function($q) use ($searchValue) {
+                        $q->where('customer_phone', 'like', "%{$searchValue}%")
+                          ->orWhere('customer_nid', 'like', "%{$searchValue}%")
+                          ->orWhere('passport_number', 'like', "%{$searchValue}%");
+                    });
                     break;
                 case 'email':
                     $query->where('customer_email', 'like', "%{$searchValue}%");
@@ -31,6 +45,26 @@ class BookingController extends Controller
                     $query->where('customer_name', 'like', "%{$searchValue}%");
                     break;
             }
+        }
+        
+        // Date range filters
+        if ($request->filled('check_in_from')) {
+            $query->whereDate('check_in_date', '>=', $request->check_in_from);
+        }
+        if ($request->filled('check_in_to')) {
+            $query->whereDate('check_in_date', '<=', $request->check_in_to);
+        }
+        if ($request->filled('check_out_from')) {
+            $query->whereDate('check_out_date', '>=', $request->check_out_from);
+        }
+        if ($request->filled('check_out_to')) {
+            $query->whereDate('check_out_date', '<=', $request->check_out_to);
+        }
+        if ($request->filled('booking_from')) {
+            $query->whereDate('created_at', '>=', $request->booking_from);
+        }
+        if ($request->filled('booking_to')) {
+            $query->whereDate('created_at', '<=', $request->booking_to);
         }
         
         $bookings = $query->latest()->paginate(15);
@@ -75,7 +109,13 @@ class BookingController extends Controller
 
     public function show(Booking $booking)
     {
-        $booking->load('room.roomType', 'createdBy', 'additionalGuests', 'payments.recordedBy');
+        $booking->load([
+            'room.roomType', 
+            'createdBy', 
+            'additionalGuests', 
+            'payments.recordedBy',
+            'foodPackage'
+        ]);
         return view('admin.bookings.show', compact('booking'));
     }
 
@@ -192,6 +232,79 @@ class BookingController extends Controller
 
         $booking->additionalGuests()->create($validated);
         return response()->json(['message' => 'Guest added successfully']);
+    }
+
+    public function processRefund(Request $request, Booking $booking)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'method' => 'required|in:cash,card,mfs',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validated['amount'] > $booking->advance_payment) {
+            return response()->json(['message' => 'Refund amount cannot exceed advance payment'], 422);
+        }
+
+        $newAdvancePayment = $booking->advance_payment - $validated['amount'];
+        $grandTotal = $this->calculateGrandTotal($booking);
+        $newRemainingPayment = max(0, $grandTotal - $newAdvancePayment);
+        
+        $booking->update([
+            'advance_payment' => $newAdvancePayment,
+            'remaining_payment' => $newRemainingPayment,
+            'payment_status' => $newAdvancePayment <= 0 ? 'refunded' : 'partial',
+        ]);
+
+        // Record refund payment
+        $booking->payments()->create([
+            'amount' => $validated['amount'],
+            'method' => $validated['method'],
+            'type' => 'refund',
+            'note' => $validated['note'],
+            'recorded_by_id' => Auth::id(),
+        ]);
+
+        return response()->json(['message' => 'Refund processed successfully']);
+    }
+
+    public function updateVat(Request $request, Booking $booking)
+    {
+        $validated = $request->validate([
+            'vat_enabled' => 'required|boolean',
+            'vat_amount' => 'required|numeric|min:0',
+        ]);
+
+        $booking->update($validated);
+        
+        // Recalculate remaining payment
+        $grandTotal = $this->calculateGrandTotal($booking);
+        $newRemainingPayment = max(0, $grandTotal - $booking->advance_payment);
+        
+        $booking->update([
+            'remaining_payment' => $newRemainingPayment,
+            'payment_status' => $newRemainingPayment <= 0 ? 'paid' : ($booking->advance_payment > 0 ? 'partial' : 'pending'),
+        ]);
+
+        return response()->json(['message' => 'VAT updated successfully']);
+    }
+
+    private function calculateGrandTotal(Booking $booking): float
+    {
+        $baseAmount = $booking->total_amount;
+        $discountAmount = 0;
+        
+        if ($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
+            $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
+        } elseif ($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
+            $discountAmount = $booking->discount_amount;
+        }
+        
+        $afterDiscount = $baseAmount - min($discountAmount, $baseAmount);
+        $extraCharges = $booking->extra_charges ?? 0;
+        $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
+        
+        return $afterDiscount + $extraCharges + $vatAmount;
     }
 
     public function edit(Booking $booking)

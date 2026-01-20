@@ -26,8 +26,8 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="{{ route('rooms') }}" class="group inline-flex items-center justify-center px-8 py-4 bg-white text-primary-700 rounded-xl font-bold text-lg hover:bg-gray-100 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
                     <i class="fas fa-bed mr-3 group-hover:scale-110 transition-transform"></i>
-                    Book Your Stay
-                    <i class="fas fa-arrow-right ml-3 group-hover:translate-x-1 transition-transform"></i>
+                    View Rooms
+                    <i class="fas fa-eye ml-3 group-hover:translate-x-1 transition-transform"></i>
                 </a>
                 <a href="{{ route('convention-hall') }}" class="group inline-flex items-center justify-center px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl font-bold text-lg hover:bg-white hover:text-primary-700 transition shadow-xl">
                     <i class="fas fa-building mr-3"></i>
@@ -117,8 +117,8 @@
                                 </span>
                                 <span class="text-sm text-gray-500">/night</span>
                             </div>
-                            <a href="{{ route('login') }}" class="px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl hover:from-primary-700 hover:to-accent-700 transition font-semibold shadow-md hover:shadow-lg">
-                                Book Now
+                            <a href="{{ route('rooms') }}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold cursor-default shadow-sm" aria-disabled="true">
+                                View Details
                             </a>
                         </div>
                     </div>

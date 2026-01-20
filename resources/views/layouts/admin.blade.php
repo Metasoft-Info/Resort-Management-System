@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - Tufan Resort Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,7 +38,7 @@
 <body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
-        <aside class="w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white shadow-2xl flex-shrink-0 fixed h-screen z-30">
+        <aside class="w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white shadow-2xl flex-shrink-0 fixed h-screen z-30 flex flex-col">
             <div class="p-6 border-b border-primary-700">
                 <div class="flex items-center space-x-3">
                     <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -49,7 +50,7 @@
                     </div>
                 </div>
             </div>
-            <nav class="mt-6 px-3 flex-1 overflow-y-auto pb-8">
+            <nav class="mt-6 px-3 flex-1 overflow-y-auto pb-8" style="max-height: calc(100vh - 120px);">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-3 mb-2 rounded-xl transition @if(request()->routeIs('admin.dashboard')) bg-primary-700 shadow-lg @else hover:bg-primary-700/50 @endif">
                     <i class="fas fa-chart-line w-5 mr-3"></i>
                     <span class="font-semibold">Dashboard</span>
@@ -156,22 +157,24 @@
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-8">
-                @if(session('success'))
-                    <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-4 rounded-lg mb-6 flex items-center shadow-sm">
-                        <i class="fas fa-check-circle text-2xl mr-3"></i>
-                        <span class="font-semibold">{{ session('success') }}</span>
-                    </div>
-                @endif
+            <main class="flex-1 overflow-y-auto bg-gray-50">
+                <div class="p-8">
+                    @if(session('success'))
+                        <div class="bg-green-50 border-l-4 border-green-500 text-green-800 px-6 py-4 rounded-lg mb-6 flex items-center shadow-sm">
+                            <i class="fas fa-check-circle text-2xl mr-3"></i>
+                            <span class="font-semibold">{{ session('success') }}</span>
+                        </div>
+                    @endif
 
-                @if(session('error'))
-                    <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg mb-6 flex items-center shadow-sm">
-                        <i class="fas fa-exclamation-circle text-2xl mr-3"></i>
-                        <span class="font-semibold">{{ session('error') }}</span>
-                    </div>
-                @endif
+                    @if(session('error'))
+                        <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-6 py-4 rounded-lg mb-6 flex items-center shadow-sm">
+                            <i class="fas fa-exclamation-circle text-2xl mr-3"></i>
+                            <span class="font-semibold">{{ session('error') }}</span>
+                        </div>
+                    @endif
 
-                @yield('content')
+                    @yield('content')
+                </div>
             </main>
         </div>
     </div>

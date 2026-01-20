@@ -8,8 +8,9 @@ class ResortInfo extends Model
 {
     protected $table = 'resort_info';
     protected $fillable = [
-        'about_text', 'mission_text', 'address', 'phone', 'email',
-        'map_embed_url', 'facilities', 'social_links',
+        'resort_name', 'resort_tagline', 'about_text', 'mission_text', 
+        'footer_description', 'address', 'phone', 'email',
+        'map_embed_url', 'facilities', 'social_links', 'copyright_text',
     ];
 
     protected function casts(): array

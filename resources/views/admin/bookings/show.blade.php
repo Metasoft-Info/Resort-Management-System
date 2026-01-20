@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="p-4 print:p-0">
+<div class="print:p-0">
     @php
         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
         $baseAmount = $booking->total_amount;
@@ -38,6 +38,14 @@
                 <button onclick="openPaymentModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
                     <i class="fas fa-money-bill"></i>
                     <span>Add Payment</span>
+                </button>
+                <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2" @if($booking->advance_payment <= 0) disabled @endif>
+                    <i class="fas fa-undo"></i>
+                    <span>Process Refund</span>
+                </button>
+                <button onclick="openVatModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
+                    <i class="fas fa-percentage"></i>
+                    <span>{{ $booking->vat_enabled ? 'Disable' : 'Enable' }} VAT</span>
                 </button>
                 <button onclick="openExtraChargesModal()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">
                     <i class="fas fa-plus-circle"></i>
@@ -489,6 +497,80 @@
 </div>
 
 <!-- Modals -->
+<!-- Refund Modal -->
+<div id="refundModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Process Refund</h3>
+            <button onclick="closeRefundModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <form id="refundForm" onsubmit="submitRefund(event)">
+            <div class="space-y-4">
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3">
+                    <p class="text-sm text-yellow-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Available for refund: ৳{{ number_format($booking->advance_payment, 2) }}
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Refund Amount (৳)</label>
+                    <input type="number" step="0.01" name="amount" required max="{{ $booking->advance_payment }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Refund Reason</label>
+                    <textarea name="reason" rows="3" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500" placeholder="Enter reason for refund..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                        Process Refund
+                    </button>
+                    <button type="button" onclick="closeRefundModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- VAT Modal -->
+<div id="vatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">{{ $booking->vat_enabled ? 'Disable' : 'Enable' }} VAT</h3>
+            <button onclick="closeVatModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                <p class="text-sm text-blue-700 mb-2">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Current Status: <strong>{{ $booking->vat_enabled ? 'VAT Enabled (15%)' : 'VAT Disabled' }}</strong>
+                </p>
+                @if($booking->vat_enabled)
+                    <p class="text-sm text-blue-600">Current VAT Amount: ৳{{ number_format($vatAmount, 2) }}</p>
+                @else
+                    <p class="text-sm text-blue-600">Enabling VAT will add 15% to the base amount</p>
+                @endif
+            </div>
+            <p class="text-sm text-gray-600">
+                {{ $booking->vat_enabled ? 'Disabling VAT will remove the 15% tax from the grand total and recalculate the remaining payment.' : 'Enabling VAT will add 15% tax to the base amount and recalculate the grand total.' }}
+            </p>
+            <div class="flex gap-3">
+                <button onclick="submitVatToggle()" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                    {{ $booking->vat_enabled ? 'Disable VAT' : 'Enable VAT' }}
+                </button>
+                <button onclick="closeVatModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Time Modal -->
 <div id="timeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
@@ -672,6 +754,26 @@ function closeGuestModal() {
     document.getElementById('guestModal').classList.remove('flex');
 }
 
+function openRefundModal() {
+    document.getElementById('refundModal').classList.remove('hidden');
+    document.getElementById('refundModal').classList.add('flex');
+}
+
+function closeRefundModal() {
+    document.getElementById('refundModal').classList.add('hidden');
+    document.getElementById('refundModal').classList.remove('flex');
+}
+
+function openVatModal() {
+    document.getElementById('vatModal').classList.remove('hidden');
+    document.getElementById('vatModal').classList.add('flex');
+}
+
+function closeVatModal() {
+    document.getElementById('vatModal').classList.add('hidden');
+    document.getElementById('vatModal').classList.remove('flex');
+}
+
 // Update status
 async function updateStatus(bookingId, status) {
     if (!status) return;
@@ -825,6 +927,81 @@ async function submitGuest(e) {
     } catch (error) {
         console.error('Error:', error);
         alert('Error adding guest');
+    }
+}
+
+// Submit refund
+async function submitRefund(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const amount = parseFloat(formData.get('amount'));
+    const maxRefund = {{ $booking->advance_payment }};
+    
+    if (amount > maxRefund) {
+        alert(`Refund amount cannot exceed ৳${maxRefund.toFixed(2)}`);
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to process a refund of ৳${amount.toFixed(2)}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/bookings/{{ $booking->id }}/process-refund`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                amount: amount,
+                reason: formData.get('reason')
+            })
+        });
+
+        if (response.ok) {
+            alert('Refund processed successfully!');
+            location.reload();
+        } else {
+            const data = await response.json();
+            alert(data.message || 'Error processing refund');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing refund');
+    }
+}
+
+// Submit VAT toggle
+async function submitVatToggle() {
+    const currentStatus = {{ $booking->vat_enabled ? 'true' : 'false' }};
+    const action = currentStatus ? 'disable' : 'enable';
+    
+    if (!confirm(`Are you sure you want to ${action} VAT for this booking?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/bookings/{{ $booking->id }}/update-vat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                vat_enabled: !currentStatus
+            })
+        });
+
+        if (response.ok) {
+            alert(`VAT ${action}d successfully!`);
+            location.reload();
+        } else {
+            alert('Error updating VAT');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error updating VAT');
     }
 }
 </script>

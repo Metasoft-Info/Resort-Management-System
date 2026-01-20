@@ -45,6 +45,11 @@ class Booking extends Model
         return $this->hasMany(AdditionalGuest::class);
     }
 
+    public function foodPackage()
+    {
+        return $this->belongsTo(FoodPackage::class, 'food_package_id');
+    }
+
     public function payments()
     {
         return $this->hasMany(BookingPayment::class)->orderBy('created_at', 'desc');

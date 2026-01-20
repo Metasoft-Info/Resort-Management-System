@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ConventionPayment extends Model
 {
     protected $fillable = [
-        'convention_booking_id', 'amount', 'payment_method', 'payment_date', 'notes', 'received_by_id',
+        'convention_booking_id', 'amount', 'payment_method', 'method', 'payment_date', 'notes', 'note', 'received_by_id',
     ];
 
     protected function casts(): array
