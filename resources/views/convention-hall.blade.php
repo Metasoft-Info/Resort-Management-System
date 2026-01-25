@@ -102,13 +102,13 @@
                         </div>
                     </div>
                     
-                    <!-- CTA Button -->
+                    <!-- Contact Info -->
                     <div class="text-center pt-6 border-t">
-                        <a href="{{ route('login') }}" class="inline-flex items-center px-10 py-5 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-2xl hover:from-primary-700 hover:to-accent-700 transition font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
-                            <i class="fas fa-calendar-check mr-3 text-2xl"></i>
-                            Book This Venue Now
-                            <i class="fas fa-arrow-right ml-3"></i>
-                        </a>
+                        <p class="text-gray-600 text-lg mb-4"><i class="fas fa-info-circle mr-2 text-primary-500"></i>বুকিং এর জন্য অ্যাডমিন প্যানেলে যোগাযোগ করুন</p>
+                        <div class="inline-flex items-center px-10 py-5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-2xl font-bold text-lg">
+                            <i class="fas fa-phone-alt mr-3 text-2xl text-primary-600"></i>
+                            {{ $resortInfo->phone ?? 'Contact Admin' }}
+                        </div>
                     </div>
                 </div>
             </div>

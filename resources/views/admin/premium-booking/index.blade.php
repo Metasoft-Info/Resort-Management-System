@@ -269,8 +269,8 @@
                                 class="w-full px-4 py-3 border-2 border-green-600 rounded-lg bg-white font-bold text-green-600 text-lg">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment (৳) *</label>
-                            <input type="number" id="advance_payment" step="0.01" required oninput="calculateRemaining()"
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment (৳)</label>
+                            <input type="number" id="advance_payment" step="0.01" value="0" oninput="calculateRemaining()"
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>

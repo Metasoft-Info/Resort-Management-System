@@ -1,14 +1,17 @@
 @extends('layouts.admin')
 @section('content')
-<div class="p-6 max-w-7xl mx-auto">
+<div class="p-6 max-w-7xl mx-auto print:p-0">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 mb-6 text-white">
+    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 mb-6 text-white print:hidden">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold mb-2">কনভেনশন বুকিং #{{ $booking->id }}</h1>
                 <p class="text-purple-50">সম্পূর্ণ বুকিং বিবরণ ও ম্যানেজমেন্ট</p>
             </div>
             <div class="flex gap-3">
+                <button onclick="window.print()" class="px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition">
+                    <i class="fas fa-print mr-2"></i>ইনভয়েস প্রিন্ট
+                </button>
                 <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-6 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 transition">
                     <i class="fas fa-edit mr-2"></i>এডিট
                 </a>
@@ -307,5 +310,8 @@
             @endif
         </div>
     </div>
+
+    <!-- Print Invoice Template -->
+    @include('admin.convention-bookings.invoice-template')
 </div>
 @endsection

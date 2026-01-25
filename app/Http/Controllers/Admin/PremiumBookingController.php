@@ -60,6 +60,12 @@ class PremiumBookingController extends Controller
     public function book(Request $request)
     {
         try {
+            // Parse additional_guests if it's a JSON string
+            $additionalGuestsRaw = $request->input('additional_guests');
+            if (is_string($additionalGuestsRaw) && !empty($additionalGuestsRaw)) {
+                $request->merge(['additional_guests' => json_decode($additionalGuestsRaw, true)]);
+            }
+
             $validated = $request->validate([
                 'room_id' => 'required|exists:rooms,id',
                 'check_in_date' => 'required|date',
@@ -87,17 +93,17 @@ class PremiumBookingController extends Controller
                 'discount_amount' => 'nullable|numeric',
                 'extra_charges' => 'nullable|numeric',
                 'extra_charges_description' => 'nullable|string',
-                'advance_payment' => 'required|numeric|min:0',
-                'remaining_payment' => 'required|numeric',
+                'advance_payment' => 'nullable|numeric|min:0',
+                'remaining_payment' => 'nullable|numeric',
                 'payment_method' => 'required|in:cash,card,mfs',
                 'customer_photo' => 'nullable|image|max:2048',
                 'customer_nid_document' => 'nullable|file|max:2048',
                 'passport_document' => 'nullable|file|max:2048',
                 'visiting_card' => 'nullable|image|max:2048',
                 'additional_guests' => 'nullable|array',
-                'additional_guests.*.name' => 'required_with:additional_guests|string',
-                'additional_guests.*.nid' => 'required_with:additional_guests|string',
-                'additional_guests.*.phone' => 'required_with:additional_guests|string',
+                'additional_guests.*.name' => 'nullable|string',
+                'additional_guests.*.nid' => 'nullable|string',
+                'additional_guests.*.phone' => 'nullable|string',
             ]);
 
             // Handle file uploads
@@ -114,8 +120,13 @@ class PremiumBookingController extends Controller
                 $validated['visiting_card'] = $request->file('visiting_card')->store('bookings', 'public');
             }
 
+            // Set default values for advance/remaining
+            $validated['advance_payment'] = $validated['advance_payment'] ?? 0;
+            $validated['remaining_payment'] = $validated['remaining_payment'] ?? $validated['total_amount'];
+
             // Set payment status
-            $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
+            $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 
+                                           ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
             $validated['created_by_id'] = Auth::id();
 
             // Extract additional guests data before creating booking

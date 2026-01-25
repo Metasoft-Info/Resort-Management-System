@@ -18,6 +18,9 @@
         <thead class="bg-gradient-to-r from-primary-50 to-accent-50">
             <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    <i class="fas fa-image mr-2 text-primary-600"></i>Image
+                </th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     <i class="fas fa-hashtag mr-2 text-primary-600"></i>Room #
                 </th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -43,6 +46,24 @@
         <tbody class="divide-y divide-gray-100">
             @forelse($rooms as $room)
                 <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4">
+                        @php
+                            $images = $room->images;
+                            $firstImage = is_array($images) && count($images) > 0 ? $images[0] : null;
+                        @endphp
+                        @if($firstImage)
+                            <div class="relative">
+                                <img src="{{ asset('storage/' . $firstImage) }}" alt="{{ $room->name }}" class="w-16 h-16 object-cover rounded-lg shadow">
+                                @if(count($images) > 1)
+                                    <span class="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">+{{ count($images) - 1 }}</span>
+                                @endif
+                            </div>
+                        @else
+                            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-image text-gray-400"></i>
+                            </div>
+                        @endif
+                    </td>
                     <td class="px-6 py-4 font-bold text-primary-600">{{ $room->room_number }}</td>
                     <td class="px-6 py-4 font-semibold text-gray-800">{{ $room->name }}</td>
                     <td class="px-6 py-4">
@@ -88,7 +109,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">No rooms found</td>
+                    <td colspan="8" class="px-6 py-4 text-center text-gray-500">No rooms found</td>
                 </tr>
             @endforelse
         </tbody>

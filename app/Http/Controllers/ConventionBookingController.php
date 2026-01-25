@@ -273,7 +273,8 @@ class ConventionBookingController extends Controller
                 'amount' => $booking->advance_payment,
                 'payment_method' => $validated['payment_method'],
                 'payment_date' => now(),
-                'notes' => 'Initial advance payment'
+                'notes' => 'Initial advance payment',
+                'received_by_id' => auth()->id()
             ]);
         }
 

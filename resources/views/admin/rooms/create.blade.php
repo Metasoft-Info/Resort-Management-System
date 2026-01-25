@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="max-w-4xl">
-    <form action="{{ route('admin.rooms.store') }}" method="POST" class="bg-white rounded-2xl shadow-xl p-8">
+    <form action="{{ route('admin.rooms.store') }}" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-xl p-8">
         @csrf
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -81,6 +81,21 @@
             </select>
         </div>
 
+        <!-- Room Images Upload -->
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2">
+                <i class="fas fa-images mr-2 text-primary-600"></i>Room Images (Multiple)
+            </label>
+            <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary-500 transition"
+                onclick="document.getElementById('images').click()">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                <p class="text-gray-600">Click to select room images or drag and drop</p>
+                <p class="text-sm text-gray-400 mt-1">Supports: JPG, PNG, GIF (Max 2MB each)</p>
+            </div>
+            <input type="file" name="images[]" id="images" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
+            <div id="image-preview" class="grid grid-cols-4 gap-4 mt-4"></div>
+        </div>
+
         <div class="flex gap-4">
             <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700">
                 Create Room
@@ -91,4 +106,27 @@
         </div>
     </form>
 </div>
+
+<script>
+function previewImages(input) {
+    const preview = document.getElementById('image-preview');
+    preview.innerHTML = '';
+    
+    if (input.files) {
+        Array.from(input.files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="w-full h-24 object-cover rounded-lg border-2 border-gray-200">
+                    <span class="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-1 rounded">${index + 1}</span>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+}
+</script>
 @endsection

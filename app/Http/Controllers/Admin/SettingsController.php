@@ -80,6 +80,8 @@ class SettingsController extends Controller {
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+        $validated['order'] = $validated['display_order'];
+        unset($validated['display_order']);
         NavbarLink::create($validated);
 
         return back()->with('success', 'Navbar link added!');
@@ -112,6 +114,8 @@ class SettingsController extends Controller {
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+        $validated['order'] = $validated['display_order'];
+        unset($validated['display_order']);
         FooterSection::create($validated);
 
         return back()->with('success', 'Footer section added!');
@@ -138,14 +142,16 @@ class SettingsController extends Controller {
 
     public function storeFooterLink(Request $request) {
         $validated = $request->validate([
-            'section_id' => 'required|exists:footer_sections,id',
+            'footer_section_id' => 'required|exists:footer_sections,id',
             'label' => 'required|string|max:100',
             'url' => 'required|string|max:255',
-            'display_order' => 'required|integer',
+            'display_order' => 'nullable|integer',
             'is_active' => 'boolean',
         ]);
 
-        $validated['is_active'] = $request->has('is_active');
+        $validated['is_active'] = $request->has('is_active') || true;
+        $validated['order'] = $validated['display_order'] ?? 1;
+        unset($validated['display_order']);
         FooterLink::create($validated);
 
         return back()->with('success', 'Footer link added!');
