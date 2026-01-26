@@ -2,7 +2,7 @@
 @section('content')
 <div class="p-6 space-y-6">
     <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Premium Room Booking</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Room Booking</h1>
         <p class="text-gray-600 mt-2">Complete booking system with guest search and availability check</p>
     </div>
 
@@ -313,7 +313,7 @@ let nights = 0;
 async function searchCustomer() {
     const phone = document.getElementById('searchPhone').value.trim();
     if (!phone) {
-        alert('Please enter a phone number');
+        showGlobalModal('warning', 'অনুগ্রহ করে ফোন নম্বর লিখুন!');
         return;
     }
 
@@ -502,13 +502,13 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         const result = await response.json();
         
         if (result.success) {
-            alert('Booking created successfully!');
-            window.location.href = '{{ route("admin.bookings.index") }}';
+            showGlobalModal('success', 'বুকিং সফল হয়েছে!');
+            setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
         } else {
-            alert('Error: ' + (result.message || 'Booking failed'));
+            showGlobalModal('error', 'Error: ' + (result.message || 'বুকিং ব্যর্থ হয়েছে!'));
         }
     } catch (error) {
-        alert('Error creating booking: ' + error.message);
+        showGlobalModal('error', 'বুকিং তৈরি করতে সমস্যা হয়েছে: ' + error.message);
     }
 });
 

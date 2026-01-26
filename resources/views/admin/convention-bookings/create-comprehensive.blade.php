@@ -71,10 +71,9 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-2">সময় স্লট *</label>
                     <select name="time_slot" id="time_slot" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="updateHallRent()">
                         <option value="">সময় নির্বাচন করুন</option>
-                        <option value="morning">সকাল (৮টা - ১২টা)</option>
-                        <option value="afternoon">দুপুর (১২টা - ৫টা)</option>
-                        <option value="evening">সন্ধ্যা (৫টা - ১০টা)</option>
-                        <option value="fullday">সারাদিন</option>
+                        <option value="morning">সকাল (৮টা - ২টা)</option>
+                        <option value="night">রাত (৬টা - ১১টা)</option>
+                        <option value="full_day">সারাদিন (৮টা - ১১টা)</option>
                     </select>
                 </div>
                 <div>

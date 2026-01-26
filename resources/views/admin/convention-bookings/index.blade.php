@@ -90,7 +90,7 @@
                             <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-xs font-semibold inline-flex items-center">
                                 <i class="fas fa-edit mr-1"></i>Edit
                             </a>
-                            <form action="{{ route('admin.convention-bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirm('Delete booking #{{ $booking->id }}?')">
+                            <form action="{{ route('admin.convention-bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirmDelete(this, 'বুকিং #{{ $booking->id }} মুছে ফেলতে চান?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs font-semibold inline-flex items-center">

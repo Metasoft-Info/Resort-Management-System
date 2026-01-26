@@ -7,6 +7,7 @@ use App\Models\ConventionHall;
 use App\Models\ConventionPayment;
 use App\Models\FoodPackage;
 use App\Models\AddonService;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -119,10 +120,10 @@ class ConventionBookingController extends Controller
             ->where('status', '!=', 'cancelled')
             ->where(function($query) use ($timeSlot) {
                 // Full day bookings always conflict
-                $query->where('time_slot', 'fullday')
+                $query->where('time_slot', 'full_day')
                       ->orWhere(function($q) use ($timeSlot) {
-                          if ($timeSlot === 'fullday') {
-                              $q->whereIn('time_slot', ['morning', 'afternoon', 'evening', 'fullday']);
+                          if ($timeSlot === 'full_day') {
+                              $q->whereIn('time_slot', ['morning', 'night', 'full_day']);
                           } else {
                               $q->where('time_slot', $timeSlot);
                           }
@@ -153,10 +154,10 @@ class ConventionBookingController extends Controller
         $bookedHallIds = ConventionBooking::whereDate('event_date', $eventDate)
             ->where('status', '!=', 'cancelled')
             ->where(function($query) use ($timeSlot) {
-                $query->where('time_slot', 'fullday')
+                $query->where('time_slot', 'full_day')
                       ->orWhere(function($q) use ($timeSlot) {
-                          if ($timeSlot === 'fullday') {
-                              $q->whereIn('time_slot', ['morning', 'afternoon', 'evening', 'fullday']);
+                          if ($timeSlot === 'full_day') {
+                              $q->whereIn('time_slot', ['morning', 'night', 'full_day']);
                           } else {
                               $q->where('time_slot', $timeSlot);
                           }
@@ -180,7 +181,7 @@ class ConventionBookingController extends Controller
     {
         $halls = ConventionHall::all();
         $foodPackages = FoodPackage::where('is_active', true)->get();
-        $addonServices = AddonService::where('is_active', true)->orderBy('category')->orderBy('name')->get();
+        $addonServices = AddonService::forConvention()->active()->orderBy('category')->orderBy('name')->get();
         return view('admin.convention-bookings.create', compact('halls', 'foodPackages', 'addonServices'));
     }
 
@@ -229,7 +230,7 @@ class ConventionBookingController extends Controller
             'customer_address' => 'nullable|string',
             'organization_name' => 'nullable|string|max:255',
             'event_date' => 'required|date',
-            'time_slot' => 'required|in:morning,afternoon,evening,fullday',
+            'time_slot' => 'required|in:morning,night,full_day',
             'event_type' => 'required|string|max:255',
             'number_of_guests' => 'required|integer|min:1',
             'selected_food_package_id' => 'nullable|exists:food_packages,id',
@@ -265,6 +266,13 @@ class ConventionBookingController extends Controller
         $validated['status'] = $request->status ?? 'confirmed';
 
         $booking = ConventionBooking::create($validated);
+        
+        ActivityLog::log('Created convention booking', 'ConventionBooking', $booking->id, [
+            'customer_name' => $booking->customer_name,
+            'hall_id' => $booking->convention_hall_id,
+            'event_date' => $booking->event_date,
+            'total_amount' => $booking->grand_total
+        ]);
 
         // Add advance payment if provided
         if ($booking->advance_payment > 0) {
@@ -293,7 +301,7 @@ class ConventionBookingController extends Controller
     {
         $halls = ConventionHall::all();
         $foodPackages = FoodPackage::all();
-        $addonServices = AddonService::all();
+        $addonServices = AddonService::forConvention()->get();
         return view('admin.convention-bookings.edit', compact('conventionBooking', 'halls', 'foodPackages', 'addonServices'));
     }
 
@@ -309,7 +317,7 @@ class ConventionBookingController extends Controller
             'customer_address' => 'nullable|string',
             'organization_name' => 'nullable|string|max:255',
             'event_date' => 'required|date',
-            'time_slot' => 'required|in:morning,afternoon,evening,fullday',
+            'time_slot' => 'required|in:morning,night,full_day',
             'event_type' => 'required|string|max:255',
             'number_of_guests' => 'required|integer|min:1',
             'selected_food_package_id' => 'nullable|exists:food_packages,id',

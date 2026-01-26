@@ -14,14 +14,33 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $today = Carbon::today();
+        
+        // Get rooms that are currently occupied (have active bookings for today)
+        $occupiedRoomIds = Booking::whereIn('status', ['confirmed', 'checked_in'])
+            ->where('check_in_date', '<=', $today)
+            ->where('check_out_date', '>', $today)
+            ->pluck('room_id')
+            ->toArray();
+        
+        $totalRooms = Room::count();
+        $availableRoomsCount = Room::whereNotIn('id', $occupiedRoomIds)->count();
+        
+        // Calculate total revenue including convention bookings
+        $roomRevenue = Booking::where('status', '!=', 'cancelled')->sum('total_amount');
+        $conventionRevenue = ConventionBooking::where('status', '!=', 'cancelled')->sum('total_amount');
+        $totalRevenue = $roomRevenue + $conventionRevenue;
+        
         $stats = [
             'total_bookings' => Booking::count(),
             'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])->count(),
-            'total_rooms' => Room::count(),
-            'available_rooms' => Room::where('status', 'available')->count(),
+            'total_rooms' => $totalRooms,
+            'available_rooms' => $availableRoomsCount,
             'convention_bookings' => ConventionBooking::count(),
-            'today_checkins' => Booking::whereDate('check_in_date', today())->count(),
-            'total_revenue' => Booking::where('status', '!=', 'cancelled')->sum('total_amount'),
+            'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
+            'total_revenue' => $totalRevenue,
+            'room_revenue' => $roomRevenue,
+            'convention_revenue' => $conventionRevenue,
         ];
 
         $recentBookings = Booking::with('room')->latest()->take(10)->get();

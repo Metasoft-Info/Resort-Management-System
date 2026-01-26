@@ -6,16 +6,25 @@ use App\Models\ResortInfo;
 use App\Models\NavbarLink;
 use App\Models\FooterSection;
 use App\Models\FooterLink;
+use App\Models\AdminMenuSetting;
+use App\Models\Booking;
+use App\Models\BookingPayment;
+use App\Models\AdditionalGuest;
+use App\Models\ConventionBooking;
+use App\Models\ConventionPayment;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class SettingsController extends Controller {
     public function index() {
         $resortInfo = ResortInfo::first() ?? new ResortInfo();
         $navbarLinks = NavbarLink::orderBy('order')->get();
         $footerSections = FooterSection::with('links')->orderBy('order')->get();
+        $menuSettings = AdminMenuSetting::orderBy('order')->get()->groupBy('group_name');
         
-        return view('admin.settings', compact('resortInfo', 'navbarLinks', 'footerSections'));
+        return view('admin.settings', compact('resortInfo', 'navbarLinks', 'footerSections', 'menuSettings'));
     }
 
     public function updateResortInfo(Request $request) {
@@ -175,5 +184,137 @@ class SettingsController extends Controller {
     public function destroyFooterLink(FooterLink $footerLink) {
         $footerLink->delete();
         return back()->with('success', 'Footer link deleted!');
+    }
+
+    // Logo Management
+    public function updateLogos(Request $request) {
+        $request->validate([
+            'header_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'footer_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'favicon' => 'nullable|image|mimes:ico,png,jpg,gif,svg|max:512',
+            'admin_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+        ]);
+
+        $resortInfo = ResortInfo::first() ?? ResortInfo::create([
+            'resort_name' => 'Tufan Resort',
+            'phone' => '',
+            'email' => '',
+        ]);
+
+        foreach (['header_logo', 'footer_logo', 'favicon', 'admin_logo'] as $logoType) {
+            if ($request->hasFile($logoType)) {
+                // Delete old logo if exists
+                if ($resortInfo->$logoType) {
+                    Storage::disk('public')->delete($resortInfo->$logoType);
+                }
+                
+                $path = $request->file($logoType)->store('logos', 'public');
+                $resortInfo->$logoType = $path;
+            }
+        }
+
+        $resortInfo->save();
+        return back()->with('success', 'লোগো সফলভাবে আপডেট হয়েছে!');
+    }
+
+    public function deleteLogo(Request $request, $type) {
+        $resortInfo = ResortInfo::first();
+        
+        if ($resortInfo && in_array($type, ['header_logo', 'footer_logo', 'favicon', 'admin_logo'])) {
+            if ($resortInfo->$type) {
+                Storage::disk('public')->delete($resortInfo->$type);
+                $resortInfo->$type = null;
+                $resortInfo->save();
+            }
+        }
+
+        return back()->with('success', 'লোগো মুছে ফেলা হয়েছে!');
+    }
+
+    // Admin Menu Settings
+    public function updateMenuSettings(Request $request) {
+        $activeMenus = $request->input('active_menus', []);
+        
+        AdminMenuSetting::query()->update(['is_active' => false]);
+        AdminMenuSetting::whereIn('menu_key', $activeMenus)->update(['is_active' => true]);
+        
+        // System menus are always active
+        AdminMenuSetting::where('is_system', true)->update(['is_active' => true]);
+
+        return back()->with('success', 'মেনু সেটিংস আপডেট হয়েছে!');
+    }
+
+    public function seedMenus() {
+        AdminMenuSetting::seedDefaultMenus();
+        return back()->with('success', 'ডিফল্ট মেনু লোড হয়েছে!');
+    }
+
+    // Reset Room Bookings Only
+    public function resetRoomBookings(Request $request) {
+        $request->validate(['confirm' => 'required|in:RESET']);
+        
+        DB::beginTransaction();
+        try {
+            BookingPayment::truncate();
+            AdditionalGuest::truncate();
+            Booking::truncate();
+            
+            ActivityLog::log('Reset room bookings', 'System', null, ['action' => 'room_booking_reset']);
+            
+            DB::commit();
+            return back()->with('success', 'All room bookings have been reset successfully!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Failed to reset bookings: ' . $e->getMessage());
+        }
+    }
+
+    // Reset Convention Bookings Only
+    public function resetConventionBookings(Request $request) {
+        $request->validate(['confirm' => 'required|in:RESET']);
+        
+        DB::beginTransaction();
+        try {
+            ConventionPayment::truncate();
+            ConventionBooking::truncate();
+            
+            ActivityLog::log('Reset convention bookings', 'System', null, ['action' => 'convention_booking_reset']);
+            
+            DB::commit();
+            return back()->with('success', 'All convention bookings have been reset successfully!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Failed to reset bookings: ' . $e->getMessage());
+        }
+    }
+
+    // Reset All Bookings
+    public function resetAllBookings(Request $request) {
+        $request->validate(['confirm' => 'required|in:RESET']);
+        
+        DB::beginTransaction();
+        try {
+            BookingPayment::truncate();
+            AdditionalGuest::truncate();
+            Booking::truncate();
+            ConventionPayment::truncate();
+            ConventionBooking::truncate();
+            
+            ActivityLog::log('Reset all bookings', 'System', null, ['action' => 'all_booking_reset']);
+            
+            DB::commit();
+            return back()->with('success', 'All bookings have been reset successfully!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Failed to reset bookings: ' . $e->getMessage());
+        }
+    }
+
+    // Clear Activity Logs
+    public function clearActivityLogs(Request $request) {
+        $request->validate(['confirm' => 'required|in:CLEAR']);
+        
+        ActivityLog::truncate();
+        return back()->with('success', 'Activity logs cleared successfully!');
     }
 }

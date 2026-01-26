@@ -26,7 +26,7 @@
                     <td class="px-6 py-4 text-right">
                         <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-600 hover:text-blue-800 mr-3"><i class="fas fa-edit"></i></a>
                         @if($user->id != auth()->id())
-                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline">@csrf @method('DELETE')<button type="submit" onclick="return confirm('আপনি কি নিশ্চিত?')" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button></form>
+                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline">@csrf @method('DELETE')<button type="submit" onclick="event.preventDefault(); confirmDelete(this.form, 'আপনি কি নিশ্চিত?')" class="text-red-600 hover:text-red-800"><i class="fas fa-trash"></i></button></form>
                         @endif
                     </td>
                 </tr>

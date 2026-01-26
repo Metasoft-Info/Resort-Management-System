@@ -27,10 +27,9 @@
                     <label class="block text-gray-700 font-semibold mb-2">সময় স্লট *</label>
                     <select name="time_slot" required
                         class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
-                        <option value="morning" {{ $conventionBooking->time_slot == 'morning' ? 'selected' : '' }}>🌅 সকাল</option>
-                        <option value="afternoon" {{ $conventionBooking->time_slot == 'afternoon' ? 'selected' : '' }}>☀️ দুপুর</option>
-                        <option value="evening" {{ $conventionBooking->time_slot == 'evening' ? 'selected' : '' }}>🌙 সন্ধ্যা</option>
-                        <option value="fullday" {{ $conventionBooking->time_slot == 'fullday' ? 'selected' : '' }}>🌞 সারাদিন</option>
+                        <option value="morning" {{ $conventionBooking->time_slot == 'morning' ? 'selected' : '' }}>🌅 সকাল (৮টা - ২টা)</option>
+                        <option value="night" {{ $conventionBooking->time_slot == 'night' ? 'selected' : '' }}>🌙 রাত (৬টা - ১১টা)</option>
+                        <option value="full_day" {{ $conventionBooking->time_slot == 'full_day' ? 'selected' : '' }}>🌞 সারাদিন (৮টা - ১১টা)</option>
                     </select>
                 </div>
                 <div>

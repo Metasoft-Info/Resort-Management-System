@@ -29,7 +29,14 @@
                 <div class="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all transform hover:-translate-y-2">
                     <!-- Room Image/Gradient -->
                     <div class="relative h-64 bg-gradient-to-br from-primary-400 via-accent-400 to-pink-400 overflow-hidden">
-                        <div class="absolute inset-0 opacity-20" style="background-image: url('data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+                        @if($room->images && count($room->images) > 0)
+                            <img src="{{ asset('storage/' . $room->images[0]) }}" alt="{{ $room->name }}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        @else
+                            <div class="absolute inset-0 opacity-20" style="background-image: url('data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-bed text-6xl text-white/50"></i>
+                            </div>
+                        @endif
                         <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
                         
                         <!-- Room Type Badge -->

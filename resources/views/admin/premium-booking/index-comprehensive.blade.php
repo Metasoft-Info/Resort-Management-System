@@ -3,7 +3,7 @@
 @section('content')
 <div class="p-6">
     <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Premium Room Booking</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Room Booking</h1>
         <p class="text-gray-600 mt-2">Comprehensive booking system with guest search, room availability, and complete customer information</p>
     </div>
 
@@ -413,7 +413,7 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
         }
     } catch (error) {
         console.error('Search error:', error);
-        alert('Error searching rooms');
+        showGlobalModal('error', 'রুম খুঁজতে সমস্যা হয়েছে!');
     }
 });
 
@@ -620,22 +620,22 @@ async function submitBooking(e) {
         const data = await response.json();
         
         if (data.success) {
-            alert('Booking created successfully!');
-            window.location.href = '{{ route("admin.bookings.index") }}';
+            showGlobalModal('success', 'বুকিং সফল হয়েছে!');
+            setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
         } else {
-            alert('Error: ' + (data.message || 'Booking failed'));
+            showGlobalModal('error', 'Error: ' + (data.message || 'বুকিং ব্যর্থ হয়েছে!'));
             console.error('Validation errors:', data.errors);
         }
     } catch (error) {
         console.error('Booking error:', error);
-        alert('Error creating booking: ' + error.message);
+        showGlobalModal('error', 'বুকিং তৈরি করতে সমস্যা হয়েছে: ' + error.message);
     }
 }
 
 function resetAll() {
-    if (confirm('Are you sure you want to reset all fields?')) {
+    showConfirmModal('আপনি কি সব ফিল্ড রিসেট করতে চান?', function() {
         location.reload();
-    }
+    });
 }
 
 // Initialize discount type change

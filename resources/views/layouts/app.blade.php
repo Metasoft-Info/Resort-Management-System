@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Tufan Resort') - Lake View Resort & Convention Center</title>
+    @php $siteInfo = \App\Models\ResortInfo::first(); @endphp
+    <title>@yield('title', $siteInfo->resort_name ?? 'Tufan Resort') - Lake View Resort & Convention Center</title>
+    @if($siteInfo && $siteInfo->favicon)
+        <link rel="icon" type="image/jpeg" href="{{ asset('storage/' . $siteInfo->favicon) }}">
+        <link rel="shortcut icon" type="image/jpeg" href="{{ asset('storage/' . $siteInfo->favicon) }}">
+    @else
+        <link rel="icon" type="image/jpeg" href="{{ asset('images/favicon.jpg') }}">
+        <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/favicon.jpg') }}">
+    @endif
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -65,12 +73,16 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-3 sm:py-4">
                 <div class="flex items-center space-x-3">
-                    <div class="text-3xl sm:text-4xl">🏞️</div>
+                    @if($siteInfo->header_logo ?? null)
+                        <img src="{{ asset('storage/' . $siteInfo->header_logo) }}" alt="{{ $siteInfo->resort_name ?? 'Logo' }}" class="h-10 sm:h-12 w-auto">
+                    @else
+                        <div class="text-3xl sm:text-4xl">🏞️</div>
+                    @endif
                     <div>
                         <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-                            {{ $resortInfo->resort_name ?? 'Tufan Resort' }}
+                            {{ $siteInfo->resort_name ?? 'Tufan Resort' }}
                         </h1>
-                        <p class="text-xs text-gray-500 hidden sm:block">{{ $resortInfo->resort_tagline ?? 'তুফান রিসোর্ট' }}</p>
+                        <p class="text-xs text-gray-500 hidden sm:block">{{ $siteInfo->resort_tagline ?? 'তুফান রিসোর্ট' }}</p>
                     </div>
                 </div>
                 <div class="hidden md:flex items-center space-x-1">
@@ -105,25 +117,29 @@
             <div class="grid md:grid-cols-3 gap-8 lg:gap-12">
                 <div>
                     <div class="flex items-center space-x-3 mb-4">
-                        <div class="text-4xl">🏞️</div>
-                        <h3 class="text-2xl font-bold">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h3>
+                        @if($siteInfo->footer_logo ?? null)
+                            <img src="{{ asset('storage/' . $siteInfo->footer_logo) }}" alt="{{ $siteInfo->resort_name ?? 'Logo' }}" class="h-12 w-auto">
+                        @else
+                            <div class="text-4xl">🏞️</div>
+                        @endif
+                        <h3 class="text-2xl font-bold">{{ $siteInfo->resort_name ?? 'Tufan Resort' }}</h3>
                     </div>
                     <p class="text-gray-300 leading-relaxed mb-4">
-                        {{ $resortInfo->footer_description ?? 'Premium accommodation and event hosting services. Experience luxury and tranquility by the lake.' }}
+                        {{ $siteInfo->footer_description ?? 'Luxury accommodation and event hosting services. Experience comfort and tranquility by the lake.' }}
                     </p>
                     <div class="flex space-x-3">
-                        @if($resortInfo && isset($resortInfo->social_links['facebook']))
-                        <a href="{{ $resortInfo->social_links['facebook'] }}" target="_blank" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition">
+                        @if($siteInfo && isset($siteInfo->social_links['facebook']))
+                        <a href="{{ $siteInfo->social_links['facebook'] }}" target="_blank" class="w-10 h-10 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center transition">
                             <i class="fab fa-facebook-f"></i>
                         </a>
                         @endif
-                        @if($resortInfo && isset($resortInfo->social_links['instagram']))
-                        <a href="{{ $resortInfo->social_links['instagram'] }}" target="_blank" class="w-10 h-10 bg-accent-600 hover:bg-accent-700 rounded-full flex items-center justify-center transition">
+                        @if($siteInfo && isset($siteInfo->social_links['instagram']))
+                        <a href="{{ $siteInfo->social_links['instagram'] }}" target="_blank" class="w-10 h-10 bg-accent-600 hover:bg-accent-700 rounded-full flex items-center justify-center transition">
                             <i class="fab fa-instagram"></i>
                         </a>
                         @endif
-                        @if($resortInfo && isset($resortInfo->social_links['twitter']))
-                        <a href="{{ $resortInfo->social_links['twitter'] }}" target="_blank" class="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition">
+                        @if($siteInfo && isset($siteInfo->social_links['twitter']))
+                        <a href="{{ $siteInfo->social_links['twitter'] }}" target="_blank" class="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center transition">
                             <i class="fab fa-twitter"></i>
                         </a>
                         @endif
@@ -143,9 +159,6 @@
                         <li><a href="{{ route('about') }}" class="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition">
                             <i class="fas fa-chevron-right mr-2 text-xs text-primary-400"></i>About Us
                         </a></li>
-                        <li><a href="{{ route('login') }}" class="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition">
-                            <i class="fas fa-chevron-right mr-2 text-xs text-primary-400"></i>Admin Panel
-                        </a></li>
                     </ul>
                 </div>
                 <div>
@@ -153,22 +166,22 @@
                         <i class="fas fa-phone mr-2 text-primary-400"></i>Contact
                     </h3>
                     <ul class="space-y-3 text-gray-300">
-                        @if($resortInfo && $resortInfo->email)
+                        @if($siteInfo && $siteInfo->email)
                         <li class="flex items-start">
                             <i class="fas fa-envelope mt-1 mr-3 text-primary-400"></i>
-                            <span>{{ $resortInfo->email }}</span>
+                            <span>{{ $siteInfo->email }}</span>
                         </li>
                         @endif
-                        @if($resortInfo && $resortInfo->phone)
+                        @if($siteInfo && $siteInfo->phone)
                         <li class="flex items-start">
                             <i class="fas fa-phone-alt mt-1 mr-3 text-primary-400"></i>
-                            <span>{{ $resortInfo->phone }}</span>
+                            <span>{{ $siteInfo->phone }}</span>
                         </li>
                         @endif
-                        @if($resortInfo && $resortInfo->address)
+                        @if($siteInfo && $siteInfo->address)
                         <li class="flex items-start">
                             <i class="fas fa-map-marker-alt mt-1 mr-3 text-primary-400"></i>
-                            <span>{!! nl2br(e($resortInfo->address)) !!}</span>
+                            <span>{!! nl2br(e($siteInfo->address)) !!}</span>
                         </li>
                         @endif
                     </ul>
@@ -176,7 +189,7 @@
             </div>
             <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center">
                 <p class="text-gray-400 text-sm mb-4 sm:mb-0">
-                    {{ $resortInfo->copyright_text ?? '&copy; ' . date('Y') . ' Tufan Resort. All rights reserved.' }}
+                    {{ $siteInfo->copyright_text ?? '&copy; ' . date('Y') . ' Tufan Resort. All rights reserved.' }}
                 </p>
                 <p class="text-gray-500 text-sm">
                     Developed with <i class="fas fa-heart text-red-500"></i> by Mir Javed Jeetu
@@ -184,5 +197,105 @@
             </div>
         </div>
     </footer>
+
+    <!-- Global Modal for Success/Error Messages -->
+    <div id="globalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[9999] transition-opacity duration-300">
+        <div id="modalContent" class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0">
+            <!-- Success Modal Content -->
+            <div id="successModal" class="hidden text-center">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                    <i class="fas fa-check-circle text-green-500 text-5xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-3">সফল!</h3>
+                <p id="successMessage" class="text-gray-600 mb-6 text-lg"></p>
+                <button onclick="closeGlobalModal()" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition shadow-lg">
+                    <i class="fas fa-thumbs-up mr-2"></i>ঠিক আছে
+                </button>
+            </div>
+            
+            <!-- Error Modal Content -->
+            <div id="errorModal" class="hidden text-center">
+                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                    <i class="fas fa-times-circle text-red-500 text-5xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-3">ত্রুটি!</h3>
+                <p id="errorMessage" class="text-gray-600 mb-6 text-lg"></p>
+                <button onclick="closeGlobalModal()" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition shadow-lg">
+                    <i class="fas fa-times mr-2"></i>বন্ধ করুন
+                </button>
+            </div>
+            
+            <!-- Info Modal Content -->
+            <div id="infoModal" class="hidden text-center">
+                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-info-circle text-blue-500 text-5xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-3">তথ্য</h3>
+                <p id="infoMessage" class="text-gray-600 mb-6 text-lg"></p>
+                <button onclick="closeGlobalModal()" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition shadow-lg">
+                    <i class="fas fa-check mr-2"></i>ঠিক আছে
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showGlobalModal(type, message) {
+            const modal = document.getElementById('globalModal');
+            const content = document.getElementById('modalContent');
+            
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('errorModal').classList.add('hidden');
+            document.getElementById('infoModal').classList.add('hidden');
+            
+            if (type === 'success') {
+                document.getElementById('successModal').classList.remove('hidden');
+                document.getElementById('successMessage').textContent = message;
+            } else if (type === 'error') {
+                document.getElementById('errorModal').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = message;
+            } else if (type === 'info') {
+                document.getElementById('infoModal').classList.remove('hidden');
+                document.getElementById('infoMessage').textContent = message;
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeGlobalModal() {
+            const modal = document.getElementById('globalModal');
+            const content = document.getElementById('modalContent');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        document.getElementById('globalModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeGlobalModal();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeGlobalModal();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            @if(session('success'))
+                showGlobalModal('success', @json(session('success')));
+            @endif
+            @if(session('error'))
+                showGlobalModal('error', @json(session('error')));
+            @endif
+        });
+    </script>
 </body>
 </html>

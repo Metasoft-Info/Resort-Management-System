@@ -97,7 +97,7 @@
                             <a href="{{ route('admin.rooms.edit', $room) }}" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-xs font-semibold inline-flex items-center">
                                 <i class="fas fa-edit mr-1"></i>Edit
                             </a>
-                            <form action="{{ route('admin.rooms.destroy', $room) }}" method="POST" class="inline" onsubmit="return confirm('Delete room {{ $room->name }}?')">
+                            <form action="{{ route('admin.rooms.destroy', $room) }}" method="POST" class="inline" onsubmit="return confirmDelete(this, 'রুম {{ $room->name }} মুছে ফেলতে চান?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-xs font-semibold inline-flex items-center">

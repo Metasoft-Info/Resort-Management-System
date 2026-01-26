@@ -7,10 +7,21 @@ use Illuminate\Http\Request;
 
 class AddonServiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $addonServices = AddonService::orderBy('category')->orderBy('name')->get();
+        $query = AddonService::orderBy('service_type')->orderBy('category')->orderBy('name');
+        
+        if ($request->type) {
+            $query->where('service_type', $request->type);
+        }
+        
+        $addonServices = $query->paginate(20);
         return view('admin.addon-services.index', compact('addonServices'));
+    }
+
+    public function create()
+    {
+        return view('admin.addon-services.create');
     }
 
     public function store(Request $request)
@@ -18,7 +29,8 @@ class AddonServiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'required|in:decoration,sound_system,photography,catering,transport,other',
+            'category' => 'required|in:decoration,sound_system,photography,catering,transport,room_service,laundry,parking,other',
+            'service_type' => 'required|in:room,convention,both',
             'price' => 'required|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'is_active' => 'boolean',
@@ -29,7 +41,12 @@ class AddonServiceController extends Controller
         AddonService::create($validated);
 
         return redirect()->route('admin.addon-services.index')
-            ->with('success', 'Addon service created successfully!');
+            ->with('success', 'অ্যাডঅন সার্ভিস সফলভাবে যোগ হয়েছে!');
+    }
+
+    public function edit(AddonService $addonService)
+    {
+        return view('admin.addon-services.edit', compact('addonService'));
     }
 
     public function update(Request $request, AddonService $addonService)
@@ -37,7 +54,8 @@ class AddonServiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'required|in:decoration,sound_system,photography,catering,transport,other',
+            'category' => 'required|in:decoration,sound_system,photography,catering,transport,room_service,laundry,parking,other',
+            'service_type' => 'required|in:room,convention,both',
             'price' => 'required|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'is_active' => 'boolean',
@@ -48,7 +66,7 @@ class AddonServiceController extends Controller
         $addonService->update($validated);
 
         return redirect()->route('admin.addon-services.index')
-            ->with('success', 'Addon service updated successfully!');
+            ->with('success', 'অ্যাডঅন সার্ভিস সফলভাবে আপডেট হয়েছে!');
     }
 
     public function destroy(AddonService $addonService)
@@ -56,7 +74,21 @@ class AddonServiceController extends Controller
         $addonService->delete();
 
         return redirect()->route('admin.addon-services.index')
-            ->with('success', 'Addon service deleted successfully!');
+            ->with('success', 'অ্যাডঅন সার্ভিস সফলভাবে মুছে ফেলা হয়েছে!');
+    }
+
+    // API endpoint for fetching addons by type
+    public function getByType(Request $request)
+    {
+        $type = $request->type ?? 'room';
+        
+        if ($type === 'room') {
+            $addons = AddonService::forRoom()->active()->get();
+        } else {
+            $addons = AddonService::forConvention()->active()->get();
+        }
+        
+        return response()->json($addons);
     }
 }
 

@@ -96,6 +96,16 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/settings/footer-links', [SettingsController::class, 'storeFooterLink'])->name('settings.footer-links.store');
     Route::put('/settings/footer-links/{footerLink}', [SettingsController::class, 'updateFooterLink'])->name('settings.footer-links.update');
     Route::delete('/settings/footer-links/{footerLink}', [SettingsController::class, 'destroyFooterLink'])->name('settings.footer-links.destroy');
+    Route::post('/settings/logos', [SettingsController::class, 'updateLogos'])->name('settings.logos.update');
+    Route::delete('/settings/logos/{type}', [SettingsController::class, 'deleteLogo'])->name('settings.logos.delete');
+    Route::post('/settings/menus', [SettingsController::class, 'updateMenuSettings'])->name('settings.menus.update');
+    Route::post('/settings/menus/seed', [SettingsController::class, 'seedMenus'])->name('settings.menus.seed');
+    
+    // Data Reset Routes
+    Route::post('/settings/reset/room-bookings', [SettingsController::class, 'resetRoomBookings'])->name('settings.reset.room-bookings');
+    Route::post('/settings/reset/convention-bookings', [SettingsController::class, 'resetConventionBookings'])->name('settings.reset.convention-bookings');
+    Route::post('/settings/reset/all-bookings', [SettingsController::class, 'resetAllBookings'])->name('settings.reset.all-bookings');
+    Route::post('/settings/clear/activity-logs', [SettingsController::class, 'clearActivityLogs'])->name('settings.clear.activity-logs');
     
     // Users
     Route::resource('users', UserController::class);
@@ -108,6 +118,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Reports
     Route::get('/reports/room-bookings', [ReportController::class, 'roomBookings'])->name('reports.room-bookings');
+    Route::get('/reports/room-bookings/export', [ReportController::class, 'exportRoomBookings'])->name('reports.room-bookings.export');
     Route::get('/reports/convention-bookings', [ReportController::class, 'conventionBookings'])->name('reports.convention-bookings');
+    Route::get('/reports/convention-bookings/export', [ReportController::class, 'exportConventionBookings'])->name('reports.convention-bookings.export');
 });
 

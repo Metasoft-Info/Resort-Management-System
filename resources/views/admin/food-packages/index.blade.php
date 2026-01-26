@@ -62,7 +62,7 @@
                         <button onclick="editPackage({{ $package->id }})" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <form action="{{ route('admin.food-packages.destroy', $package) }}" method="POST" class="inline" onsubmit="return confirm('Delete {{ $package->name }}?')">
+                        <form action="{{ route('admin.food-packages.destroy', $package) }}" method="POST" class="inline" onsubmit="return confirmDelete(this, '{{ $package->name }} মুছে ফেলতে চান?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition">
                                 <i class="fas fa-trash"></i>

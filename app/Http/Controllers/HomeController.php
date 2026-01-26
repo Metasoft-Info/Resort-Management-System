@@ -14,8 +14,9 @@ class HomeController extends Controller
     {
         $rooms = Room::take(6)->get();
         $halls = ConventionHall::take(3)->get();
+        $heroSlides = HeroSlide::where('is_active', true)->orderBy('order')->get();
 
-        return view('home', compact('rooms', 'halls'));
+        return view('home', compact('rooms', 'halls', 'heroSlides'));
     }
 
     public function rooms()

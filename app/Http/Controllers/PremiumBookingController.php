@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\AddonService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -14,7 +15,8 @@ class PremiumBookingController extends Controller
     public function index()
     {
         $roomTypes = RoomType::all();
-        return view('admin.premium-booking.index', compact('roomTypes'));
+        $addonServices = AddonService::forRoom()->active()->orderBy('category')->get();
+        return view('admin.premium-booking.index', compact('roomTypes', 'addonServices'));
     }
 
     public function search(Request $request)

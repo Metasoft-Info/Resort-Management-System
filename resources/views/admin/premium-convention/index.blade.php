@@ -56,10 +56,9 @@
                             class="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-600"
                             onchange="checkAvailability()">
                             <option value="">সময় নির্বাচন করুন</option>
-                            <option value="morning">🌅 সকাল (৮টা - ১২টা)</option>
-                            <option value="afternoon">☀️ দুপুর (১২টা - ৫টা)</option>
-                            <option value="evening">🌙 সন্ধ্যা (৫টা - ১০টা)</option>
-                            <option value="fullday">🌞 সারাদিন</option>
+                            <option value="morning">🌅 সকাল (৮টা - ২টা)</option>
+                            <option value="night">🌙 রাত (৬টা - ১১টা)</option>
+                            <option value="full_day">🌞 সারাদিন (৮টা - ১১টা)</option>
                         </select>
                     </div>
                 </div>
@@ -382,6 +381,7 @@ async function checkAvailability() {
         });
         
         const data = await response.json();
+        console.log('Search response:', data); // Debug log
         const container = document.getElementById('hallsList');
         container.innerHTML = '';
         
@@ -389,14 +389,30 @@ async function checkAvailability() {
             container.innerHTML = '<div class="col-span-2 bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center"><p class="text-red-800 font-semibold">❌ এই তারিখ ও সময়ের জন্য কোনো হল উপলব্ধ নেই</p></div>';
         } else {
             data.availableHalls.forEach(hall => {
+                console.log('Hall data:', hall); // Debug log
+                const images = hall.images || [];
+                const firstImage = images.length > 0 ? images[0] : null;
+                const hallCapacity = hall.capacity || hall.max_capacity || 0;
+                const imageHtml = firstImage 
+                    ? `<div class="relative h-40 bg-gray-100 overflow-hidden">
+                        <img src="/storage/${firstImage}" alt="${hall.name}" class="w-full h-full object-cover">
+                        ${images.length > 1 ? `<span class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">${images.length}টি ছবি</span>` : ''}
+                       </div>`
+                    : `<div class="h-40 bg-gradient-to-br from-purple-100 to-primary-100 flex items-center justify-center">
+                        <i class="fas fa-building text-5xl text-purple-300"></i>
+                       </div>`;
+                
                 container.innerHTML += `
-                    <div class="border-2 border-gray-300 rounded-lg p-4 cursor-pointer hover:border-purple-400 transition hall-card"
+                    <div class="relative border-2 border-gray-300 rounded-xl overflow-hidden cursor-pointer hover:border-purple-400 hover:shadow-lg transition hall-card"
                         data-hall-id="${hall.id}" data-price="${hall.price_per_day}"
                         onclick="selectHall(${hall.id}, ${hall.price_per_day}, '${slot}')">
-                        <h4 class="font-bold text-lg">${hall.name}</h4>
-                        <p class="text-sm text-gray-600">ধারণক্ষমতা: ${hall.capacity} জন</p>
-                        <p class="text-lg font-bold text-purple-600">৳${hall.price_per_day.toLocaleString()}/day</p>
-                        <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">✅ উপলব্ধ</span>
+                        ${imageHtml}
+                        <div class="p-4">
+                            <h4 class="font-bold text-lg text-gray-800">${hall.name}</h4>
+                            <p class="text-sm text-gray-600 mt-1"><i class="fas fa-users mr-1"></i>ধারণক্ষমতা: ${hallCapacity} জন</p>
+                            <p class="text-xl font-bold text-purple-600 mt-2">৳${Number(hall.price_per_day).toLocaleString()}/দিন</p>
+                            <span class="inline-block mt-3 px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">✅ উপলব্ধ</span>
+                        </div>
                     </div>
                 `;
             });

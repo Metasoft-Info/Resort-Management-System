@@ -43,7 +43,7 @@
                 <tbody>
                     @forelse($todayCheckins as $booking)
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="px-6 py-4">{{ $booking->guest_name }}</td>
+                        <td class="px-6 py-4">{{ $booking->customer_name }}</td>
                         <td class="px-6 py-4">{{ $booking->room->room_number ?? 'N/A' }}</td>
                         <td class="px-6 py-4">{{ $booking->check_out_date }}</td>
                         <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-800">{{ $booking->status }}</span></td>
@@ -65,7 +65,7 @@
                 <tbody>
                     @forelse($todayCheckouts as $booking)
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="px-6 py-4">{{ $booking->guest_name }}</td>
+                        <td class="px-6 py-4">{{ $booking->customer_name }}</td>
                         <td class="px-6 py-4">{{ $booking->room->room_number ?? 'N/A' }}</td>
                         <td class="px-6 py-4">{{ $booking->check_in_date }}</td>
                     </tr>

@@ -321,30 +321,56 @@
                     <i class="fas fa-file text-indigo-600"></i>
                     Uploaded Documents
                 </h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     @if($booking->customer_photo)
-                    <a href="{{ Storage::url($booking->customer_photo) }}" target="_blank" class="bg-blue-50 p-3 rounded-lg text-center hover:bg-blue-100 transition">
-                        <i class="fas fa-image text-blue-600 text-2xl mb-2"></i>
-                        <p class="text-xs text-gray-700">Customer Photo</p>
-                    </a>
+                    <div class="bg-blue-50 p-3 rounded-lg text-center hover:bg-blue-100 transition">
+                        <a href="{{ Storage::url($booking->customer_photo) }}" target="_blank" class="block">
+                            <img src="{{ Storage::url($booking->customer_photo) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-2 border">
+                            <p class="text-xs text-gray-700 font-semibold">Customer Photo</p>
+                        </a>
+                    </div>
                     @endif
                     @if($booking->customer_nid_document)
-                    <a href="{{ Storage::url($booking->customer_nid_document) }}" target="_blank" class="bg-green-50 p-3 rounded-lg text-center hover:bg-green-100 transition">
-                        <i class="fas fa-id-card text-green-600 text-2xl mb-2"></i>
-                        <p class="text-xs text-gray-700">NID Document</p>
-                    </a>
+                    <div class="bg-green-50 p-3 rounded-lg text-center hover:bg-green-100 transition">
+                        <a href="{{ Storage::url($booking->customer_nid_document) }}" target="_blank" class="block">
+                            @if(Str::endsWith(strtolower($booking->customer_nid_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                                <img src="{{ Storage::url($booking->customer_nid_document) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-2 border">
+                            @else
+                                <div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-2">
+                                    <i class="fas fa-file-pdf text-green-600 text-3xl"></i>
+                                </div>
+                            @endif
+                            <p class="text-xs text-gray-700 font-semibold">NID Document</p>
+                        </a>
+                    </div>
                     @endif
                     @if($booking->passport_document)
-                    <a href="{{ Storage::url($booking->passport_document) }}" target="_blank" class="bg-purple-50 p-3 rounded-lg text-center hover:bg-purple-100 transition">
-                        <i class="fas fa-passport text-purple-600 text-2xl mb-2"></i>
-                        <p class="text-xs text-gray-700">Passport</p>
-                    </a>
+                    <div class="bg-purple-50 p-3 rounded-lg text-center hover:bg-purple-100 transition">
+                        <a href="{{ Storage::url($booking->passport_document) }}" target="_blank" class="block">
+                            @if(Str::endsWith(strtolower($booking->passport_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                                <img src="{{ Storage::url($booking->passport_document) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-2 border">
+                            @else
+                                <div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-2">
+                                    <i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
+                                </div>
+                            @endif
+                            <p class="text-xs text-gray-700 font-semibold">Passport</p>
+                        </a>
+                    </div>
                     @endif
                     @if($booking->visiting_card)
-                    <a href="{{ Storage::url($booking->visiting_card) }}" target="_blank" class="bg-orange-50 p-3 rounded-lg text-center hover:bg-orange-100 transition">
-                        <i class="fas fa-address-card text-orange-600 text-2xl mb-2"></i>
-                        <p class="text-xs text-gray-700">Visiting Card</p>
-                    </a>
+                    <div class="bg-orange-50 p-3 rounded-lg text-center hover:bg-orange-100 transition">
+                        <a href="{{ Storage::url($booking->visiting_card) }}" target="_blank" class="block">
+                            @if(Str::endsWith(strtolower($booking->visiting_card), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                                <img src="{{ Storage::url($booking->visiting_card) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-2 border">
+                            @else
+                                <div class="w-full h-24 flex items-center justify-center bg-orange-100 rounded mb-2">
+                                    <i class="fas fa-file-pdf text-orange-600 text-3xl"></i>
+                                </div>
+                            @endif
+                            <p class="text-xs text-gray-700 font-semibold">Visiting Card</p>
+                        </a>
+                    </div>
                     @endif
                 </div>
             </div>
@@ -778,33 +804,37 @@ function closeVatModal() {
 async function updateStatus(bookingId, status) {
     if (!status) return;
     
-    if (!confirm(`Are you sure you want to change status to ${status.replace('_', ' ').toUpperCase()}?`)) {
-        location.reload();
-        return;
-    }
+    const statusLabels = {
+        'pending': 'পেন্ডিং',
+        'confirmed': 'কনফার্মড',
+        'checked_in': 'চেক-ইন',
+        'checked_out': 'চেক-আউট',
+        'cancelled': 'ক্যান্সেলড'
+    };
+    const statusLabel = statusLabels[status] || status.replace('_', ' ').toUpperCase();
+    
+    showConfirmModal(`আপনি কি স্ট্যাটাস "${statusLabel}" তে পরিবর্তন করতে চান?`, async function() {
+        try {
+            const response = await fetch(`/admin/bookings/${bookingId}/update-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ status })
+            });
 
-    try {
-        const response = await fetch(`/admin/bookings/${bookingId}/update-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({ status })
-        });
-
-        if (response.ok) {
-            alert('Status updated successfully!');
-            location.reload();
-        } else {
-            alert('Error updating status');
-            location.reload();
+            if (response.ok) {
+                showGlobalModal('success', 'স্ট্যাটাস আপডেট হয়েছে!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showGlobalModal('error', 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে!');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showGlobalModal('error', 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে!');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error updating status');
-        location.reload();
-    }
+    });
 }
 
 // Submit time update
@@ -826,14 +856,14 @@ async function submitTimeUpdate(e) {
         });
 
         if (response.ok) {
-            alert('Time updated successfully!');
-            location.reload();
+            showGlobalModal('success', 'সময় আপডেট হয়েছে!');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            alert('Error updating time');
+            showGlobalModal('error', 'সময় আপডেট করতে সমস্যা হয়েছে!');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error updating time');
+        showGlobalModal('error', 'সময় আপডেট করতে সমস্যা হয়েছে!');
     }
 }
 
@@ -857,15 +887,15 @@ async function submitPayment(e) {
         });
 
         if (response.ok) {
-            alert('Payment recorded successfully!');
-            location.reload();
+            showGlobalModal('success', 'পেমেন্ট রেকর্ড হয়েছে!');
+            setTimeout(() => location.reload(), 1500);
         } else {
             const data = await response.json();
-            alert(data.message || 'Error recording payment');
+            showGlobalModal('error', data.message || 'পেমেন্ট রেকর্ড করতে সমস্যা হয়েছে!');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error recording payment');
+        showGlobalModal('error', 'পেমেন্ট রেকর্ড করতে সমস্যা হয়েছে!');
     }
 }
 
@@ -888,14 +918,14 @@ async function submitExtraCharges(e) {
         });
 
         if (response.ok) {
-            alert('Extra charges added successfully!');
-            location.reload();
+            showGlobalModal('success', 'অতিরিক্ত চার্জ যোগ হয়েছে!');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            alert('Error adding extra charges');
+            showGlobalModal('error', 'অতিরিক্ত চার্জ যোগ করতে সমস্যা হয়েছে!');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error adding extra charges');
+        showGlobalModal('error', 'অতিরিক্ত চার্জ যোগ করতে সমস্যা হয়েছে!');
     }
 }
 
@@ -919,14 +949,14 @@ async function submitGuest(e) {
         });
 
         if (response.ok) {
-            alert('Guest added successfully!');
-            location.reload();
+            showGlobalModal('success', 'অতিথি যোগ হয়েছে!');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            alert('Error adding guest');
+            showGlobalModal('error', 'অতিথি যোগ করতে সমস্যা হয়েছে!');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error adding guest');
+        showGlobalModal('error', 'অতিথি যোগ করতে সমস্যা হয়েছে!');
     }
 }
 
@@ -938,71 +968,67 @@ async function submitRefund(e) {
     const maxRefund = {{ $booking->advance_payment }};
     
     if (amount > maxRefund) {
-        alert(`Refund amount cannot exceed ৳${maxRefund.toFixed(2)}`);
+        showGlobalModal('error', `রিফান্ড পরিমাণ ৳${maxRefund.toFixed(2)} এর বেশি হতে পারবে না!`);
         return;
     }
     
-    if (!confirm(`Are you sure you want to process a refund of ৳${amount.toFixed(2)}?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/admin/bookings/{{ $booking->id }}/process-refund`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                amount: amount,
-                reason: formData.get('reason')
-            })
-        });
+    showConfirmModal(`আপনি কি ৳${amount.toFixed(2)} রিফান্ড করতে চান?`, async function() {
+        try {
+            const response = await fetch(`/admin/bookings/{{ $booking->id }}/process-refund`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    amount: amount,
+                    reason: formData.get('reason')
+                })
+            });
 
-        if (response.ok) {
-            alert('Refund processed successfully!');
-            location.reload();
-        } else {
-            const data = await response.json();
-            alert(data.message || 'Error processing refund');
+            if (response.ok) {
+                showGlobalModal('success', 'রিফান্ড সফল হয়েছে!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                const data = await response.json();
+                showGlobalModal('error', data.message || 'রিফান্ড করতে সমস্যা হয়েছে!');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showGlobalModal('error', 'রিফান্ড করতে সমস্যা হয়েছে!');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error processing refund');
-    }
+    });
 }
 
 // Submit VAT toggle
 async function submitVatToggle() {
     const currentStatus = {{ $booking->vat_enabled ? 'true' : 'false' }};
-    const action = currentStatus ? 'disable' : 'enable';
+    const action = currentStatus ? 'বন্ধ' : 'চালু';
     
-    if (!confirm(`Are you sure you want to ${action} VAT for this booking?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/admin/bookings/{{ $booking->id }}/update-vat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                vat_enabled: !currentStatus
-            })
-        });
+    showConfirmModal(`আপনি কি ভ্যাট ${action} করতে চান?`, async function() {
+        try {
+            const response = await fetch(`/admin/bookings/{{ $booking->id }}/update-vat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    vat_enabled: !currentStatus
+                })
+            });
 
-        if (response.ok) {
-            alert(`VAT ${action}d successfully!`);
-            location.reload();
-        } else {
-            alert('Error updating VAT');
+            if (response.ok) {
+                showGlobalModal('success', `ভ্যাট ${action} হয়েছে!`);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showGlobalModal('error', 'ভ্যাট আপডেট করতে সমস্যা হয়েছে!');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showGlobalModal('error', 'ভ্যাট আপডেট করতে সমস্যা হয়েছে!');
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error updating VAT');
-    }
+    });
 }
 </script>
 

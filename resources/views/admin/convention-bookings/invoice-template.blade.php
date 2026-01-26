@@ -1,19 +1,21 @@
 <!-- Print Invoice Template for Convention Booking -->
 <div id="convention-invoice-print-area" class="hidden print:block">
-    <div class="bg-white p-8 text-sm">
-        <!-- Top Developer Info -->
-        <div class="text-center mb-4 pb-3 border-b border-gray-200">
-            <p class="text-xs text-gray-600 mb-1">Thank you for choosing Tufan Resort!</p>
-            <p class="text-xs text-gray-700 font-semibold">Developed By Mir Javed Jeetu</p>
-            <p class="text-xs text-gray-600">Contact: 01811480222</p>
-        </div>
-
+    <div class="bg-white p-4 text-xs">
         <!-- Header -->
         <div class="text-center border-b-2 border-purple-800 pb-4 mb-6">
-            <h1 class="text-4xl font-bold text-purple-800 mb-2">Tufan Resort</h1>
+            @if($resortInfo && $resortInfo->header_logo)
+                <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-16 mx-auto mb-2">
+            @else
+                <h1 class="text-4xl font-bold text-purple-800 mb-2">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
+            @endif
             <p class="text-gray-600 text-sm">🏛️ Convention Hall & Event Center</p>
             <p class="text-gray-500 text-sm mt-2">
-                Phone: +880 1234 567890 | Email: info@tufanresort.com
+                @if($resortInfo)
+                    Phone: {{ $resortInfo->phone ?? 'N/A' }} | Email: {{ $resortInfo->email ?? 'N/A' }}
+                    @if($resortInfo->address)<br>{{ $resortInfo->address }}@endif
+                @else
+                    Phone: +880 1234 567890 | Email: info@tufanresort.com
+                @endif
             </p>
         </div>
 
@@ -67,10 +69,9 @@
                     <p><span class="font-semibold">Hall:</span> {{ $booking->conventionHall->name }}</p>
                     <p><span class="font-semibold">Event Date:</span> {{ \Carbon\Carbon::parse($booking->event_date)->format('d/m/Y') }}</p>
                     <p><span class="font-semibold">Time Slot:</span> 
-                        @if($booking->time_slot == 'morning') Morning (8AM - 12PM)
-                        @elseif($booking->time_slot == 'afternoon') Afternoon (12PM - 5PM)
-                        @elseif($booking->time_slot == 'evening') Evening (5PM - 10PM)
-                        @else Full Day
+                        @if($booking->time_slot == 'morning') Morning (8AM - 2PM)
+                        @elseif($booking->time_slot == 'night') Night (6PM - 11PM)
+                        @else Full Day (8AM - 11PM)
                         @endif
                     </p>
                     <p><span class="font-semibold">Event Type:</span> {{ $booking->event_type }}</p>
@@ -203,34 +204,32 @@
         </div>
         @endif
 
-        <!-- Terms & Signature -->
-        <div class="grid grid-cols-2 gap-6 mt-8">
-            <div class="border border-gray-300 rounded p-4">
-                <h3 class="font-bold text-gray-800 mb-2 text-sm">Terms & Conditions</h3>
-                <ul class="text-xs text-gray-600 space-y-1">
-                    <li>• Advance payment is non-refundable</li>
-                    <li>• Full payment required before event date</li>
-                    <li>• Cancellation charges may apply</li>
-                    <li>• Additional services charged separately</li>
-                </ul>
-            </div>
-            <div class="text-center">
-                <div class="border-t border-gray-400 pt-2 mt-12 mx-8">
+        <!-- Signature -->
+        <div class="mt-6">
+            <div class="text-right">
+                <div class="inline-block border-t border-gray-400 pt-2 px-8">
                     <p class="text-sm font-semibold">Authorized Signature</p>
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <div class="text-center mt-8 pt-4 border-t border-gray-300">
-            <p class="text-xs text-gray-600">Thank you for your business!</p>
-            <p class="text-xs text-gray-500 mt-1">This is a computer generated invoice.</p>
+        <div class="text-center mt-4 pt-3 border-t border-gray-300">
+            <p class="text-sm text-gray-700 font-medium">Thank you for choosing {{ $resortInfo->resort_name ?? 'our resort' }}!</p>
+            <p class="text-xs text-gray-500 mt-2">{{ $resortInfo->footer_text ?? 'We look forward to serving you again.' }}</p>
         </div>
     </div>
 </div>
 
 <style>
 @media print {
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+    body {
+        font-size: 10px !important;
+    }
     body * {
         visibility: hidden;
     }
@@ -242,6 +241,28 @@
         left: 0;
         top: 0;
         width: 100%;
+        font-size: 10px !important;
+    }
+    #convention-invoice-print-area .p-4 {
+        padding: 8px !important;
+    }
+    #convention-invoice-print-area .mb-6 {
+        margin-bottom: 8px !important;
+    }
+    #convention-invoice-print-area .mb-4 {
+        margin-bottom: 6px !important;
+    }
+    #convention-invoice-print-area .p-2 {
+        padding: 4px !important;
+    }
+    #convention-invoice-print-area h1 {
+        font-size: 24px !important;
+    }
+    #convention-invoice-print-area h2 {
+        font-size: 16px !important;
+    }
+    #convention-invoice-print-area h3 {
+        font-size: 12px !important;
     }
     .print\:block {
         display: block !important;

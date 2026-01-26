@@ -162,10 +162,9 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Time Slot</label>
                     <select id="hallTime" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        <option value="morning">Morning (8AM - 12PM)</option>
-                        <option value="afternoon">Afternoon (12PM - 5PM)</option>
-                        <option value="evening">Evening (5PM - 10PM)</option>
-                        <option value="full_day">Full Day</option>
+                        <option value="morning">Morning (8AM - 2PM)</option>
+                        <option value="night">Night (6PM - 11PM)</option>
+                        <option value="full_day">Full Day (8AM - 11PM)</option>
                     </select>
                 </div>
                 <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition shadow-lg">
@@ -202,11 +201,11 @@
                         <tr class="hover:bg-blue-50 transition">
                             <td class="px-6 py-4 font-semibold text-gray-700">#{{ $booking->id }}</td>
                             <td class="px-6 py-4">
-                                <div class="font-semibold text-gray-800">{{ $booking->guest_name }}</div>
-                                <div class="text-sm text-gray-500">{{ $booking->guest_phone }}</div>
+                                <div class="font-semibold text-gray-800">{{ $booking->customer_name }}</div>
+                                <div class="text-sm text-gray-500">{{ $booking->customer_phone }}</div>
                             </td>
                             <td class="px-6 py-4"><span class="font-semibold text-blue-600">{{ $booking->room->room_number ?? 'N/A' }}</span></td>
-                            <td class="px-6 py-4 text-gray-700">{{ $booking->check_in_date }}</td>
+                            <td class="px-6 py-4 text-gray-700">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
                             <td class="px-6 py-4 font-bold text-green-600">৳{{ number_format($booking->total_amount) }}</td>
                             <td class="px-6 py-4">
                                 @if($booking->status == 'confirmed')
@@ -246,15 +245,42 @@ document.getElementById('roomSearchForm').addEventListener('submit', async (e) =
     resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i></div>';
     
     try {
-        const response = await fetch(`/admin/dashboard/search-rooms?checkIn=${checkIn}&checkOut=${checkOut}`);
-        const rooms = await response.json();
+        const response = await fetch(`/admin/dashboard/search-rooms?checkIn=${checkIn}&checkOut=${checkOut}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await response.json();
+        const rooms = data.availableRooms || [];
         
         if (rooms.length === 0) {
-            resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600 font-semibold">No available rooms found</p></div>';
+            resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600 font-semibold"><i class="fas fa-times-circle mr-2"></i>No available rooms found for these dates</p></div>';
         } else {
-            resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="font-semibold text-green-700 mb-2"><i class="fas fa-check-circle mr-2"></i>' + rooms.length + ' available rooms found:</p><ul class="space-y-1">' + rooms.map(r => `<li class="text-sm text-gray-700">• Room ${r.room_number} - ${r.room_type?.name || 'N/A'}</li>`).join('') + '</ul></div>';
+            let roomCardsHtml = `<div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p class="font-semibold text-green-700 mb-3"><i class="fas fa-check-circle mr-2"></i>${rooms.length} available rooms found:</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">`;
+            rooms.forEach(room => {
+                const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
+                const roomType = room.room_type?.name || room.type || '';
+                roomCardsHtml += `
+                    <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition">
+                        <div class="h-20 bg-gradient-to-br from-blue-400 to-purple-500 relative">
+                            ${roomImage ? `<img src="/storage/${roomImage}" alt="Room ${room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-2xl text-white/50"></i></div>`}
+                        </div>
+                        <div class="p-2 text-center">
+                            <p class="font-bold text-gray-800">Room ${room.room_number}</p>
+                            ${roomType ? `<p class="text-xs text-gray-500">${roomType}</p>` : ''}
+                            <p class="text-xs text-blue-600 font-semibold">৳${parseFloat(room.price_per_night || room.room_type?.base_price || 0).toLocaleString()}/night</p>
+                        </div>
+                    </div>`;
+            });
+            roomCardsHtml += `</div><a href="/admin/premium-booking" class="mt-3 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-plus mr-1"></i>Create Booking</a></div>`;
+            resultsDiv.innerHTML = roomCardsHtml;
         }
     } catch (error) {
+        console.error('Room search error:', error);
         resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600">Error loading rooms</p></div>';
     }
 });
@@ -262,22 +288,65 @@ document.getElementById('roomSearchForm').addEventListener('submit', async (e) =
 document.getElementById('hallSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const date = document.getElementById('hallDate').value;
-    const timeSlot = document.getElementById('hallTime').value;
+    const slot = document.getElementById('hallTime').value;
     const resultsDiv = document.getElementById('hallResults');
     resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-green-600"></i></div>';
     
     try {
-        const response = await fetch(`/admin/dashboard/search-halls?date=${date}&timeSlot=${timeSlot}`);
-        const halls = await response.json();
+        const response = await fetch(`/admin/dashboard/search-halls?date=${date}&slot=${slot}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await response.json();
+        const bookedIds = data.bookedHallIds || [];
+        const allHalls = @json($allHalls ?? []);
+        const availableHalls = allHalls.filter(h => !bookedIds.includes(h.id));
         
-        if (halls.length === 0) {
-            resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600 font-semibold">No available halls found</p></div>';
+        if (availableHalls.length === 0) {
+            resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600 font-semibold"><i class="fas fa-times-circle mr-2"></i>এই সময়ের জন্য কোনো হল উপলব্ধ নেই</p></div>';
         } else {
-            resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4"><p class="font-semibold text-green-700 mb-2"><i class="fas fa-check-circle mr-2"></i>' + halls.length + ' available halls found:</p><ul class="space-y-1">' + halls.map(h => `<li class="text-sm text-gray-700">• ${h.name} (Capacity: ${h.capacity})</li>`).join('') + '</ul></div>';
+            let hallCardsHtml = '<div class="grid gap-4">';
+            availableHalls.forEach(h => {
+                const images = h.images || [];
+                const firstImage = images.length > 0 ? images[0] : null;
+                const imageHtml = firstImage 
+                    ? `<img src="/storage/${firstImage}" alt="${h.name}" class="w-20 h-20 object-cover rounded-lg">`
+                    : `<div class="w-20 h-20 bg-gradient-to-br from-green-100 to-primary-100 rounded-lg flex items-center justify-center"><i class="fas fa-building text-2xl text-green-300"></i></div>`;
+                
+                hallCardsHtml += `
+                    <div class="flex items-center gap-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                        ${imageHtml}
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800">${h.name}</h4>
+                            <p class="text-sm text-gray-600"><i class="fas fa-users mr-1"></i>ধারণক্ষমতা: ${h.max_capacity} জন</p>
+                            <p class="text-sm font-bold text-green-600">৳${Number(h.price_per_day).toLocaleString()}/দিন</p>
+                        </div>
+                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">✅ উপলব্ধ</span>
+                    </div>
+                `;
+            });
+            hallCardsHtml += '</div>';
+            hallCardsHtml += '<a href="/admin/premium-convention" class="mt-4 inline-flex items-center bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"><i class="fas fa-plus mr-2"></i>বুকিং তৈরি করুন</a>';
+            resultsDiv.innerHTML = hallCardsHtml;
         }
     } catch (error) {
+        console.error('Hall search error:', error);
         resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600">Error loading halls</p></div>';
     }
+});
+
+// Set default dates
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('roomCheckIn').value = today;
+    document.getElementById('hallDate').value = today;
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('roomCheckOut').value = tomorrow.toISOString().split('T')[0];
 });
 </script>
 @endsection

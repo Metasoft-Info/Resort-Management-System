@@ -89,10 +89,9 @@
                     <div>
                         <p class="text-sm text-gray-600">সময়</p>
                         <p class="font-semibold">
-                            @if($booking->time_slot == 'morning') সকাল (৮টা - ১২টা)
-                            @elseif($booking->time_slot == 'afternoon') দুপুর (১২টা - ৫টা)
-                            @elseif($booking->time_slot == 'evening') সন্ধ্যা (৫টা - ১০টা)
-                            @else সারাদিন
+                            @if($booking->time_slot == 'morning') সকাল (৮টা - ২টা)
+                            @elseif($booking->time_slot == 'night') রাত (৬টা - ১১টা)
+                            @else সারাদিন (৮টা - ১১টা)
                             @endif
                         </p>
                     </div>

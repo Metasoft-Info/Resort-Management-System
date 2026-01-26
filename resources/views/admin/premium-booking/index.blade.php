@@ -3,7 +3,7 @@
 @section('content')
 <div class="p-6">
     <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Premium Room Booking</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Room Booking</h1>
         <p class="text-gray-600 mt-2">Comprehensive booking system with guest search, room availability, and complete customer information</p>
     </div>
 
@@ -30,12 +30,12 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Time</label>
-                    <input type="time" id="checkInTime" value="14:00"
+                    <input type="time" id="checkInTime" value="12:00"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Time</label>
-                    <input type="time" id="checkOutTime" value="11:00"
+                    <input type="time" id="checkOutTime" value="12:00"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
@@ -389,31 +389,40 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
         const data = await response.json();
         const container = document.getElementById('roomResults');
         container.innerHTML = '';
+        
+        const nights = data.nights || 1;
 
         if (data.availableRooms.length === 0) {
             container.innerHTML = '<p class="text-gray-500 col-span-3 text-center py-8">No rooms available for selected dates</p>';
         } else {
             data.availableRooms.forEach(room => {
                 const pricePerNight = parseFloat(room.price_per_night) || parseFloat(room.room_type?.base_price) || 0;
-                const totalPrice = pricePerNight * data.nights;
+                const totalPrice = pricePerNight * nights;
+                const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
                 
                 container.innerHTML += `
-                    <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-lg transition cursor-pointer">
-                        <h3 class="font-bold text-lg text-gray-800">${room.room_number}</h3>
-                        <p class="text-gray-600">${room.room_type?.name || room.type || 'N/A'}</p>
-                        <p class="text-blue-600 font-semibold mt-2">৳${pricePerNight.toLocaleString()} / night</p>
-                        <p class="text-sm text-gray-500">${data.nights} nights = ৳${totalPrice.toLocaleString()}</p>
-                        <button type="button" onclick="selectRoom(${room.id}, '${room.room_number}', '${room.name || room.room_type?.name || 'Room'}', ${data.nights}, ${pricePerNight}, '${checkIn}', '${checkOut}', '${checkInTime}', '${checkOutTime}')" 
-                            class="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-hand-pointer mr-2"></i>Select Room
-                        </button>
+                    <div class="border-2 border-gray-200 rounded-lg overflow-hidden hover:border-blue-500 hover:shadow-lg transition cursor-pointer bg-white">
+                        <div class="h-32 bg-gradient-to-br from-blue-400 to-purple-500 relative">
+                            ${roomImage ? `<img src="/storage/${roomImage}" alt="${room.name || room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-4xl text-white/50"></i></div>`}
+                            <div class="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs font-bold text-blue-700">${room.room_type?.name || room.type || 'N/A'}</div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg text-gray-800">Room ${room.room_number}</h3>
+                            <p class="text-sm text-gray-600">${room.name || ''}</p>
+                            <p class="text-blue-600 font-semibold mt-2">৳${pricePerNight.toLocaleString()} / night</p>
+                            <p class="text-sm text-gray-500">${nights} night${nights > 1 ? 's' : ''} = ৳${totalPrice.toLocaleString()}</p>
+                            <button type="button" onclick="selectRoom(${room.id}, '${room.room_number}', '${room.name || room.room_type?.name || 'Room'}', ${nights}, ${pricePerNight}, '${checkIn}', '${checkOut}', '${checkInTime}', '${checkOutTime}')" 
+                                class="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-hand-pointer mr-2"></i>Select Room
+                            </button>
+                        </div>
                     </div>
                 `;
             });
         }
     } catch (error) {
         console.error('Search error:', error);
-        alert('Error searching rooms');
+        showGlobalModal('error', 'রুম খুঁজতে সমস্যা হয়েছে!');
     }
 });
 
@@ -540,12 +549,34 @@ function calculateRemaining() {
 async function submitBooking(e) {
     e.preventDefault();
     
+    // Validate required fields before submission
+    const roomId = document.getElementById('room_id').value;
+    const checkInDate = document.getElementById('check_in_date').value;
+    const checkOutDate = document.getElementById('check_out_date').value;
+    const customerName = document.getElementById('customer_name').value;
+    const customerNid = document.getElementById('customer_nid').value;
+    const customerPhone = document.getElementById('customer_phone').value;
+    const customerEmail = document.getElementById('customer_email').value;
+    
+    if (!roomId) {
+        showGlobalModal('error', 'প্রথমে একটি রুম নির্বাচন করুন!');
+        return;
+    }
+    if (!checkInDate || !checkOutDate) {
+        showGlobalModal('error', 'চেক-ইন ও চেক-আউট তারিখ নির্বাচন করুন!');
+        return;
+    }
+    if (!customerName || !customerNid || !customerPhone || !customerEmail) {
+        showGlobalModal('error', 'গ্রাহকের সব তথ্য পূরণ করুন!');
+        return;
+    }
+    
     const formData = new FormData();
     
     // Basic fields
-    formData.append('room_id', document.getElementById('room_id').value);
-    formData.append('check_in_date', document.getElementById('check_in_date').value);
-    formData.append('check_out_date', document.getElementById('check_out_date').value);
+    formData.append('room_id', roomId);
+    formData.append('check_in_date', checkInDate);
+    formData.append('check_out_date', checkOutDate);
     formData.append('check_in_time', document.getElementById('check_in_time_hidden').value);
     formData.append('check_out_time', document.getElementById('check_out_time_hidden').value);
     
@@ -620,22 +651,27 @@ async function submitBooking(e) {
         const data = await response.json();
         
         if (data.success) {
-            alert('Booking created successfully!');
-            window.location.href = '{{ route("admin.bookings.index") }}';
+            showGlobalModal('success', 'বুকিং সফল হয়েছে!');
+            setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
         } else {
-            alert('Error: ' + (data.message || 'Booking failed'));
-            console.error('Validation errors:', data.errors);
+            let errorMsg = data.message || 'বুকিং ব্যর্থ হয়েছে!';
+            if (data.errors) {
+                const errorFields = Object.keys(data.errors).join(', ');
+                errorMsg += '\n\nসমস্যার ক্ষেত্র: ' + errorFields;
+                console.error('Validation errors:', data.errors);
+            }
+            showGlobalModal('error', errorMsg);
         }
     } catch (error) {
         console.error('Booking error:', error);
-        alert('Error creating booking: ' + error.message);
+        showGlobalModal('error', 'বুকিং তৈরি করতে সমস্যা হয়েছে: ' + error.message);
     }
 }
 
 function resetAll() {
-    if (confirm('Are you sure you want to reset all fields?')) {
+    showConfirmModal('আপনি কি সব ফিল্ড রিসেট করতে চান?', function() {
         location.reload();
-    }
+    });
 }
 
 // Initialize discount type change

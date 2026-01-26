@@ -56,7 +56,7 @@
                         <i class="fas fa-edit mr-2"></i>Edit
                     </button>
                     <form action="{{ route('admin.hero-slides.destroy', $slide) }}" method="POST" class="flex-1" 
-                        onsubmit="return confirm('Delete this slide?')">
+                        onsubmit="return confirmDelete(this, 'এই স্লাইড মুছে ফেলতে চান?')">
                         @csrf @method('DELETE')
                         <button type="submit" 
                             class="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition font-semibold">

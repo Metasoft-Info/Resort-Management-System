@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Room;
 use App\Models\AdditionalGuest;
 use App\Models\BookingPayment;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -103,7 +104,14 @@ class BookingController extends Controller
         $validated['remaining_payment'] = $validated['total_amount'] - $validated['advance_payment'];
         $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
 
-        Booking::create($validated);
+        $booking = Booking::create($validated);
+        
+        ActivityLog::log('Created booking', 'Booking', $booking->id, [
+            'customer_name' => $booking->customer_name,
+            'room_id' => $booking->room_id,
+            'total_amount' => $booking->total_amount
+        ]);
+        
         return redirect()->route('admin.bookings.index')->with('success', 'Booking created successfully');
     }
 
@@ -125,7 +133,14 @@ class BookingController extends Controller
             'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled',
         ]);
 
+        $oldStatus = $booking->status;
         $booking->update(['status' => $validated['status']]);
+        
+        ActivityLog::log('Updated booking status', 'Booking', $booking->id, [
+            'old_status' => $oldStatus,
+            'new_status' => $validated['status']
+        ]);
+        
         return response()->json(['message' => 'Status updated successfully']);
     }
 

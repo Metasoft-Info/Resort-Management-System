@@ -39,7 +39,7 @@
                         <form action="{{ route('admin.room-types.destroy', $roomType) }}" method="POST" class="inline">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" onclick="return confirm('আপনি কি নিশ্চিত?')" class="text-red-600 hover:text-red-800">
+                            <button type="submit" onclick="event.preventDefault(); confirmDelete(this.form, 'আপনি কি নিশ্চিত?')" class="text-red-600 hover:text-red-800">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </form>

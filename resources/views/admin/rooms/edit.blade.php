@@ -191,10 +191,10 @@ function previewImages(input) {
 }
 
 function removeImage(index) {
-    if (confirm('Remove this image?')) {
+    showConfirmModal('এই ছবিটি মুছে ফেলতে চান?', function() {
         document.getElementById('existing_image_' + index).remove();
         event.target.closest('.relative').remove();
-    }
+    });
 }
 </script>
 @endsection

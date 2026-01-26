@@ -8,14 +8,24 @@ class PremiumConventionController extends Controller {
     public function index() {
         $halls = ConventionHall::all();
         $foodPackages = FoodPackage::where('is_active', true)->get();
-        $addonServices = AddonService::where('is_active', true)->orderBy('category')->orderBy('name')->get();
+        $addonServices = AddonService::forConvention()->active()->orderBy('category')->orderBy('name')->get();
         return view('admin.premium-convention.index', compact('halls', 'foodPackages', 'addonServices'));
     }
     public function search(Request $request) {
         $bookedHallIds = ConventionBooking::whereDate('event_date', $request->date)
             ->where('time_slot', $request->slot)->whereNotIn('status', ['cancelled'])
             ->pluck('hall_id')->toArray();
-        $availableHalls = ConventionHall::whereNotIn('id', $bookedHallIds)->get();
+        $availableHalls = ConventionHall::whereNotIn('id', $bookedHallIds)->get()->map(function($hall) {
+            return [
+                'id' => $hall->id,
+                'name' => $hall->name,
+                'capacity' => $hall->max_capacity,
+                'price_per_day' => $hall->price_per_day,
+                'images' => $hall->images ?? [],
+                'amenities' => $hall->amenities ?? [],
+                'description' => $hall->description,
+            ];
+        });
         return response()->json(['availableHalls' => $availableHalls]);
     }
     public function book(Request $request) {
