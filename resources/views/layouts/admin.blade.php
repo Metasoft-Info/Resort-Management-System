@@ -45,23 +45,30 @@
 </head>
 <body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
+        <!-- Mobile Menu Overlay -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+        
         <!-- Sidebar -->
-        <aside class="w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white shadow-2xl flex-shrink-0 fixed h-screen z-30 flex flex-col">
-            <div class="p-6 border-b border-primary-700">
+        <aside id="sidebar" class="w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="p-4 lg:p-6 border-b border-primary-700">
                 <div class="flex items-center space-x-3">
                     @if($siteInfo && $siteInfo->admin_logo)
-                        <img src="{{ asset('storage/' . $siteInfo->admin_logo) }}" alt="Admin Logo" class="h-12 w-auto rounded-xl object-contain shadow-lg">
+                        <img src="{{ asset('storage/' . $siteInfo->admin_logo) }}" alt="Admin Logo" class="h-10 lg:h-12 w-auto rounded-xl object-contain shadow-lg">
                     @else
-                        <div class="w-12 h-12 bg-gradient-to-br from-accent-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                            <i class="fas fa-hotel text-2xl"></i>
+                        <div class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-accent-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-hotel text-xl lg:text-2xl"></i>
                         </div>
                     @endif
-                    <div>
-                        <p class="text-sm text-primary-200 font-medium">Resort Management System</p>
+                    <div class="flex-1">
+                        <p class="text-xs lg:text-sm text-primary-200 font-medium">Resort Management</p>
                     </div>
+                    <!-- Close button for mobile -->
+                    <button onclick="toggleSidebar()" class="lg:hidden text-white hover:text-primary-200 p-1">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
             </div>
-            <nav class="mt-6 px-3 flex-1 overflow-y-auto pb-8" style="max-height: calc(100vh - 120px);">
+            <nav class="mt-4 lg:mt-6 px-2 lg:px-3 flex-1 overflow-y-auto pb-8" style="max-height: calc(100vh - 120px);">
                 @php
                     $groupedMenus = \App\Models\AdminMenuSetting::getMenusForUser(auth()->user());
                 @endphp
@@ -71,9 +78,9 @@
                         <div class="text-xs text-primary-300 px-4 py-2 mt-4 font-semibold uppercase tracking-wider">{{ $groupName }}</div>
                     @endif
                     @foreach($menus as $menu)
-                        <a href="{{ route($menu->route_name) }}" class="flex items-center px-4 py-3 mb-2 rounded-xl transition @if(request()->routeIs($menu->route_pattern)) bg-primary-700 shadow-lg @else hover:bg-primary-700/50 @endif">
-                            <i class="{{ $menu->menu_icon }} w-5 mr-3"></i>
-                            <span class="font-semibold">{{ $menu->menu_label }}</span>
+                        <a href="{{ route($menu->route_name) }}" class="flex items-center px-3 lg:px-4 py-2.5 lg:py-3 mb-1 lg:mb-2 rounded-xl transition text-sm lg:text-base @if(request()->routeIs($menu->route_pattern)) bg-primary-700 shadow-lg @else hover:bg-primary-700/50 @endif">
+                            <i class="{{ $menu->menu_icon }} w-5 mr-2 lg:mr-3 text-sm"></i>
+                            <span class="font-medium lg:font-semibold">{{ $menu->menu_label }}</span>
                         </a>
                     @endforeach
                 @endforeach
@@ -81,37 +88,70 @@
                 <div class="border-t border-primary-700 my-4"></div>
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
-                    <button type="submit" class="flex items-center w-full px-4 py-3 rounded-xl hover:bg-red-500/20 text-red-200 hover:text-red-100 transition">
-                        <i class="fas fa-sign-out-alt w-5 mr-3"></i>
-                        <span class="font-semibold">Logout</span>
+                    <button type="submit" class="flex items-center w-full px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl hover:bg-red-500/20 text-red-200 hover:text-red-100 transition text-sm lg:text-base">
+                        <i class="fas fa-sign-out-alt w-5 mr-2 lg:mr-3"></i>
+                        <span class="font-medium lg:font-semibold">Logout</span>
                     </button>
                 </form>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col ml-64 overflow-hidden">
+        <div class="flex-1 flex flex-col lg:ml-64 overflow-hidden w-full">
             <header class="bg-white shadow-md z-20">
-                <div class="px-8 py-5 flex items-center justify-between">
-                    <h2 class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">@yield('header', 'Dashboard')</h2>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-600"><i class="fas fa-user-circle mr-2"></i>{{ auth()->user()->name ?? 'Admin' }}</span>
+                <div class="px-4 lg:px-8 py-4 lg:py-5 flex items-center justify-between">
+                    <!-- Mobile Menu Button -->
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-700 hover:text-primary-600 p-2 -ml-2">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h2 class="text-lg lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
+                    <div class="flex items-center space-x-2 lg:space-x-4">
+                        <span class="text-xs lg:text-sm text-gray-600 hidden sm:inline"><i class="fas fa-user-circle mr-1 lg:mr-2"></i>{{ auth()->user()->name ?? 'Admin' }}</span>
+                        <span class="text-xs text-gray-600 sm:hidden"><i class="fas fa-user-circle"></i></span>
                     </div>
                 </div>
             </header>
 
             <main class="flex-1 overflow-y-auto bg-gray-50">
-                <div class="p-8">
+                <div class="p-4 lg:p-8">
                     @yield('content')
                 </div>
             </main>
             
             <!-- Developer Footer -->
-            <footer class="bg-gray-100 border-t border-gray-200 py-3 px-6 text-center">
-                <p class="text-sm text-gray-600">Developed by <span class="font-semibold text-gray-800">Mir Javed Jeetu</span> | Contact: <a href="tel:01811480222" class="text-indigo-600 hover:text-indigo-800 font-medium">01811480222</a></p>
+            <footer class="bg-gray-100 border-t border-gray-200 py-2 lg:py-3 px-4 lg:px-6 text-center">
+                <p class="text-xs lg:text-sm text-gray-600">Developed by <span class="font-semibold text-gray-800">Mir Javed Jeetu</span> | <a href="tel:01811480222" class="text-indigo-600 hover:text-indigo-800 font-medium">01811480222</a></p>
             </footer>
         </div>
     </div>
+    
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+            
+            // Prevent body scroll when sidebar is open
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+        
+        // Close sidebar on window resize to desktop
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+    </script>
 
     <!-- Global Modal for Success/Error Messages -->
     <div id="globalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[9999] transition-opacity duration-300">

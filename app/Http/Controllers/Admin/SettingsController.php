@@ -255,9 +255,11 @@ class SettingsController extends Controller {
         
         DB::beginTransaction();
         try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             BookingPayment::truncate();
             AdditionalGuest::truncate();
             Booking::truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             
             ActivityLog::log('Reset room bookings', 'System', null, ['action' => 'room_booking_reset']);
             
@@ -275,8 +277,10 @@ class SettingsController extends Controller {
         
         DB::beginTransaction();
         try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             ConventionPayment::truncate();
             ConventionBooking::truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             
             ActivityLog::log('Reset convention bookings', 'System', null, ['action' => 'convention_booking_reset']);
             
@@ -294,11 +298,13 @@ class SettingsController extends Controller {
         
         DB::beginTransaction();
         try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             BookingPayment::truncate();
             AdditionalGuest::truncate();
             Booking::truncate();
             ConventionPayment::truncate();
             ConventionBooking::truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
             
             ActivityLog::log('Reset all bookings', 'System', null, ['action' => 'all_booking_reset']);
             

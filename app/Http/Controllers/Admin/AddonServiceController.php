@@ -24,7 +24,8 @@ class AddonServiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'required|in:decoration,sound_system,photography,catering,transport,other',
+            'category' => 'required|in:decoration,sound_system,photography,catering,transport,room_service,laundry,parking,other',
+            'service_type' => 'required|in:room,convention,both',
             'price' => 'required|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'is_active' => 'boolean',
@@ -43,7 +44,8 @@ class AddonServiceController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category' => 'required|in:decoration,sound_system,photography,catering,transport,other',
+            'category' => 'required|in:decoration,sound_system,photography,catering,transport,room_service,laundry,parking,other',
+            'service_type' => 'required|in:room,convention,both',
             'price' => 'required|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'is_active' => 'boolean',

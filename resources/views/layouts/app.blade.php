@@ -79,7 +79,7 @@
                         <div class="text-3xl sm:text-4xl">🏞️</div>
                     @endif
                     <div>
-                        <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+                        <h1 class="text-lg sm:text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
                             {{ $siteInfo->resort_name ?? 'Tufan Resort' }}
                         </h1>
                         <p class="text-xs text-gray-500 hidden sm:block">{{ $siteInfo->resort_tagline ?? 'তুফান রিসোর্ট' }}</p>
@@ -99,12 +99,49 @@
                         <i class="fas fa-info-circle mr-2"></i>About
                     </a>
                 </div>
-                <button class="md:hidden text-gray-700 hover:text-primary-600 transition">
-                    <i class="fas fa-bars text-2xl"></i>
+                <!-- Mobile Menu Button -->
+                <button id="mobileMenuBtn" class="md:hidden text-gray-700 hover:text-primary-600 transition p-2">
+                    <i id="menuIcon" class="fas fa-bars text-2xl"></i>
                 </button>
+            </div>
+            
+            <!-- Mobile Menu Dropdown -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4 border-t border-gray-200 mt-2">
+                <div class="flex flex-col space-y-1 pt-3">
+                    <a href="{{ route('home') }}" class="px-4 py-3 rounded-lg text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition font-medium flex items-center {{ request()->routeIs('home') ? 'bg-primary-50 text-primary-700' : '' }}">
+                        <i class="fas fa-home mr-3 w-5"></i>Home
+                    </a>
+                    <a href="{{ route('rooms') }}" class="px-4 py-3 rounded-lg text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition font-medium flex items-center {{ request()->routeIs('rooms') ? 'bg-primary-50 text-primary-700' : '' }}">
+                        <i class="fas fa-bed mr-3 w-5"></i>Rooms
+                    </a>
+                    <a href="{{ route('convention-hall') }}" class="px-4 py-3 rounded-lg text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition font-medium flex items-center {{ request()->routeIs('convention-hall') ? 'bg-primary-50 text-primary-700' : '' }}">
+                        <i class="fas fa-building mr-3 w-5"></i>Convention Hall
+                    </a>
+                    <a href="{{ route('about') }}" class="px-4 py-3 rounded-lg text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition font-medium flex items-center {{ request()->routeIs('about') ? 'bg-primary-50 text-primary-700' : '' }}">
+                        <i class="fas fa-info-circle mr-3 w-5"></i>About
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
+    
+    <script>
+        // Mobile Menu Toggle
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            mobileMenu.classList.toggle('hidden');
+            
+            if (mobileMenu.classList.contains('hidden')) {
+                menuIcon.classList.remove('fa-times');
+                menuIcon.classList.add('fa-bars');
+            } else {
+                menuIcon.classList.remove('fa-bars');
+                menuIcon.classList.add('fa-times');
+            }
+        });
+    </script>
 
     <!-- Main Content -->
     <main class="pt-20">
