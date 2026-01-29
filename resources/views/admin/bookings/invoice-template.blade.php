@@ -8,7 +8,9 @@
             @else
                 <h1 class="text-4xl font-bold text-green-800 mb-2">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
             @endif
-            <p class="text-gray-600 text-sm">{{ $resortInfo->tagline ?? '🏞️ Lake View Resort & Convention Center' }}</p>
+            @if($resortInfo && ($resortInfo->tagline || $resortInfo->resort_tagline))
+            <p class="text-gray-600 text-sm">{{ $resortInfo->tagline ?? $resortInfo->resort_tagline }}</p>
+            @endif
             <p class="text-gray-500 text-sm mt-2">
                 @if($resortInfo)
                     Phone: {{ $resortInfo->phone ?? 'N/A' }} | Email: {{ $resortInfo->email ?? 'N/A' }}
@@ -231,6 +233,7 @@
         <div class="text-center mt-4 pt-3 border-t border-gray-300">
             <p class="text-sm text-gray-700 font-medium">Thank you for choosing {{ $resortInfo->resort_name ?? 'our resort' }}!</p>
             <p class="text-xs text-gray-500 mt-2">{{ $resortInfo->footer_text ?? 'We look forward to serving you again.' }}</p>
+            <p class="text-xs text-gray-400 mt-3 pt-2 border-t border-gray-200">Developed by Mir Javed Jeetu | Contact: 01811480222</p>
         </div>
     </div>
 </div>

@@ -23,7 +23,7 @@ class UserController extends Controller {
             'role' => 'required|string',
             'permissions' => 'nullable|array',
         ]);
-        $validated['password'] = Hash::make($validated['password']);
+        // Password will be auto-hashed by model cast
         $validated['permissions'] = $request->input('permissions', []);
         $validated['is_active'] = $request->has('is_active');
         User::create($validated);
@@ -40,7 +40,9 @@ class UserController extends Controller {
             'role' => 'required|string',
             'permissions' => 'nullable|array',
         ]);
-        if($request->password) $validated['password'] = Hash::make($request->password);
+        if($request->filled('password')) {
+            $validated['password'] = $request->password; // Auto-hashed by model cast
+        }
         $validated['permissions'] = $request->input('permissions', []);
         $validated['is_active'] = $request->has('is_active');
         $user->update($validated);

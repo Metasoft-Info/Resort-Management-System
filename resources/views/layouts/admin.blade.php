@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @php $siteInfo = \App\Models\ResortInfo::first(); @endphp
-    <title>@yield('title', 'Dashboard') - {{ $siteInfo->resort_name ?? 'Tufan Resort' }} Admin</title>
-    @if($siteInfo && $siteInfo->favicon)
-        <link rel="icon" type="image/jpeg" href="{{ asset('storage/' . $siteInfo->favicon) }}">
-        <link rel="shortcut icon" type="image/jpeg" href="{{ asset('storage/' . $siteInfo->favicon) }}">
+    <title>@yield('title', 'Dashboard') - {{ $resortInfo->resort_name ?? 'Tufan Resort' }} Admin</title>
+    @if($resortInfo && $resortInfo->favicon)
+        <link rel="icon" type="image/jpeg" href="{{ asset('storage/' . $resortInfo->favicon) }}">
+        <link rel="shortcut icon" type="image/jpeg" href="{{ asset('storage/' . $resortInfo->favicon) }}">
     @else
         <link rel="icon" type="image/jpeg" href="{{ asset('images/favicon.jpg') }}">
         <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/favicon.jpg') }}">
@@ -52,8 +51,8 @@
         <aside id="sidebar" class="w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-4 lg:p-6 border-b border-primary-700">
                 <div class="flex items-center space-x-3">
-                    @if($siteInfo && $siteInfo->admin_logo)
-                        <img src="{{ asset('storage/' . $siteInfo->admin_logo) }}" alt="Admin Logo" class="h-10 lg:h-12 w-auto rounded-xl object-contain shadow-lg">
+                    @if($resortInfo && $resortInfo->admin_logo)
+                        <img src="{{ asset('storage/' . $resortInfo->admin_logo) }}" alt="Admin Logo" class="h-10 lg:h-12 w-auto rounded-xl object-contain shadow-lg">
                     @else
                         <div class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-accent-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
                             <i class="fas fa-hotel text-xl lg:text-2xl"></i>
