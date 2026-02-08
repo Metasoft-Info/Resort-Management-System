@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\{Booking, ConventionBooking, RoomType, Room, ConventionHall};
+use App\Models\{Booking, ConventionBooking, RoomType, Room, ConventionHall, ResortInfo};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 
@@ -18,7 +18,8 @@ class ReportController extends Controller {
             $query->where(function($q) use ($request) {
                 $q->where('customer_name', 'like', "%{$request->search}%")
                   ->orWhere('customer_phone', 'like', "%{$request->search}%")
-                  ->orWhere('customer_nid', 'like', "%{$request->search}%");
+                  ->orWhere('customer_nid', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
             });
         }
         
@@ -31,8 +32,9 @@ class ReportController extends Controller {
         $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
         $roomTypes = RoomType::all();
         $rooms = Room::orderBy('room_number')->get();
+        $resortInfo = ResortInfo::first();
         
-        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'roomTypes', 'rooms'));
+        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo'));
     }
     
     public function exportRoomBookings(Request $request) {

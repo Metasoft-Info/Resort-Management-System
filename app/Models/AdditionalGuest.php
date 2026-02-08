@@ -14,6 +14,7 @@ class AdditionalGuest extends Model
         'name',
         'nid',
         'phone',
+        'company_name',
     ];
 
     public function booking()

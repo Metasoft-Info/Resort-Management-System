@@ -8,14 +8,14 @@
     <div>
         <h3 class="text-lg font-semibold text-gray-700">Total Rooms: <span class="text-primary-600">{{ $rooms->total() }}</span></h3>
     </div>
-    <a href="{{ route('admin.rooms.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl hover:from-primary-700 hover:to-accent-700 transition font-semibold shadow-lg hover:shadow-xl">
+    <a href="{{ route('admin.rooms.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition font-semibold shadow-lg hover:shadow-xl">
         <i class="fas fa-plus mr-2"></i>Add New Room
     </a>
 </div>
 
 <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
     <table class="w-full">
-        <thead class="bg-gradient-to-r from-primary-50 to-accent-50">
+        <thead class="bg-gradient-to-r from-primary-50 to-primary-100">
             <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     <i class="fas fa-image mr-2 text-primary-600"></i>Image
@@ -78,7 +78,7 @@
                     </td>
                     <td class="px-6 py-4">
                         <span class="px-3 py-1 text-xs font-bold rounded-full inline-flex items-center
-                            @if($room->status == 'available') bg-green-100 text-green-700
+                            @if($room->status == 'available') bg-primary-100 text-primary-700
                             @elseif($room->status == 'booked') bg-yellow-100 text-yellow-700
                             @else bg-red-100 text-red-700
                             @endif">
@@ -94,7 +94,7 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
-                            <a href="{{ route('admin.rooms.edit', $room) }}" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-xs font-semibold inline-flex items-center">
+                            <a href="{{ route('admin.rooms.edit', $room) }}" class="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition text-xs font-semibold inline-flex items-center">
                                 <i class="fas fa-edit mr-1"></i>Edit
                             </a>
                             <form action="{{ route('admin.rooms.destroy', $room) }}" method="POST" class="inline" onsubmit="return confirmDelete(this, 'রুম {{ $room->name }} মুছে ফেলতে চান?')">

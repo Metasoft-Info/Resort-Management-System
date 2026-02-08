@@ -87,6 +87,7 @@ class AdminMenuSetting extends Model
             
             ['menu_key' => 'addon_services', 'menu_label' => 'Addon Services', 'menu_icon' => 'fas fa-plus-circle', 'route_name' => 'admin.addon-services.index', 'route_pattern' => 'admin.addon-services.*', 'group_name' => 'Services', 'order' => 40, 'is_system' => false],
             ['menu_key' => 'food_packages', 'menu_label' => 'Food Packages', 'menu_icon' => 'fas fa-utensils', 'route_name' => 'admin.food-packages.index', 'route_pattern' => 'admin.food-packages.*', 'group_name' => 'Services', 'order' => 41, 'is_system' => false],
+            ['menu_key' => 'extra_charge_categories', 'menu_label' => 'Extra Charges', 'menu_icon' => 'fas fa-tags', 'route_name' => 'admin.extra-charge-categories.index', 'route_pattern' => 'admin.extra-charge-categories.*', 'group_name' => 'Services', 'order' => 42, 'is_system' => false],
             
             ['menu_key' => 'hero_slides', 'menu_label' => 'Hero Slides', 'menu_icon' => 'fas fa-images', 'route_name' => 'admin.hero-slides.index', 'route_pattern' => 'admin.hero-slides.*', 'group_name' => 'Website', 'order' => 50, 'is_system' => false],
             

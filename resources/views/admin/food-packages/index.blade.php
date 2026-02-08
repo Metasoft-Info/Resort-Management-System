@@ -10,7 +10,7 @@
             <h2 class="text-2xl font-bold text-gray-800">Food Packages Management</h2>
             <p class="text-gray-600 mt-1">Manage food packages for convention hall events</p>
         </div>
-        <button onclick="openModal()" class="bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 rounded-lg hover:from-orange-700 hover:to-red-700 transition shadow-lg font-semibold">
+        <button onclick="openModal()" class="bg-gradient-to-r from-primary-600 to-red-600 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-red-700 transition shadow-lg font-semibold">
             <i class="fas fa-plus mr-2"></i>Add New Package
         </button>
     </div>
@@ -21,7 +21,7 @@
             @if($package->image)
             <img src="{{ asset('storage/' . $package->image) }}" alt="{{ $package->name }}" class="w-full h-48 object-cover">
             @else
-            <div class="w-full h-48 bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
+            <div class="w-full h-48 bg-gradient-to-br from-primary-400 to-red-400 flex items-center justify-center">
                 <i class="fas fa-utensils text-6xl text-white opacity-50"></i>
             </div>
             @endif
@@ -29,7 +29,7 @@
             <div class="p-6">
                 <div class="flex items-start justify-between mb-3">
                     <h3 class="text-xl font-bold text-gray-800">{{ $package->name }}</h3>
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $package->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                    <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $package->is_active ? 'bg-primary-100 text-primary-700' : 'bg-red-100 text-red-700' }}">
                         {{ $package->is_active ? 'Active' : 'Inactive' }}
                     </span>
                 </div>
@@ -56,10 +56,10 @@
                 <div class="flex items-center justify-between pt-4 border-t border-gray-200">
                     <div>
                         <p class="text-xs text-gray-500">Price per person</p>
-                        <p class="text-2xl font-bold text-orange-600">৳{{ number_format($package->price_per_person) }}</p>
+                        <p class="text-2xl font-bold text-primary-600">৳{{ number_format($package->price_per_person) }}</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="editPackage({{ $package->id }})" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition">
+                        <button onclick="editPackage({{ $package->id }})" class="bg-primary-500 text-white p-2 rounded-lg hover:bg-primary-600 transition">
                             <i class="fas fa-edit"></i>
                         </button>
                         <form action="{{ route('admin.food-packages.destroy', $package) }}" method="POST" class="inline" onsubmit="return confirmDelete(this, '{{ $package->name }} মুছে ফেলতে চান?')">
@@ -101,7 +101,7 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-3">
                         <i class="fas fa-image mr-2"></i>Package Image
                     </label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-500 transition cursor-pointer"
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer"
                         onclick="document.getElementById('packageImage').click()">
                         <div id="imagePreview">
                             <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
@@ -149,7 +149,7 @@
                 <div>
                     <label class="flex items-center">
                         <input type="checkbox" name="is_active" id="packageIsActive" value="1" checked 
-                            class="w-5 h-5 text-orange-600 rounded focus:ring-2 focus:ring-orange-500">
+                            class="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-orange-500">
                         <span class="ml-3 text-sm font-semibold text-gray-700">
                             <i class="fas fa-toggle-on mr-2"></i>Active
                         </span>
@@ -159,7 +159,7 @@
 
             <div class="flex gap-4 mt-8">
                 <button type="submit" 
-                    class="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 rounded-lg hover:from-orange-700 hover:to-red-700 transition shadow-lg font-semibold">
+                    class="flex-1 bg-gradient-to-r from-primary-600 to-red-600 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-red-700 transition shadow-lg font-semibold">
                     <i class="fas fa-save mr-2"></i><span id="submitBtnText">Create Package</span>
                 </button>
                 <button type="button" onclick="closeModal()" 

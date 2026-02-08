@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\BookingRoom;
 use App\Models\ConventionBooking;
 use App\Models\ConventionHall;
 use App\Models\Room;
@@ -17,14 +18,27 @@ class DashboardController extends Controller
         $today = Carbon::today();
         
         // Get rooms that are currently occupied (have active bookings for today)
-        $occupiedRoomIds = Booking::whereIn('status', ['confirmed', 'checked_in'])
+        // Check legacy room_id column
+        $occupiedRoomIdsLegacy = Booking::whereIn('status', ['confirmed', 'checked_in'])
             ->where('check_in_date', '<=', $today)
             ->where('check_out_date', '>', $today)
+            ->whereNotNull('room_id')
             ->pluck('room_id')
             ->toArray();
         
+        // Check booking_rooms table for multi-room bookings
+        $occupiedRoomIdsMulti = BookingRoom::whereHas('booking', function($q) use ($today) {
+                $q->whereIn('status', ['confirmed', 'checked_in'])
+                  ->where('check_in_date', '<=', $today)
+                  ->where('check_out_date', '>', $today);
+            })
+            ->pluck('room_id')
+            ->toArray();
+        
+        $occupiedRoomIds = array_unique(array_merge($occupiedRoomIdsLegacy, $occupiedRoomIdsMulti));
+        
         $totalRooms = Room::count();
-        $availableRoomsCount = Room::whereNotIn('id', $occupiedRoomIds)->count();
+        $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
         
         // Calculate total revenue including convention bookings
         $roomRevenue = Booking::where('status', '!=', 'cancelled')->sum('total_amount');
@@ -44,10 +58,65 @@ class DashboardController extends Controller
         ];
 
         $recentBookings = Booking::with('room')->latest()->take(10)->get();
-        $allRooms = Room::all();
+        $allRooms = Room::with('roomType')->get();
         $allHalls = ConventionHall::all();
+        
+        // Get room status with current and upcoming bookings
+        $roomsWithStatus = [];
+        foreach ($allRooms as $room) {
+            // Check legacy room_id
+            $currentBooking = Booking::where('room_id', $room->id)
+                ->whereIn('status', ['confirmed', 'checked_in'])
+                ->where('check_in_date', '<=', $today)
+                ->where('check_out_date', '>', $today)
+                ->first();
+            
+            // If not found in legacy, check booking_rooms table
+            if (!$currentBooking) {
+                $bookingRoom = BookingRoom::where('room_id', $room->id)
+                    ->whereHas('booking', function($q) use ($today) {
+                        $q->whereIn('status', ['confirmed', 'checked_in'])
+                          ->where('check_in_date', '<=', $today)
+                          ->where('check_out_date', '>', $today);
+                    })
+                    ->with('booking')
+                    ->first();
+                if ($bookingRoom) {
+                    $currentBooking = $bookingRoom->booking;
+                }
+            }
+            
+            // Check upcoming bookings - legacy
+            $upcomingBooking = Booking::where('room_id', $room->id)
+                ->whereIn('status', ['confirmed', 'pending'])
+                ->where('check_in_date', '>', $today)
+                ->orderBy('check_in_date')
+                ->first();
+            
+            // If not found, check booking_rooms
+            if (!$upcomingBooking) {
+                $upcomingBookingRoom = BookingRoom::where('room_id', $room->id)
+                    ->whereHas('booking', function($q) use ($today) {
+                        $q->whereIn('status', ['confirmed', 'pending'])
+                          ->where('check_in_date', '>', $today);
+                    })
+                    ->with('booking')
+                    ->first();
+                if ($upcomingBookingRoom) {
+                    $upcomingBooking = $upcomingBookingRoom->booking;
+                }
+            }
+            
+            $roomsWithStatus[] = [
+                'room' => $room,
+                'status' => $currentBooking ? 'occupied' : 'available',
+                'current_booking' => $currentBooking,
+                'upcoming_booking' => $upcomingBooking,
+                'available_from' => $currentBooking ? $currentBooking->check_out_date : $today,
+            ];
+        }
 
-        return view('admin.dashboard', compact('stats', 'recentBookings', 'allRooms', 'allHalls'));
+        return view('admin.dashboard', compact('stats', 'recentBookings', 'allRooms', 'allHalls', 'roomsWithStatus'));
     }
 
     public function searchRoomAvailability(Request $request)

@@ -31,11 +31,11 @@
                     <i class="fas fa-print"></i>
                     <span>Print Invoice</span>
                 </button>
-                <button onclick="openTimeModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                <button onclick="openTimeModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
                     <i class="fas fa-clock"></i>
                     <span>Edit Time</span>
                 </button>
-                <button onclick="openPaymentModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
+                <button onclick="openPaymentModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
                     <i class="fas fa-money-bill"></i>
                     <span>Add Payment</span>
                 </button>
@@ -43,18 +43,26 @@
                     <i class="fas fa-undo"></i>
                     <span>Process Refund</span>
                 </button>
-                <button onclick="openVatModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
+                <button onclick="openVatModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
                     <i class="fas fa-percentage"></i>
                     <span>{{ $booking->vat_enabled ? 'Disable' : 'Enable' }} VAT</span>
                 </button>
-                <button onclick="openExtraChargesModal()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">
+                <button onclick="openExtraChargesModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
                     <i class="fas fa-plus-circle"></i>
                     <span>Extra Charges</span>
                 </button>
-                <button onclick="openGuestModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition flex items-center gap-2">
+                <button onclick="openGuestModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
                     <i class="fas fa-user-plus"></i>
                     <span>Add Guest</span>
                 </button>
+                <a href="{{ route('admin.premium-booking.index') }}?booking_id={{ $booking->id }}&phone={{ $booking->customer_phone }}&name={{ urlencode($booking->customer_name) }}&nid={{ $booking->customer_nid }}&address={{ urlencode($booking->customer_address ?? '') }}&company={{ urlencode($booking->company_name ?? '') }}&checkin={{ $booking->check_in_date }}&checkout={{ $booking->check_out_date }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Add Room</span>
+                </a>
+                <a href="{{ route('admin.customers.show', urlencode($booking->customer_phone)) }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <i class="fas fa-user"></i>
+                    <span>Customer Profile</span>
+                </a>
                 <div class="relative">
                     <select onchange="updateStatus({{ $booking->id }}, this.value)" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition cursor-pointer appearance-none pr-10">
                         <option value="">Change Status</option>
@@ -81,7 +89,7 @@
             <!-- Customer Information -->
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <i class="fas fa-user text-blue-600"></i>
+                    <i class="fas fa-user text-primary-600"></i>
                     Guest Information
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -145,7 +153,7 @@
             <!-- Booking Details -->
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <i class="fas fa-bed text-green-600"></i>
+                    <i class="fas fa-bed text-primary-600"></i>
                     Booking Details
                 </h2>
                 
@@ -154,13 +162,13 @@
                     <!-- Check-in Status -->
                     <div class="border-2 rounded-lg p-4 text-center
                         @if($booking->status === 'checked_in' || $booking->status === 'checked_out') 
-                            border-green-500 bg-green-50
+                            border-primary-500 bg-green-50
                         @else 
                             border-gray-300 bg-gray-50
                         @endif">
                         <i class="fas fa-sign-in-alt text-2xl mb-2 
                             @if($booking->status === 'checked_in' || $booking->status === 'checked_out') 
-                                text-green-600 
+                                text-primary-600 
                             @else 
                                 text-gray-400
                             @endif"></i>
@@ -182,20 +190,20 @@
                     <!-- Check-out Status -->
                     <div class="border-2 rounded-lg p-4 text-center
                         @if($booking->status === 'checked_out') 
-                            border-blue-500 bg-blue-50
+                            border-primary-500 bg-primary-50
                         @else 
                             border-gray-300 bg-gray-50
                         @endif">
                         <i class="fas fa-sign-out-alt text-2xl mb-2
                             @if($booking->status === 'checked_out') 
-                                text-blue-600
+                                text-primary-600
                             @else 
                                 text-gray-400
                             @endif"></i>
                         <p class="text-xs font-semibold text-gray-600 mb-1">Check-Out Status</p>
                         <span class="inline-block px-3 py-1 rounded-full text-xs font-bold
                             @if($booking->status === 'checked_out') 
-                                bg-blue-500 text-white
+                                bg-primary-500 text-white
                             @else 
                                 bg-gray-400 text-white
                             @endif">
@@ -210,7 +218,7 @@
                     <!-- Payment Status -->
                     <div class="border-2 rounded-lg p-4 text-center
                         @if($booking->payment_status === 'paid') 
-                            border-green-500 bg-green-50
+                            border-primary-500 bg-green-50
                         @elseif($booking->payment_status === 'partial') 
                             border-yellow-500 bg-yellow-50
                         @else 
@@ -218,7 +226,7 @@
                         @endif">
                         <i class="fas fa-money-bill-wave text-2xl mb-2
                             @if($booking->payment_status === 'paid') 
-                                text-green-600
+                                text-primary-600
                             @elseif($booking->payment_status === 'partial') 
                                 text-yellow-600
                             @else 
@@ -242,9 +250,22 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="font-semibold text-gray-600">Room:</span>
-                        <p class="text-gray-900">{{ $booking->room->room_number }} - {{ $booking->room->roomType->name ?? 'N/A' }}</p>
+                    <div class="md:col-span-2">
+                        <span class="font-semibold text-gray-600">Room(s):</span>
+                        @php $allRooms = $booking->getAllRooms(); @endphp
+                        @if($allRooms->count() > 1)
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                @foreach($allRooms as $room)
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                                        {{ $room->room_number }} - {{ $room->roomType->name ?? 'N/A' }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        @elseif($allRooms->count() == 1)
+                            <p class="text-gray-900">{{ $allRooms->first()->room_number }} - {{ $allRooms->first()->roomType->name ?? 'N/A' }}</p>
+                        @else
+                            <p class="text-gray-500">No room assigned</p>
+                        @endif
                     </div>
                     <div>
                         <span class="font-semibold text-gray-600">Total Guests:</span>
@@ -273,8 +294,8 @@
                     <div>
                         <span class="font-semibold text-gray-600">Status:</span>
                         <span class="px-3 py-1 rounded-full text-xs font-semibold
-                            @if($booking->status === 'confirmed') bg-blue-100 text-blue-800
-                            @elseif($booking->status === 'checked_in') bg-green-100 text-green-800
+                            @if($booking->status === 'confirmed') bg-primary-100 text-primary-800
+                            @elseif($booking->status === 'checked_in') bg-primary-100 text-primary-800
                             @elseif($booking->status === 'checked_out') bg-gray-100 text-gray-800
                             @elseif($booking->status === 'cancelled') bg-red-100 text-red-800
                             @else bg-yellow-100 text-yellow-800
@@ -299,7 +320,7 @@
             @if($booking->additionalGuests && $booking->additionalGuests->count() > 0)
             <div class="bg-white rounded-xl shadow-lg p-6 print:break-inside-avoid">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <i class="fas fa-users text-purple-600"></i>
+                    <i class="fas fa-users text-primary-600"></i>
                     Additional Guest Members
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -318,12 +339,12 @@
             @if($booking->customer_photo || $booking->customer_nid_document || $booking->passport_document || $booking->visiting_card)
             <div class="bg-white rounded-xl shadow-lg p-6 print:hidden">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <i class="fas fa-file text-indigo-600"></i>
+                    <i class="fas fa-file text-primary-600"></i>
                     Uploaded Documents
                 </h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     @if($booking->customer_photo)
-                    <div class="bg-blue-50 p-3 rounded-lg text-center hover:bg-blue-100 transition">
+                    <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
                         <a href="{{ Storage::url($booking->customer_photo) }}" target="_blank" class="block">
                             <img src="{{ Storage::url($booking->customer_photo) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-2 border">
                             <p class="text-xs text-gray-700 font-semibold">Customer Photo</p>
@@ -331,13 +352,13 @@
                     </div>
                     @endif
                     @if($booking->customer_nid_document)
-                    <div class="bg-green-50 p-3 rounded-lg text-center hover:bg-green-100 transition">
+                    <div class="bg-green-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
                         <a href="{{ Storage::url($booking->customer_nid_document) }}" target="_blank" class="block">
                             @if(Str::endsWith(strtolower($booking->customer_nid_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                                 <img src="{{ Storage::url($booking->customer_nid_document) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-2 border">
                             @else
-                                <div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-2">
-                                    <i class="fas fa-file-pdf text-green-600 text-3xl"></i>
+                                <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
+                                    <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
                                 </div>
                             @endif
                             <p class="text-xs text-gray-700 font-semibold">NID Document</p>
@@ -345,13 +366,13 @@
                     </div>
                     @endif
                     @if($booking->passport_document)
-                    <div class="bg-purple-50 p-3 rounded-lg text-center hover:bg-purple-100 transition">
+                    <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
                         <a href="{{ Storage::url($booking->passport_document) }}" target="_blank" class="block">
                             @if(Str::endsWith(strtolower($booking->passport_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                                 <img src="{{ Storage::url($booking->passport_document) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-2 border">
                             @else
-                                <div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-2">
-                                    <i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
+                                <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
+                                    <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
                                 </div>
                             @endif
                             <p class="text-xs text-gray-700 font-semibold">Passport</p>
@@ -359,13 +380,13 @@
                     </div>
                     @endif
                     @if($booking->visiting_card)
-                    <div class="bg-orange-50 p-3 rounded-lg text-center hover:bg-orange-100 transition">
+                    <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
                         <a href="{{ Storage::url($booking->visiting_card) }}" target="_blank" class="block">
                             @if(Str::endsWith(strtolower($booking->visiting_card), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                                 <img src="{{ Storage::url($booking->visiting_card) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-2 border">
                             @else
-                                <div class="w-full h-24 flex items-center justify-center bg-orange-100 rounded mb-2">
-                                    <i class="fas fa-file-pdf text-orange-600 text-3xl"></i>
+                                <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
+                                    <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
                                 </div>
                             @endif
                             <p class="text-xs text-gray-700 font-semibold">Visiting Card</p>
@@ -400,8 +421,8 @@
                                 <td class="p-2">{{ $payment->created_at->format('d/m/Y H:i') }}</td>
                                 <td class="p-2">
                                     <span class="px-2 py-1 rounded text-xs font-semibold
-                                        @if($payment->type === 'advance') bg-blue-100 text-blue-800
-                                        @elseif($payment->type === 'payment') bg-green-100 text-green-800
+                                        @if($payment->type === 'advance') bg-primary-100 text-primary-800
+                                        @elseif($payment->type === 'payment') bg-primary-100 text-primary-800
                                         @else bg-red-100 text-red-800
                                         @endif">
                                         {{ ucfirst($payment->type) }}
@@ -409,7 +430,7 @@
                                 </td>
                                 <td class="p-2 uppercase">{{ $payment->method }}</td>
                                 <td class="p-2 text-right font-semibold
-                                    @if($payment->type === 'refund') text-red-600 @else text-green-600 @endif">
+                                    @if($payment->type === 'refund') text-red-600 @else text-primary-600 @endif">
                                     @if($payment->type === 'refund') - @endif৳{{ number_format($payment->amount, 2) }}
                                 </td>
                                 <td class="p-2">{{ $payment->recordedBy->name ?? 'System' }}</td>
@@ -424,7 +445,7 @@
 
         <!-- Right Column - Payment Summary -->
         <div class="lg:col-span-1">
-            <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl shadow-lg p-6 sticky top-6">
+            <div class="bg-gradient-to-br from-primary-600 to-primary-800 text-white rounded-xl shadow-lg p-6 sticky top-6">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <i class="fas fa-calculator"></i>
                     Payment Summary
@@ -439,7 +460,7 @@
 
                     <!-- VAT -->
                     @if($vatAmount > 0)
-                    <div class="flex justify-between text-blue-200">
+                    <div class="flex justify-between text-primary-200">
                         <span>VAT (15%):</span>
                         <span class="font-semibold">৳{{ number_format($vatAmount, 2) }}</span>
                     </div>
@@ -459,14 +480,20 @@
 
                     <!-- Extra Charges -->
                     @if($extraCharges > 0)
-                    <div class="flex justify-between text-orange-300">
-                        <div>
-                            <span>Extra Charges:</span>
-                            @if($booking->extra_charges_description)
-                            <p class="text-xs text-blue-200 italic">{{ $booking->extra_charges_description }}</p>
-                            @endif
+                    <div class="bg-primary-600 rounded-lg p-3 my-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold">অতিরিক্ত চার্জ:</span>
+                            <span class="font-bold text-lg">+ ৳{{ number_format($extraCharges, 2) }}</span>
                         </div>
-                        <span class="font-semibold">৳{{ number_format($extraCharges, 2) }}</span>
+                        @if($booking->extra_charges_description)
+                        <div class="mt-2 pt-2 border-t border-primary-400">
+                            <p class="text-xs text-primary-100"><i class="fas fa-list mr-1"></i> {{ $booking->extra_charges_description }}</p>
+                        </div>
+                        @endif
+                    </div>
+                    @else
+                    <div class="text-center text-primary-200 text-sm py-2">
+                        <i class="fas fa-info-circle mr-1"></i> কোনো অতিরিক্ত চার্জ নেই
                     </div>
                     @endif
 
@@ -474,12 +501,12 @@
                     <div class="bg-white text-gray-900 rounded-lg p-3 my-3">
                         <div class="flex justify-between items-center">
                             <span class="font-bold">Grand Total:</span>
-                            <span class="text-2xl font-bold text-green-600">৳{{ number_format($grandTotal, 2) }}</span>
+                            <span class="text-2xl font-bold text-primary-600">৳{{ number_format($grandTotal, 2) }}</span>
                         </div>
                     </div>
 
                     <!-- Advance Payment -->
-                    <div class="bg-blue-700 rounded-lg p-3">
+                    <div class="bg-primary-700 rounded-lg p-3">
                         <div class="flex justify-between">
                             <span>Advance Payment:</span>
                             <span class="font-bold">৳{{ number_format($booking->advance_payment, 2) }}</span>
@@ -571,22 +598,22 @@
             </button>
         </div>
         <div class="space-y-4">
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
-                <p class="text-sm text-blue-700 mb-2">
+            <div class="bg-primary-50 border-l-4 border-primary-500 p-4">
+                <p class="text-sm text-primary-700 mb-2">
                     <i class="fas fa-info-circle mr-2"></i>
                     Current Status: <strong>{{ $booking->vat_enabled ? 'VAT Enabled (15%)' : 'VAT Disabled' }}</strong>
                 </p>
                 @if($booking->vat_enabled)
-                    <p class="text-sm text-blue-600">Current VAT Amount: ৳{{ number_format($vatAmount, 2) }}</p>
+                    <p class="text-sm text-primary-600">Current VAT Amount: ৳{{ number_format($vatAmount, 2) }}</p>
                 @else
-                    <p class="text-sm text-blue-600">Enabling VAT will add 15% to the base amount</p>
+                    <p class="text-sm text-primary-600">Enabling VAT will add 15% to the base amount</p>
                 @endif
             </div>
             <p class="text-sm text-gray-600">
                 {{ $booking->vat_enabled ? 'Disabling VAT will remove the 15% tax from the grand total and recalculate the remaining payment.' : 'Enabling VAT will add 15% tax to the base amount and recalculate the grand total.' }}
             </p>
             <div class="flex gap-3">
-                <button onclick="submitVatToggle()" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                <button onclick="submitVatToggle()" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
                     {{ $booking->vat_enabled ? 'Disable VAT' : 'Enable VAT' }}
                 </button>
                 <button onclick="closeVatModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
@@ -610,14 +637,14 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-In Time</label>
-                    <input type="time" name="check_in_time" value="{{ $booking->check_in_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="time" name="check_in_time" value="{{ $booking->check_in_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-Out Time</label>
-                    <input type="time" name="check_out_time" value="{{ $booking->check_out_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="time" name="check_out_time" value="{{ $booking->check_out_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="flex gap-3">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
                         Update Time
                     </button>
                     <button type="button" onclick="closeTimeModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
@@ -631,7 +658,7 @@
 
 <!-- Add Payment Modal -->
 <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">Record Payment</h3>
             <button onclick="closePaymentModal()" class="text-gray-500 hover:text-gray-700">
@@ -640,29 +667,76 @@
         </div>
         <form id="paymentForm" onsubmit="submitPayment(event)">
             <div class="space-y-4">
+                <!-- Remaining Balance Display -->
+                <div class="bg-yellow-100 border border-yellow-400 rounded-lg p-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold text-gray-700">বাকি আছে:</span>
+                        <span class="text-xl font-bold text-yellow-700" id="currentRemaining">৳{{ number_format($booking->remaining_payment, 2) }}</span>
+                    </div>
+                    <div id="afterPaymentCalc" class="hidden mt-2 pt-2 border-t border-yellow-300">
+                        <div class="flex justify-between text-sm">
+                            <span>পেমেন্ট/ডিসকাউন্ট পরে বাকি থাকবে:</span>
+                            <span class="font-bold text-primary-600" id="afterPaymentRemaining">৳0.00</span>
+                        </div>
+                    </div>
+                    <div id="paymentError" class="hidden mt-2 text-red-600 text-sm font-semibold"></div>
+                </div>
+
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Amount (৳)</label>
-                    <input type="number" step="0.01" name="amount" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                    <p class="text-xs text-gray-500 mt-1">Remaining: ৳{{ number_format($booking->remaining_payment, 2) }}</p>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">পেমেন্ট পরিমাণ (৳) <span class="text-xs text-gray-400">(ডিসকাউন্ট দিলে ০ দিন)</span></label>
+                    <input type="number" step="0.01" name="amount" id="payment_amount" value="0" min="0" max="{{ $booking->remaining_payment }}" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
-                    <select name="method" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
-                        <option value="cash">Cash</option>
-                        <option value="card">Card</option>
-                        <option value="mfs">Mobile Banking (MFS)</option>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">পেমেন্ট পদ্ধতি</label>
+                    <select name="method" id="payment_modal_method" required onchange="togglePaymentModalFields()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+                        <option value="cash">নগদ (Cash)</option>
+                        <option value="bkash">বিকাশ (bKash)</option>
+                        <option value="card">কার্ড (Card)</option>
                     </select>
                 </div>
+                <div id="payment_modal_bkash" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">বিকাশ নম্বর</label>
+                    <input type="text" name="bkash_number" placeholder="01XXXXXXXXX" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div id="payment_modal_bank" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ব্যাংক নাম</label>
+                    <select name="bank_name" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+                        <option value="">ব্যাংক নির্বাচন করুন</option>
+                        <option value="Pubali Bank">পূবালী ব্যাংক</option>
+                        <option value="City Bank">সিটি ব্যাংক</option>
+                        <option value="Dutch Bangla Bank">ডাচ বাংলা ব্যাংক</option>
+                    </select>
+                </div>
+                <div class="border-t pt-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ডিসকাউন্ট</label>
+                    <select name="discount_type" id="payment_discount_type" onchange="toggleDiscountFields()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                        <option value="none">ডিসকাউন্ট নেই</option>
+                        <option value="flat">নির্দিষ্ট পরিমাণ</option>
+                        <option value="percentage">শতাংশ (%)</option>
+                    </select>
+                </div>
+                <div id="discount_flat_div" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ডিসকাউন্ট পরিমাণ (৳)</label>
+                    <input type="number" step="0.01" name="discount_amount" id="discount_amount_input" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div id="discount_percentage_div" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ডিসকাউন্ট শতাংশ (%)</label>
+                    <input type="number" step="0.01" name="discount_percentage" id="discount_percentage_input" min="0" max="100" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
+                <div id="discount_reference_div" class="hidden">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">ডিসকাউন্ট রেফারেন্স (কে অনুমোদন দিয়েছে?)</label>
+                    <input type="text" name="discount_reference" placeholder="ম্যানেজারের নাম বা কোড" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Note (Optional)</label>
-                    <textarea name="note" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">নোট (ঐচ্ছিক)</label>
+                    <textarea name="note" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
                 </div>
                 <div class="flex gap-3">
-                    <button type="submit" class="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                        Record Payment
+                    <button type="submit" id="submitPaymentBtn" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
+                        <i class="fas fa-save mr-2"></i>পেমেন্ট সংরক্ষণ
                     </button>
                     <button type="button" onclick="closePaymentModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                        Cancel
+                        বাতিল
                     </button>
                 </div>
             </div>
@@ -671,34 +745,79 @@
 </div>
 
 <!-- Add Extra Charges Modal -->
-<div id="extraChargesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+<div id="extraChargesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg my-8 mx-4">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800">Add Extra Charges</h3>
+            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-plus-circle text-primary-600 mr-2"></i>অতিরিক্ত চার্জ যোগ করুন</h3>
             <button onclick="closeExtraChargesModal()" class="text-gray-500 hover:text-gray-700">
                 <i class="fas fa-times text-xl"></i>
             </button>
         </div>
-        <form id="extraChargesForm" onsubmit="submitExtraCharges(event)">
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Amount (৳)</label>
-                    <input type="number" step="0.01" name="amount" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                    <textarea name="description" required rows="3" placeholder="e.g., Room service, Mini bar, Laundry" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"></textarea>
-                </div>
-                <div class="flex gap-3">
-                    <button type="submit" class="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
-                        Add Charges
-                    </button>
-                    <button type="button" onclick="closeExtraChargesModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                        Cancel
-                    </button>
+        
+        <!-- Current Extra Charges Display -->
+        @if($booking->extra_charges > 0)
+        <div class="bg-primary-100 border border-primary-300 rounded-lg p-3 mb-4">
+            <div class="flex justify-between items-center">
+                <span class="font-semibold text-gray-700">বর্তমান অতিরিক্ত চার্জ:</span>
+                <span class="font-bold text-primary-600">৳{{ number_format($booking->extra_charges, 2) }}</span>
+            </div>
+            @if($booking->extra_charges_description)
+            <p class="text-xs text-gray-600 mt-1">{{ $booking->extra_charges_description }}</p>
+            @endif
+        </div>
+        @endif
+        
+        <!-- Categories List -->
+        <div id="extraChargeCategoriesContainer" class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">সার্ভিস নির্বাচন করুন:</label>
+            <div id="extraChargeCategoriesList" class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                <div class="text-center text-gray-500 py-4">
+                    <i class="fas fa-spinner fa-spin"></i> লোড হচ্ছে...
                 </div>
             </div>
-        </form>
+        </div>
+
+        <!-- Selected Items -->
+        <div id="selectedExtraCharges" class="mb-4 hidden">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">নির্বাচিত আইটেম:</label>
+            <div id="selectedChargesList" class="space-y-2"></div>
+            <div class="mt-3 p-3 bg-primary-100 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold text-gray-700">মোট চার্জ:</span>
+                    <span id="totalExtraChargeAmount" class="text-xl font-bold text-primary-600">৳0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Entry Option -->
+        <div class="border-t pt-4 mt-4">
+            <button type="button" onclick="toggleManualEntry()" class="text-sm text-primary-600 hover:text-primary-800">
+                <i class="fas fa-edit mr-1"></i> ম্যানুয়ালি চার্জ লিখুন
+            </button>
+            <div id="manualEntryDiv" class="hidden mt-3 space-y-3">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">পরিমাণ (৳)</label>
+                    <input type="number" step="0.01" id="manualAmount" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">বিবরণ</label>
+                    <input type="text" id="manualDescription" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="লন্ড্রি সার্ভিস">
+                </div>
+                <button type="button" onclick="addManualCharge()" class="w-full bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700">
+                    <i class="fas fa-plus mr-1"></i> যোগ করুন
+                </button>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex gap-3 mt-4">
+            <button type="button" onclick="submitAllExtraCharges()" id="submitExtraChargesBtn" disabled class="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-save mr-2"></i>সংরক্ষণ করুন
+            </button>
+            <button type="button" onclick="closeExtraChargesModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                বাতিল
+            </button>
+        </div>
     </div>
 </div>
 
@@ -715,18 +834,18 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Guest Name</label>
-                    <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500">
+                    <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">NID Number</label>
-                    <input type="text" name="nid" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500">
+                    <input type="text" name="nid" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
-                    <input type="text" name="phone" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500">
+                    <input type="text" name="phone" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="flex gap-3">
-                    <button type="submit" class="flex-1 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700">
+                    <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
                         Add Guest
                     </button>
                     <button type="button" onclick="closeGuestModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
@@ -760,14 +879,291 @@ function closePaymentModal() {
     document.getElementById('paymentModal').classList.remove('flex');
 }
 
+function togglePaymentModalFields() {
+    const method = document.getElementById('payment_modal_method').value;
+    document.getElementById('payment_modal_bkash').classList.add('hidden');
+    document.getElementById('payment_modal_bank').classList.add('hidden');
+    
+    if (method === 'bkash') {
+        document.getElementById('payment_modal_bkash').classList.remove('hidden');
+    } else if (method === 'card') {
+        document.getElementById('payment_modal_bank').classList.remove('hidden');
+    }
+}
+
+function toggleDiscountFields() {
+    const type = document.getElementById('payment_discount_type').value;
+    document.getElementById('discount_flat_div').classList.add('hidden');
+    document.getElementById('discount_percentage_div').classList.add('hidden');
+    document.getElementById('discount_reference_div').classList.add('hidden');
+    
+    if (type === 'flat') {
+        document.getElementById('discount_flat_div').classList.remove('hidden');
+        document.getElementById('discount_reference_div').classList.remove('hidden');
+    } else if (type === 'percentage') {
+        document.getElementById('discount_percentage_div').classList.remove('hidden');
+        document.getElementById('discount_reference_div').classList.remove('hidden');
+    }
+    calculatePaymentPreview();
+}
+
+// Calculate real-time payment preview
+const remainingBalance = {{ $booking->remaining_payment }};
+
+function calculatePaymentPreview() {
+    const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+    const discountType = document.getElementById('payment_discount_type').value;
+    
+    let discountAmount = 0;
+    if (discountType === 'flat') {
+        discountAmount = parseFloat(document.getElementById('discount_amount_input').value) || 0;
+    } else if (discountType === 'percentage') {
+        const percentage = parseFloat(document.getElementById('discount_percentage_input').value) || 0;
+        discountAmount = (remainingBalance * percentage) / 100;
+    }
+    
+    const totalDeduction = paymentAmount + discountAmount;
+    const afterPayment = remainingBalance - totalDeduction;
+    
+    const calcDiv = document.getElementById('afterPaymentCalc');
+    const remainingSpan = document.getElementById('afterPaymentRemaining');
+    const errorDiv = document.getElementById('paymentError');
+    const submitBtn = document.getElementById('submitPaymentBtn');
+    
+    if (totalDeduction > 0) {
+        calcDiv.classList.remove('hidden');
+        
+        if (totalDeduction > remainingBalance) {
+            // Error - exceeds remaining
+            remainingSpan.textContent = '৳' + afterPayment.toFixed(2);
+            remainingSpan.classList.remove('text-primary-600');
+            remainingSpan.classList.add('text-red-600');
+            errorDiv.classList.remove('hidden');
+            errorDiv.textContent = 'মোট পেমেন্ট ও ডিসকাউন্ট বাকি টাকার চেয়ে বেশি হতে পারে না!';
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            // Valid
+            remainingSpan.textContent = '৳' + afterPayment.toFixed(2);
+            remainingSpan.classList.add('text-primary-600');
+            remainingSpan.classList.remove('text-red-600');
+            errorDiv.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    } else {
+        calcDiv.classList.add('hidden');
+        errorDiv.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+// Extra Charges Variables
+let extraChargeCategories = [];
+let selectedCharges = [];
+
 function openExtraChargesModal() {
     document.getElementById('extraChargesModal').classList.remove('hidden');
     document.getElementById('extraChargesModal').classList.add('flex');
+    selectedCharges = [];
+    updateSelectedChargesUI();
+    loadExtraChargeCategories();
 }
 
 function closeExtraChargesModal() {
     document.getElementById('extraChargesModal').classList.add('hidden');
     document.getElementById('extraChargesModal').classList.remove('flex');
+    selectedCharges = [];
+}
+
+async function loadExtraChargeCategories() {
+    try {
+        const response = await fetch('/admin/api/extra-charge-categories');
+        extraChargeCategories = await response.json();
+        renderCategoriesList();
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        document.getElementById('extraChargeCategoriesList').innerHTML = `
+            <div class="text-center text-red-500 py-4">
+                <i class="fas fa-exclamation-circle"></i> ক্যাটাগরি লোড করতে সমস্যা হয়েছে
+            </div>`;
+    }
+}
+
+function renderCategoriesList() {
+    const container = document.getElementById('extraChargeCategoriesList');
+    
+    if (extraChargeCategories.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 py-4">
+                <i class="fas fa-info-circle"></i> কোনো ক্যাটাগরি নেই। 
+                <a href="/admin/extra-charge-categories/create" class="text-primary-600 hover:underline">নতুন যোগ করুন</a>
+            </div>`;
+        return;
+    }
+    
+    container.innerHTML = extraChargeCategories.map(cat => `
+        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-primary-50 border">
+            <div class="flex-1">
+                <span class="font-semibold text-gray-800">${cat.name}</span>
+                <span class="text-sm text-gray-500 ml-2">৳${parseFloat(cat.price).toFixed(2)}${cat.unit ? '/' + cat.unit : ''}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="number" min="1" value="1" id="qty_${cat.id}" 
+                    class="w-16 px-2 py-1 border rounded text-center focus:ring-2 focus:ring-orange-500" 
+                    placeholder="সংখ্যা">
+                <button type="button" onclick="addCategoryCharge(${cat.id})" 
+                    class="bg-primary-500 text-white px-3 py-1 rounded hover:bg-primary-600">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addCategoryCharge(categoryId) {
+    const category = extraChargeCategories.find(c => c.id === categoryId);
+    if (!category) return;
+    
+    const qtyInput = document.getElementById(`qty_${categoryId}`);
+    const quantity = parseInt(qtyInput.value) || 1;
+    const amount = parseFloat(category.price) * quantity;
+    
+    // Check if already exists, update quantity
+    const existingIndex = selectedCharges.findIndex(c => c.categoryId === categoryId);
+    if (existingIndex >= 0) {
+        selectedCharges[existingIndex].quantity += quantity;
+        selectedCharges[existingIndex].amount = parseFloat(category.price) * selectedCharges[existingIndex].quantity;
+    } else {
+        selectedCharges.push({
+            categoryId: categoryId,
+            name: category.name,
+            price: parseFloat(category.price),
+            unit: category.unit,
+            quantity: quantity,
+            amount: amount,
+            description: `${category.name} × ${quantity}`
+        });
+    }
+    
+    qtyInput.value = 1; // Reset quantity
+    updateSelectedChargesUI();
+}
+
+function removeSelectedCharge(index) {
+    selectedCharges.splice(index, 1);
+    updateSelectedChargesUI();
+}
+
+function updateSelectedChargesUI() {
+    const container = document.getElementById('selectedChargesList');
+    const totalSpan = document.getElementById('totalExtraChargeAmount');
+    const selectedDiv = document.getElementById('selectedExtraCharges');
+    const submitBtn = document.getElementById('submitExtraChargesBtn');
+    
+    if (selectedCharges.length === 0) {
+        selectedDiv.classList.add('hidden');
+        submitBtn.disabled = true;
+        return;
+    }
+    
+    selectedDiv.classList.remove('hidden');
+    submitBtn.disabled = false;
+    
+    let totalAmount = 0;
+    container.innerHTML = selectedCharges.map((charge, index) => {
+        totalAmount += charge.amount;
+        return `
+            <div class="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200">
+                <div>
+                    <span class="font-medium">${charge.name}</span>
+                    <span class="text-sm text-gray-500 ml-1">× ${charge.quantity}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-primary-600">৳${charge.amount.toFixed(2)}</span>
+                    <button type="button" onclick="removeSelectedCharge(${index})" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    totalSpan.textContent = '৳' + totalAmount.toFixed(2);
+}
+
+function toggleManualEntry() {
+    const div = document.getElementById('manualEntryDiv');
+    div.classList.toggle('hidden');
+}
+
+function addManualCharge() {
+    const amount = parseFloat(document.getElementById('manualAmount').value);
+    const description = document.getElementById('manualDescription').value.trim();
+    
+    if (!amount || amount <= 0) {
+        alert('পরিমাণ দিন');
+        return;
+    }
+    if (!description) {
+        alert('বিবরণ দিন');
+        return;
+    }
+    
+    selectedCharges.push({
+        categoryId: null,
+        name: description,
+        price: amount,
+        unit: null,
+        quantity: 1,
+        amount: amount,
+        description: description
+    });
+    
+    document.getElementById('manualAmount').value = '';
+    document.getElementById('manualDescription').value = '';
+    updateSelectedChargesUI();
+}
+
+async function submitAllExtraCharges() {
+    if (selectedCharges.length === 0) return;
+    
+    let totalAmount = 0;
+    let descriptions = [];
+    
+    selectedCharges.forEach(charge => {
+        totalAmount += charge.amount;
+        if (charge.quantity > 1) {
+            descriptions.push(`${charge.name} × ${charge.quantity} = ৳${charge.amount.toFixed(2)}`);
+        } else {
+            descriptions.push(`${charge.name} = ৳${charge.amount.toFixed(2)}`);
+        }
+    });
+    
+    try {
+        const response = await fetch(`/admin/bookings/{{ $booking->id }}/add-extra-charges`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                amount: totalAmount,
+                description: descriptions.join('; ')
+            })
+        });
+
+        if (response.ok) {
+            showGlobalModal('success', 'অতিরিক্ত চার্জ যোগ হয়েছে!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showGlobalModal('error', 'অতিরিক্ত চার্জ যোগ করতে সমস্যা হয়েছে!');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showGlobalModal('error', 'অতিরিক্ত চার্জ যোগ করতে সমস্যা হয়েছে!');
+    }
 }
 
 function openGuestModal() {
@@ -882,6 +1278,12 @@ async function submitPayment(e) {
             body: JSON.stringify({
                 amount: parseFloat(formData.get('amount')),
                 method: formData.get('method'),
+                bkash_number: formData.get('bkash_number') || '',
+                bank_name: formData.get('bank_name') || '',
+                discount_type: formData.get('discount_type'),
+                discount_amount: parseFloat(formData.get('discount_amount')) || 0,
+                discount_percentage: parseFloat(formData.get('discount_percentage')) || 0,
+                discount_reference: formData.get('discount_reference') || '',
                 note: formData.get('note')
             })
         });
@@ -896,36 +1298,6 @@ async function submitPayment(e) {
     } catch (error) {
         console.error('Error:', error);
         showGlobalModal('error', 'পেমেন্ট রেকর্ড করতে সমস্যা হয়েছে!');
-    }
-}
-
-// Submit extra charges
-async function submitExtraCharges(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    
-    try {
-        const response = await fetch(`/admin/bookings/{{ $booking->id }}/add-extra-charges`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                amount: parseFloat(formData.get('amount')),
-                description: formData.get('description')
-            })
-        });
-
-        if (response.ok) {
-            showGlobalModal('success', 'অতিরিক্ত চার্জ যোগ হয়েছে!');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showGlobalModal('error', 'অতিরিক্ত চার্জ যোগ করতে সমস্যা হয়েছে!');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showGlobalModal('error', 'অতিরিক্ত চার্জ যোগ করতে সমস্যা হয়েছে!');
     }
 }
 

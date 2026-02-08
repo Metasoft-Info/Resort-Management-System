@@ -62,7 +62,7 @@
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="নাম / ফোন / প্রতিষ্ঠান" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                 </div>
                 <div class="flex items-end gap-2">
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                         <i class="fas fa-filter mr-2"></i>ফিল্টার
                     </button>
                     <a href="{{ route('admin.reports.convention-bookings') }}" class="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600 transition">
@@ -95,33 +95,33 @@
 
     <!-- Summary Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-4 text-white print:bg-green-100 print:text-green-800 print:rounded print:border print:border-green-300">
-            <p class="text-green-100 text-xs print:text-green-600">মোট বুকিং</p>
+        <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-4 text-white print:bg-primary-100 print:text-primary-800 print:rounded print:border print:border-green-300">
+            <p class="text-green-100 text-xs print:text-primary-600">মোট বুকিং</p>
             <p class="text-2xl font-bold mt-1">{{ $totalBookings }}</p>
         </div>
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-4 text-white print:bg-blue-100 print:text-blue-800 print:rounded print:border print:border-blue-300">
-            <p class="text-blue-100 text-xs print:text-blue-600">মোট আয়</p>
+        <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-4 text-white print:bg-primary-100 print:text-primary-800 print:rounded print:border print:border-blue-300">
+            <p class="text-primary-100 text-xs print:text-primary-600">মোট আয়</p>
             <p class="text-2xl font-bold mt-1">৳{{ number_format($totalRevenue, 0) }}</p>
         </div>
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-4 text-white print:bg-purple-100 print:text-purple-800 print:rounded print:border print:border-purple-300">
-            <p class="text-purple-100 text-xs print:text-purple-600">মোট অগ্রিম</p>
+        <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-4 text-white print:bg-primary-100 print:text-primary-800 print:rounded print:border print:border-purple-300">
+            <p class="text-primary-100 text-xs print:text-primary-600">মোট অগ্রিম</p>
             <p class="text-2xl font-bold mt-1">৳{{ number_format($totalAdvance, 0) }}</p>
         </div>
-        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-4 text-white print:bg-orange-100 print:text-orange-800 print:rounded print:border print:border-orange-300">
-            <p class="text-orange-100 text-xs print:text-orange-600">মোট বকেয়া</p>
+        <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-4 text-white print:bg-primary-100 print:text-primary-800 print:rounded print:border print:border-primary-300">
+            <p class="text-primary-100 text-xs print:text-primary-600">মোট বকেয়া</p>
             <p class="text-2xl font-bold mt-1">৳{{ number_format($totalRemaining, 0) }}</p>
         </div>
     </div>
 
     <!-- Bookings Table -->
     <div class="bg-white rounded-xl shadow-lg overflow-hidden print:shadow-none print:border print:border-gray-300">
-        <div class="p-4 border-b bg-gradient-to-r from-green-50 to-emerald-50 flex justify-between items-center print:hidden">
+        <div class="p-4 border-b bg-gradient-to-r from-primary-50 to-emerald-50 flex justify-between items-center print:hidden">
             <h3 class="text-lg font-bold text-gray-800">বুকিং তালিকা ({{ $totalBookings }})</h3>
             <div class="flex gap-2">
                 <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
                     <i class="fas fa-print mr-2"></i>প্রিন্ট
                 </button>
-                <a href="{{ route('admin.reports.convention-bookings.export', request()->query()) }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                <a href="{{ route('admin.reports.convention-bookings.export', request()->query()) }}" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
                     <i class="fas fa-file-excel mr-2"></i>এক্সপোর্ট
                 </a>
             </div>
@@ -161,11 +161,11 @@
                             @endif
                         </td>
                         <td class="px-3 py-2 font-semibold text-gray-800 text-right">৳{{ number_format($booking->total_amount, 0) }}</td>
-                        <td class="px-3 py-2 text-green-600 font-semibold text-right">৳{{ number_format($booking->advance_payment, 0) }}</td>
+                        <td class="px-3 py-2 text-primary-600 font-semibold text-right">৳{{ number_format($booking->advance_payment, 0) }}</td>
                         <td class="px-3 py-2 text-red-600 font-semibold text-right">৳{{ number_format($booking->remaining_payment, 0) }}</td>
                         <td class="px-3 py-2 text-center">
                             <span class="px-2 py-1 rounded-full text-xs font-semibold
-                                @if($booking->payment_status == 'paid') bg-green-100 text-green-800
+                                @if($booking->payment_status == 'paid') bg-primary-100 text-primary-800
                                 @elseif($booking->payment_status == 'partial') bg-yellow-100 text-yellow-800
                                 @else bg-red-100 text-red-800
                                 @endif">
@@ -174,10 +174,10 @@
                         </td>
                         <td class="px-3 py-2 text-center">
                             <span class="px-2 py-1 rounded-full text-xs font-semibold
-                                @if($booking->status == 'confirmed') bg-blue-100 text-blue-800
+                                @if($booking->status == 'confirmed') bg-primary-100 text-primary-800
                                 @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-800
                                 @elseif($booking->status == 'cancelled') bg-red-100 text-red-800
-                                @elseif($booking->status == 'completed') bg-green-100 text-green-800
+                                @elseif($booking->status == 'completed') bg-primary-100 text-primary-800
                                 @else bg-gray-100 text-gray-800
                                 @endif">
                                 {{ ucfirst($booking->status) }}

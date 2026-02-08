@@ -8,14 +8,14 @@
     <div>
         <h3 class="text-lg font-semibold text-gray-700">Total Bookings: <span class="text-primary-600">{{ $bookings->total() }}</span></h3>
     </div>
-    <a href="{{ route('admin.convention-bookings.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl hover:from-primary-700 hover:to-accent-700 transition font-semibold shadow-lg hover:shadow-xl">
+    <a href="{{ route('admin.convention-bookings.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition font-semibold shadow-lg hover:shadow-xl">
         <i class="fas fa-plus mr-2"></i>New Booking
     </a>
 </div>
 
 <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
     <table class="w-full">
-        <thead class="bg-gradient-to-r from-primary-50 to-accent-50">
+        <thead class="bg-gradient-to-r from-primary-50 to-primary-100">
             <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                     <i class="fas fa-hashtag mr-2 text-primary-600"></i>ID
@@ -65,9 +65,9 @@
                     <td class="px-6 py-4 font-bold text-gray-700">৳{{ number_format($booking->total_amount, 0) }}</td>
                     <td class="px-6 py-4">
                         <span class="px-3 py-1 text-xs font-bold rounded-full inline-flex items-center
-                            @if($booking->status == 'confirmed') bg-green-100 text-green-700
+                            @if($booking->status == 'confirmed') bg-primary-100 text-primary-700
                             @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-700
-                            @elseif($booking->status == 'completed') bg-blue-100 text-blue-700
+                            @elseif($booking->status == 'completed') bg-primary-100 text-primary-700
                             @else bg-red-100 text-red-700
                             @endif">
                             @if($booking->status == 'confirmed')
@@ -84,10 +84,10 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
-                            <a href="{{ route('admin.convention-bookings.show', $booking) }}" class="px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-xs font-semibold inline-flex items-center">
+                            <a href="{{ route('admin.convention-bookings.show', $booking) }}" class="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition text-xs font-semibold inline-flex items-center">
                                 <i class="fas fa-eye mr-1"></i>View
                             </a>
-                            <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-xs font-semibold inline-flex items-center">
+                            <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition text-xs font-semibold inline-flex items-center">
                                 <i class="fas fa-edit mr-1"></i>Edit
                             </a>
                             <form action="{{ route('admin.convention-bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirmDelete(this, 'বুকিং #{{ $booking->id }} মুছে ফেলতে চান?')">

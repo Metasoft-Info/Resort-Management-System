@@ -19,17 +19,17 @@
         }
     </script>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-accent-600 to-pink-600 relative overflow-hidden">
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-accent-600 to-primary-600 relative overflow-hidden">
     <!-- Background Pattern -->
     <div class="absolute inset-0 opacity-20" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
     
     <div class="relative z-10 bg-white rounded-3xl shadow-2xl p-8 sm:p-12 max-w-md w-full mx-4">
         <!-- Logo & Header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-600 to-accent-600 rounded-2xl shadow-xl mb-4">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl shadow-xl mb-4">
                 <i class="fas fa-hotel text-4xl text-white"></i>
             </div>
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent mb-2">Tufan Resort</h1>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent mb-2">Tufan Resort</h1>
             <p class="text-gray-700 font-semibold mb-1">প্রশাসক ড্যাশবোর্ড লগইন</p>
             <p class="text-sm text-gray-500">Admin Dashboard Login</p>
         </div>
@@ -86,7 +86,7 @@
 
             <button 
                 type="submit"
-                class="w-full bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
+                class="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
             >
                 <i class="fas fa-sign-in-alt mr-2"></i>
                 Login / লগইন

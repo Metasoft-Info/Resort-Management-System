@@ -10,7 +10,7 @@
     <!-- Step 1: Room Availability -->
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div class="flex items-center mb-4">
-            <i class="fas fa-bed text-3xl text-blue-600 mr-4"></i>
+            <i class="fas fa-bed text-3xl text-primary-600 mr-4"></i>
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Step 1: Check Room Availability</h2>
                 <p class="text-sm text-gray-600">Select dates and find available rooms</p>
@@ -21,25 +21,25 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Date *</label>
                     <input type="date" id="checkInDate" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Date *</label>
                     <input type="date" id="checkOutDate" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Time</label>
                     <input type="time" id="checkInTime" value="14:00"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Time</label>
                     <input type="time" id="checkOutTime" value="11:00"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
             </div>
-            <button type="submit" class="mt-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg">
+            <button type="submit" class="mt-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                 <i class="fas fa-search mr-2"></i>Search Available Rooms
             </button>
         </form>
@@ -47,9 +47,9 @@
     </div>
 
     <!-- Step 2: Customer Search (Optional) -->
-    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg p-6 mb-6">
+    <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-6 mb-6">
         <div class="flex items-center mb-4">
-            <i class="fas fa-user-search text-3xl text-purple-600 mr-4"></i>
+            <i class="fas fa-user-search text-3xl text-primary-600 mr-4"></i>
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Step 2: Customer Search (Optional)</h2>
                 <p class="text-sm text-gray-600">Search for existing customer by phone to auto-fill information</p>
@@ -57,8 +57,8 @@
         </div>
         <div class="flex gap-3">
             <input type="text" id="searchPhone" placeholder="Enter phone number..." 
-                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-            <button onclick="searchCustomer()" class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg">
+                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+            <button onclick="searchCustomer()" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                 <i class="fas fa-search mr-2"></i>Search Customer
             </button>
         </div>
@@ -67,49 +67,49 @@
 
     <!-- Step 3: Booking Form -->
     <form id="bookingForm" class="hidden" onsubmit="submitBooking(event)">
-        <div id="selectedRoomInfo" class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6 rounded-lg"></div>
+        <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-4 mb-6 rounded-lg"></div>
 
         <!-- Customer Information -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-user text-purple-600 mr-3"></i>
+                <i class="fas fa-user text-primary-600 mr-3"></i>
                 Customer Information
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
                     <input type="text" id="customer_name" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">NID Number *</label>
                     <input type="text" id="customer_nid" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
                     <input type="tel" id="customer_phone" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">WhatsApp Number</label>
                     <input type="tel" id="customer_whatsapp"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
                     <input type="email" id="customer_email" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Passport Number</label>
                     <input type="text" id="passport_number"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Address</label>
                     <textarea id="customer_address" rows="2"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
                 </div>
             </div>
 
@@ -162,10 +162,10 @@
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-users text-teal-600 mr-3"></i>
+                    <i class="fas fa-users text-primary-600 mr-3"></i>
                     Additional Guests
                 </h2>
-                <button type="button" onclick="addAdditionalGuest()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+                <button type="button" onclick="addAdditionalGuest()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
                     <i class="fas fa-plus mr-2"></i>Add Guest
                 </button>
             </div>
@@ -175,7 +175,7 @@
         <!-- Booking Details -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-calendar-check text-green-600 mr-3"></i>
+                <i class="fas fa-calendar-check text-primary-600 mr-3"></i>
                 Booking Details
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -261,17 +261,17 @@
                     <input type="text" id="extra_charges_description"
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
                 </div>
-                <div class="lg:col-span-3 bg-green-50 border-2 border-green-500 rounded-lg p-4">
+                <div class="lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-green-700 mb-2">Total Amount (৳) *</label>
+                            <label class="block text-sm font-semibold text-primary-700 mb-2">Total Amount (৳) *</label>
                             <input type="number" id="total_amount" step="0.01" required readonly
-                                class="w-full px-4 py-3 border-2 border-green-600 rounded-lg bg-white font-bold text-green-600 text-lg">
+                                class="w-full px-4 py-3 border-2 border-green-600 rounded-lg bg-white font-bold text-primary-600 text-lg">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment (৳) *</label>
                             <input type="number" id="advance_payment" step="0.01" required oninput="calculateRemaining()"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Remaining Payment (৳)</label>
@@ -302,7 +302,7 @@
 
         <!-- Submit Buttons -->
         <div class="flex gap-4">
-            <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg text-lg font-bold">
+            <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-lg font-bold">
                 <i class="fas fa-check-circle mr-2"></i>Confirm Booking
             </button>
             <button type="button" onclick="resetAll()" class="bg-gray-500 text-white px-8 py-4 rounded-lg hover:bg-gray-600 transition">
@@ -326,7 +326,7 @@ async function searchCustomer() {
         return;
     }
 
-    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i><p class="text-gray-600 mt-2">Searching...</p></div>';
+    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i><p class="text-gray-600 mt-2">Searching...</p></div>';
 
     try {
         const response = await fetch(`/admin/bookings?search=${encodeURIComponent(phone)}&type=phone`, {
@@ -341,7 +341,7 @@ async function searchCustomer() {
         if (bookings.data && bookings.data.length > 0) {
             const booking = bookings.data[0];
             fillCustomerInfo(booking);
-            resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4"><p class="text-green-700"><i class="fas fa-check-circle mr-2"></i>Customer found! Information auto-filled below.</p></div>';
+            resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4"><p class="text-primary-700"><i class="fas fa-check-circle mr-2"></i>Customer found! Information auto-filled below.</p></div>';
         } else {
             resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700"><i class="fas fa-info-circle mr-2"></i>No previous bookings found</p></div>';
         }
@@ -398,13 +398,13 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
                 const totalPrice = pricePerNight * data.nights;
                 
                 container.innerHTML += `
-                    <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-lg transition cursor-pointer">
+                    <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-primary-500 hover:shadow-lg transition cursor-pointer">
                         <h3 class="font-bold text-lg text-gray-800">${room.room_number}</h3>
                         <p class="text-gray-600">${room.room_type?.name || room.type || 'N/A'}</p>
-                        <p class="text-blue-600 font-semibold mt-2">৳${pricePerNight.toLocaleString()} / night</p>
+                        <p class="text-primary-600 font-semibold mt-2">৳${pricePerNight.toLocaleString()} / night</p>
                         <p class="text-sm text-gray-500">${data.nights} nights = ৳${totalPrice.toLocaleString()}</p>
                         <button type="button" onclick="selectRoom(${room.id}, '${room.room_number}', '${room.name || room.room_type?.name || 'Room'}', ${data.nights}, ${pricePerNight}, '${checkIn}', '${checkOut}', '${checkInTime}', '${checkOutTime}')" 
-                            class="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                            class="mt-3 w-full bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
                             <i class="fas fa-hand-pointer mr-2"></i>Select Room
                         </button>
                     </div>
@@ -432,8 +432,8 @@ function selectRoom(roomId, roomNumber, roomName, nights, pricePerNight, checkIn
         <div class="flex items-center justify-between">
             <div>
                 <p class="font-bold text-blue-900 text-lg">Room: ${roomNumber} - ${roomName}</p>
-                <p class="text-blue-700">Check-in: ${checkIn} at ${checkInTime} | Check-out: ${checkOut} at ${checkOutTime}</p>
-                <p class="text-blue-700">${nights} nights × ৳${pricePerNight.toLocaleString()}/night</p>
+                <p class="text-primary-700">Check-in: ${checkIn} at ${checkInTime} | Check-out: ${checkOut} at ${checkOutTime}</p>
+                <p class="text-primary-700">${nights} nights × ৳${pricePerNight.toLocaleString()}/night</p>
             </div>
             <button type="button" onclick="resetRoomSelection()" class="text-red-600 hover:text-red-800">
                 <i class="fas fa-times-circle text-2xl"></i>
@@ -458,9 +458,9 @@ function addAdditionalGuest() {
     additionalGuests.push({name: '', nid: '', phone: ''});
     
     const guestHtml = `
-        <div class="border-2 border-teal-200 rounded-lg p-4 mb-3 bg-teal-50" id="guest-${index}">
+        <div class="border-2 border-primary-200 rounded-lg p-4 mb-3 bg-primary-50" id="guest-${index}">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-teal-900">Guest #${index + 2}</h3>
+                <h3 class="font-bold text-primary-900">Guest #${index + 2}</h3>
                 <button type="button" onclick="removeAdditionalGuest(${index})" class="text-red-600 hover:text-red-800 font-semibold">
                     <i class="fas fa-trash mr-1"></i>Remove
                 </button>
@@ -469,17 +469,17 @@ function addAdditionalGuest() {
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Name *</label>
                     <input type="text" id="guest_name_${index}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">NID *</label>
                     <input type="text" id="guest_nid_${index}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Phone *</label>
                     <input type="tel" id="guest_phone_${index}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
             </div>
         </div>

@@ -9,36 +9,36 @@
             <!-- Customer Information -->
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-user text-blue-600 mr-3"></i>গ্রাহক তথ্য
+                    <i class="fas fa-user text-primary-600 mr-3"></i>গ্রাহক তথ্য
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">গ্রাহকের নাম *</label>
-                        <input type="text" name="customer_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="text" name="customer_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">ফোন নম্বর *</label>
-                        <input type="tel" name="customer_phone" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="tel" name="customer_phone" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">হোয়াটসঅ্যাপ</label>
-                        <input type="tel" name="customer_whatsapp" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="tel" name="customer_whatsapp" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">এনআইডি নম্বর</label>
-                        <input type="text" name="customer_nid" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="text" name="customer_nid" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">ইমেইল</label>
-                        <input type="email" name="customer_email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="email" name="customer_email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">প্রতিষ্ঠানের নাম</label>
-                        <input type="text" name="organization_name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="text" name="organization_name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div class="md:col-span-3">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">ঠিকানা</label>
-                        <textarea name="customer_address" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                        <textarea name="customer_address" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
                     </div>
                 </div>
             </div>
@@ -46,7 +46,7 @@
             <!-- Event Information -->
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-calendar-alt text-green-600 mr-3"></i>ইভেন্ট তথ্য
+                    <i class="fas fa-calendar-alt text-primary-600 mr-3"></i>ইভেন্ট তথ্য
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
@@ -89,12 +89,12 @@
             <!-- Pricing -->
             <div class="mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-calculator text-indigo-600 mr-3"></i>মূল্য তথ্য
+                    <i class="fas fa-calculator text-primary-600 mr-3"></i>মূল্য তথ্য
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">হল ভাড়া (৳) *</label>
-                        <input type="number" name="hall_rent" id="hall_rent" value="0" step="0.01" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" readonly>
+                        <input type="number" name="hall_rent" id="hall_rent" value="0" step="0.01" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" readonly>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">অগ্রিম পেমেন্ট (৳)</label>
@@ -135,7 +135,7 @@
             <input type="hidden" name="total_amount" id="total_amount" value="0">
 
             <div class="flex gap-4">
-                <button type="submit" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg font-semibold text-lg">
+                <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg font-semibold text-lg">
                     <i class="fas fa-save mr-2"></i>বুকিং সংরক্ষণ করুন
                 </button>
                 <a href="{{ route('admin.convention-bookings.index') }}" class="bg-gray-500 text-white px-8 py-4 rounded-lg hover:bg-gray-600 transition font-semibold text-lg">

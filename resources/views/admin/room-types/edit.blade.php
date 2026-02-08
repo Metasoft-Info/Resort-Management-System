@@ -15,41 +15,41 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">নাম *</label>
                     <input type="text" name="name" value="{{ old('name', $roomType->name) }}" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                     @error('name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">মূল্য (৳) *</label>
                     <input type="number" name="base_price" value="{{ old('base_price', $roomType->base_price) }}" step="0.01" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                     @error('base_price')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">সর্বোচ্চ অকুপেন্সি *</label>
                     <input type="number" name="max_occupancy" value="{{ old('max_occupancy', $roomType->max_occupancy) }}" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                     @error('max_occupancy')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">সুবিধা</label>
                     <input type="text" name="amenities" value="{{ old('amenities', $roomType->amenities) }}"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                     @error('amenities')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
                 </div>
 
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">বর্ণনা</label>
                     <textarea name="description" rows="4"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{{ old('description', $roomType->description) }}</textarea>
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">{{ old('description', $roomType->description) }}</textarea>
                     @error('description')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
                 </div>
             </div>
 
             <div class="flex gap-4 mt-8">
-                <button type="submit" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg">
+                <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                     <i class="fas fa-save mr-2"></i>আপডেট করুন
                 </button>
                 <a href="{{ route('admin.room-types.index') }}" class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">

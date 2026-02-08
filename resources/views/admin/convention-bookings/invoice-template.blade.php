@@ -2,11 +2,11 @@
 <div id="convention-invoice-print-area" class="hidden print:block">
     <div class="bg-white p-4 text-xs">
         <!-- Header -->
-        <div class="text-center border-b-2 border-purple-800 pb-4 mb-6">
+        <div class="text-center border-b-2 border-primary-800 pb-4 mb-6">
             @if($resortInfo && $resortInfo->header_logo)
                 <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-16 mx-auto mb-2">
             @else
-                <h1 class="text-4xl font-bold text-purple-800 mb-2">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
+                <h1 class="text-4xl font-bold text-primary-800 mb-2">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
             @endif
             <p class="text-gray-600 text-sm">🏛️ Convention Hall & Event Center</p>
             <p class="text-gray-500 text-sm mt-2">
@@ -28,8 +28,8 @@
             </div>
             <div class="text-right">
                 <div class="inline-block px-4 py-2 rounded-lg font-bold text-sm
-                    @if($booking->status === 'confirmed') bg-blue-100 text-blue-800
-                    @elseif($booking->status === 'completed') bg-green-100 text-green-800
+                    @if($booking->status === 'confirmed') bg-primary-100 text-primary-800
+                    @elseif($booking->status === 'completed') bg-primary-100 text-primary-800
                     @elseif($booking->status === 'cancelled') bg-red-100 text-red-800
                     @else bg-yellow-100 text-yellow-800
                     @endif">
@@ -163,13 +163,13 @@
                         <td class="text-right py-2 font-semibold">৳{{ number_format($booking->vat_amount, 2) }}</td>
                     </tr>
                     @endif
-                    <tr class="bg-purple-50">
+                    <tr class="bg-primary-50">
                         <td class="py-3 font-bold text-lg">Total Amount</td>
-                        <td class="text-right py-3 font-bold text-lg text-purple-700">৳{{ number_format($booking->total_amount, 2) }}</td>
+                        <td class="text-right py-3 font-bold text-lg text-primary-700">৳{{ number_format($booking->total_amount, 2) }}</td>
                     </tr>
                     <tr class="bg-green-50">
-                        <td class="py-2 font-semibold text-green-700">Advance Payment</td>
-                        <td class="text-right py-2 font-semibold text-green-700">৳{{ number_format($booking->advance_payment, 2) }}</td>
+                        <td class="py-2 font-semibold text-primary-700">Advance Payment</td>
+                        <td class="text-right py-2 font-semibold text-primary-700">৳{{ number_format($booking->advance_payment, 2) }}</td>
                     </tr>
                     <tr class="bg-red-50">
                         <td class="py-2 font-bold text-red-700">Remaining Payment</td>
@@ -217,6 +217,11 @@
         <div class="text-center mt-4 pt-3 border-t border-gray-300">
             <p class="text-sm text-gray-700 font-medium">Thank you for choosing {{ $resortInfo->resort_name ?? 'our resort' }}!</p>
             <p class="text-xs text-gray-500 mt-2">{{ $resortInfo->footer_text ?? 'We look forward to serving you again.' }}</p>
+        </div>
+
+        <!-- Developer Credit -->
+        <div class="text-center mt-2 pt-2 border-t border-gray-200">
+            <p class="text-xs text-gray-400">Developed By <span class="font-semibold">Mir Javed Jeetu</span> | Contact: <span class="font-semibold">01811480222</span></p>
         </div>
     </div>
 </div>

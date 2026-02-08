@@ -7,9 +7,9 @@
     </div>
 
     <!-- Step 1: Customer Search -->
-    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg p-6">
+    <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-6">
         <div class="flex items-center mb-4">
-            <i class="fas fa-user-search text-3xl text-purple-600 mr-4"></i>
+            <i class="fas fa-user-search text-3xl text-primary-600 mr-4"></i>
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Step 1: Search Existing Customer</h2>
                 <p class="text-sm text-gray-600">Search by phone number to auto-fill customer details</p>
@@ -17,8 +17,8 @@
         </div>
         <div class="flex gap-4">
             <input type="tel" id="searchPhone" placeholder="Enter phone number..." 
-                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
-            <button onclick="searchCustomer()" class="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg">
+                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+            <button onclick="searchCustomer()" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                 <i class="fas fa-search mr-2"></i>Search Customer
             </button>
         </div>
@@ -28,7 +28,7 @@
     <!-- Step 2: Check Room Availability -->
     <div class="bg-white rounded-xl shadow-lg p-6">
         <div class="flex items-center mb-4">
-            <i class="fas fa-calendar-check text-3xl text-blue-600 mr-4"></i>
+            <i class="fas fa-calendar-check text-3xl text-primary-600 mr-4"></i>
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Step 2: Check Room Availability</h2>
                 <p class="text-sm text-gray-600">Select dates and view available rooms</p>
@@ -38,22 +38,22 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Date *</label>
                 <input type="date" id="checkInDate" required onchange="searchRooms()"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Date *</label>
                 <input type="date" id="checkOutDate" required onchange="searchRooms()"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Time</label>
                 <input type="time" id="checkInTime" value="14:00"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Time</label>
                 <input type="time" id="checkOutTime" value="11:00"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
             </div>
         </div>
         <div id="roomsSection" class="mt-6 hidden">
@@ -70,44 +70,44 @@
         <!-- Customer Information -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <i class="fas fa-user text-indigo-600 mr-3"></i>
+                <i class="fas fa-user text-primary-600 mr-3"></i>
                 Customer Information
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Name *</label>
                     <input type="text" name="customer_name" id="customer_name" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">NID Number *</label>
                     <input type="text" name="customer_nid" id="customer_nid" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
                     <input type="tel" name="customer_phone" id="customer_phone" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">WhatsApp Number</label>
                     <input type="tel" name="customer_whatsapp" id="customer_whatsapp" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
                     <input type="email" name="customer_email" id="customer_email" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Passport Number</label>
                     <input type="text" name="passport_number" id="passport_number" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="md:col-span-3">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Address</label>
                     <textarea name="customer_address" id="customer_address" rows="2" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
                 </div>
             </div>
 
@@ -145,12 +145,12 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Reference Name</label>
                         <input type="text" name="reference_name" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Reference Phone</label>
                         <input type="tel" name="reference_phone" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
             </div>
@@ -159,26 +159,26 @@
         <!-- Booking Details -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                <i class="fas fa-bed text-green-600 mr-3"></i>
+                <i class="fas fa-bed text-primary-600 mr-3"></i>
                 Booking Details
             </h2>
             
-            <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
+            <div class="bg-primary-50 border-l-4 border-primary-600 p-4 mb-6">
                 <p class="font-semibold text-blue-900">Selected Room: <span id="selectedRoomInfo"></span></p>
-                <p class="text-sm text-blue-700 mt-1">Period: <span id="bookingPeriod"></span></p>
-                <p class="text-sm text-blue-700">Price per night: ৳<span id="pricePerNight">0</span></p>
+                <p class="text-sm text-primary-700 mt-1">Period: <span id="bookingPeriod"></span></p>
+                <p class="text-sm text-primary-700">Price per night: ৳<span id="pricePerNight">0</span></p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Number of Guests *</label>
                     <input type="number" name="number_of_guests" id="number_of_guests" min="1" value="1" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">AC Preference *</label>
                     <select name="ac_preference" id="ac_preference" onchange="recalculateAmount()" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         <option value="ac">AC</option>
                         <option value="non-ac">Non-AC</option>
                     </select>
@@ -186,7 +186,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
                     <select name="status" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         <option value="confirmed">Confirmed</option>
                         <option value="pending">Pending</option>
                     </select>
@@ -196,7 +196,7 @@
             <div class="mt-6">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Special Requests / Notes</label>
                 <textarea name="notes" rows="3" 
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
             </div>
         </div>
 
@@ -229,7 +229,7 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Type</label>
                     <select name="discount_type" id="discount_type" onchange="recalculateAmount()" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         <option value="none">No Discount</option>
                         <option value="percentage">Percentage</option>
                         <option value="flat">Flat Amount</option>
@@ -239,46 +239,46 @@
                 <div id="discountInput" class="hidden">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Value</label>
                     <input type="number" name="discount_amount" id="discount_amount" value="0" step="0.01" onchange="recalculateAmount()" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div id="discountPercentInput" class="hidden">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Discount %</label>
                     <input type="number" name="discount_percentage" id="discount_percentage" value="0" min="0" max="100" onchange="recalculateAmount()" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <!-- Extra Charges -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Extra Charges</label>
                     <input type="number" name="extra_charges" id="extra_charges" value="0" step="0.01" onchange="recalculateAmount()" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Extra Charges Description</label>
                     <input type="text" name="extra_charges_description" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <!-- Total Amount -->
                 <div class="bg-green-50 p-4 rounded-lg">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Total Amount</label>
                     <input type="number" name="total_amount" id="total_amount" readonly 
-                        class="w-full px-4 py-3 bg-green-100 border border-green-300 rounded-lg text-lg font-bold text-green-700">
+                        class="w-full px-4 py-3 bg-primary-100 border border-green-300 rounded-lg text-lg font-bold text-primary-700">
                 </div>
 
                 <!-- Payment -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment *</label>
                     <input type="number" name="advance_payment" id="advance_payment" value="0" step="0.01" onchange="calculateRemaining()" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method *</label>
                     <select name="payment_method" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         <option value="cash">Cash</option>
                         <option value="card">Card</option>
                         <option value="mfs">Mobile Banking</option>
@@ -295,7 +295,7 @@
 
         <!-- Submit Buttons -->
         <div class="flex gap-4">
-            <button type="submit" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-12 py-4 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg text-lg font-semibold">
+            <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-12 py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-lg font-semibold">
                 <i class="fas fa-check-circle mr-2"></i>Confirm Booking
             </button>
             <button type="button" onclick="resetForm()" class="bg-gray-500 text-white px-8 py-4 rounded-lg hover:bg-gray-600 transition">
@@ -318,7 +318,7 @@ async function searchCustomer() {
     }
 
     const resultsDiv = document.getElementById('customerResults');
-    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
+    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i></div>';
 
     try {
         const response = await fetch(`/admin/bookings?search=${phone}&type=phone`);
@@ -327,14 +327,14 @@ async function searchCustomer() {
         if (bookings.data && bookings.data.length > 0) {
             const booking = bookings.data[0];
             let html = '<div class="bg-green-50 border border-green-200 rounded-lg p-4">';
-            html += `<p class="font-semibold text-green-700 mb-3"><i class="fas fa-check-circle mr-2"></i>Customer found! Details below:</p>`;
+            html += `<p class="font-semibold text-primary-700 mb-3"><i class="fas fa-check-circle mr-2"></i>Customer found! Details below:</p>`;
             html += `<div class="grid grid-cols-2 gap-2 text-sm mb-3">`;
             html += `<p><strong>Name:</strong> ${booking.customer_name}</p>`;
             html += `<p><strong>Phone:</strong> ${booking.customer_phone}</p>`;
             html += `<p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>`;
             html += `<p><strong>NID:</strong> ${booking.customer_nid || 'N/A'}</p>`;
             html += `</div>`;
-            html += `<button onclick='fillCustomerInfo(${JSON.stringify(booking)})' class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">`;
+            html += `<button onclick='fillCustomerInfo(${JSON.stringify(booking)})' class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">`;
             html += `<i class="fas fa-user-check mr-1"></i>Use This Customer</button></div>`;
             resultsDiv.innerHTML = html;
         } else {
@@ -366,7 +366,7 @@ async function searchRooms() {
     const roomsDiv = document.getElementById('availableRooms');
     
     roomsSection.classList.remove('hidden');
-    roomsDiv.innerHTML = '<div class="col-span-full text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i></div>';
+    roomsDiv.innerHTML = '<div class="col-span-full text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-primary-600"></i></div>';
 
     try {
         const response = await fetch('{{ route("admin.premium-booking.search") }}', {
@@ -387,9 +387,9 @@ async function searchRooms() {
                 html += `<div class="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition">
                     <h3 class="font-bold text-lg">Room ${room.room_number}</h3>
                     <p class="text-gray-600">${room.room_type?.name || 'N/A'}</p>
-                    <p class="text-2xl font-bold text-blue-600 my-2">৳${price.toLocaleString()}/night</p>
+                    <p class="text-2xl font-bold text-primary-600 my-2">৳${price.toLocaleString()}/night</p>
                     <p class="text-sm text-gray-600 mb-3">${nights} nights = ৳${(nights * price).toLocaleString()}</p>
-                    <button onclick='selectRoom(${JSON.stringify(room)})' class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                    <button onclick='selectRoom(${JSON.stringify(room)})' class="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700">
                         <i class="fas fa-check mr-1"></i>Select Room
                     </button>
                 </div>`;

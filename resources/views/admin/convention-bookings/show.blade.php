@@ -2,17 +2,17 @@
 @section('content')
 <div class="p-6 max-w-7xl mx-auto print:p-0">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 mb-6 text-white print:hidden">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-600 rounded-2xl p-8 mb-6 text-white print:hidden">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold mb-2">কনভেনশন বুকিং #{{ $booking->id }}</h1>
-                <p class="text-purple-50">সম্পূর্ণ বুকিং বিবরণ ও ম্যানেজমেন্ট</p>
+                <p class="text-primary-50">সম্পূর্ণ বুকিং বিবরণ ও ম্যানেজমেন্ট</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="window.print()" class="px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition">
                     <i class="fas fa-print mr-2"></i>ইনভয়েস প্রিন্ট
                 </button>
-                <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-6 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 transition">
+                <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-6 py-3 bg-white text-primary-600 rounded-lg font-bold hover:bg-primary-50 transition">
                     <i class="fas fa-edit mr-2"></i>এডিট
                 </a>
                 <a href="{{ route('admin.convention-bookings.index') }}" class="px-6 py-3 bg-white/20 text-white rounded-lg font-bold hover:bg-white/30 transition">
@@ -27,7 +27,7 @@
         <div class="lg:col-span-2 space-y-6">
             <!-- Customer Information -->
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-purple-600 mb-4 flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-primary-600 mb-4 flex items-center gap-2">
                     <i class="fas fa-user"></i> গ্রাহক তথ্য
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,7 +74,7 @@
 
             <!-- Event Details -->
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-green-600 mb-4 flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-primary-600 mb-4 flex items-center gap-2">
                     <i class="fas fa-calendar-alt"></i> ইভেন্ট বিবরণ
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -115,7 +115,7 @@
             <!-- Food Package & Addons -->
             @if($booking->foodPackage || $booking->selected_addons)
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-orange-600 mb-4 flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-primary-600 mb-4 flex items-center gap-2">
                     <i class="fas fa-utensils"></i> খাবার ও অ্যাডঅন সার্ভিস
                 </h2>
                 
@@ -147,7 +147,7 @@
                                         <p class="font-semibold">{{ $addon->name }}</p>
                                         <p class="text-sm text-gray-600">পরিমাণ: {{ $qty }}</p>
                                     </div>
-                                    <p class="font-bold text-purple-600">৳{{ number_format($addon->price * $qty, 2) }}</p>
+                                    <p class="font-bold text-primary-600">৳{{ number_format($addon->price * $qty, 2) }}</p>
                                 </div>
                                 @endif
                             @endforeach
@@ -156,7 +156,7 @@
                     <div class="mt-3 pt-3 border-t">
                         <div class="flex justify-between font-bold">
                             <span>মোট অ্যাডঅন খরচ:</span>
-                            <span class="text-purple-600">৳{{ number_format($booking->addons_cost, 2) }}</span>
+                            <span class="text-primary-600">৳{{ number_format($booking->addons_cost, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -167,7 +167,7 @@
             <!-- Payment History -->
             @if($booking->payments && $booking->payments->count() > 0)
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-indigo-600 mb-4 flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-primary-600 mb-4 flex items-center gap-2">
                     <i class="fas fa-history"></i> পেমেন্ট ইতিহাস
                 </h2>
                 <div class="space-y-3">
@@ -197,9 +197,9 @@
                     <div>
                         <p class="text-sm text-gray-600 mb-1">বুকিং স্ট্যাটাস</p>
                         <span class="px-3 py-1 rounded-full text-sm font-semibold
-                            @if($booking->status == 'confirmed') bg-green-100 text-green-800
+                            @if($booking->status == 'confirmed') bg-primary-100 text-primary-800
                             @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-800
-                            @elseif($booking->status == 'completed') bg-blue-100 text-blue-800
+                            @elseif($booking->status == 'completed') bg-primary-100 text-primary-800
                             @else bg-red-100 text-red-800
                             @endif">
                             {{ ucfirst($booking->status) }}
@@ -208,7 +208,7 @@
                     <div>
                         <p class="text-sm text-gray-600 mb-1">পেমেন্ট স্ট্যাটাস</p>
                         <span class="px-3 py-1 rounded-full text-sm font-semibold
-                            @if($booking->payment_status == 'paid') bg-green-100 text-green-800
+                            @if($booking->payment_status == 'paid') bg-primary-100 text-primary-800
                             @elseif($booking->payment_status == 'partial') bg-yellow-100 text-yellow-800
                             @else bg-red-100 text-red-800
                             @endif">
@@ -254,12 +254,12 @@
                     </div>
                     @endif
                     <div class="border-t pt-3">
-                        <div class="flex justify-between text-lg font-bold text-indigo-600">
+                        <div class="flex justify-between text-lg font-bold text-primary-600">
                             <span>মোট টাকা</span>
                             <span>৳{{ number_format($booking->total_amount, 2) }}</span>
                         </div>
                     </div>
-                    <div class="flex justify-between text-green-600">
+                    <div class="flex justify-between text-primary-600">
                         <span class="font-semibold">অগ্রিম পেমেন্ট</span>
                         <span class="font-semibold">৳{{ number_format($booking->advance_payment, 2) }}</span>
                     </div>
@@ -293,7 +293,7 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">নোট</label>
                             <textarea name="note" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
                         </div>
-                        <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition font-semibold">
+                        <button type="submit" class="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition font-semibold">
                             <i class="fas fa-plus mr-2"></i>পেমেন্ট যোগ করুন
                         </button>
                     </div>

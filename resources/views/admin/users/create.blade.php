@@ -11,19 +11,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">নাম *</label>
-                    <input type="text" name="name" value="{{ old('name') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" name="name" value="{{ old('name') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">ইমেইল *</label>
-                    <input type="email" name="email" value="{{ old('email') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="email" name="email" value="{{ old('email') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">পাসওয়ার্ড *</label>
-                    <input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">রোল *</label>
-                    <select name="role" id="roleSelect" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" onchange="togglePermissions()">
+                    <select name="role" id="roleSelect" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" onchange="togglePermissions()">
                         <option value="superadmin">সুপার অ্যাডমিন</option>
                         <option value="admin" selected>অ্যাডমিন</option>
                         <option value="manager">ম্যানেজার</option>
@@ -33,7 +33,7 @@
                 </div>
                 <div class="md:col-span-2">
                     <label class="flex items-center">
-                        <input type="checkbox" name="is_active" checked class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 mr-3">
+                        <input type="checkbox" name="is_active" checked class="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-green-500 mr-3">
                         <span class="font-semibold text-gray-700">অ্যাকাউন্ট সক্রিয়</span>
                     </label>
                 </div>
@@ -57,7 +57,7 @@
                                     {{ $groupName ?: 'প্রধান মেনু' }}
                                 </h4>
                                 <label class="flex items-center text-sm">
-                                    <input type="checkbox" onchange="toggleGroupPermissions(this, '{{ Str::slug($groupName ?: 'main') }}')" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2">
+                                    <input type="checkbox" onchange="toggleGroupPermissions(this, '{{ Str::slug($groupName ?: 'main') }}')" class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 mr-2">
                                     <span class="text-gray-600">সব নির্বাচন</span>
                                 </label>
                             </div>
@@ -67,7 +67,7 @@
                                     <label class="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer transition hover:bg-gray-50">
                                         <input type="checkbox" name="permissions[]" value="{{ $menu->menu_key }}" 
                                             data-group="{{ Str::slug($groupName ?: 'main') }}"
-                                            class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 mr-3 permission-checkbox">
+                                            class="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-green-500 mr-3 permission-checkbox">
                                         <span class="flex items-center text-gray-800">
                                             <i class="{{ $menu->menu_icon }} w-5 mr-2 text-gray-500"></i>
                                             {{ $menu->menu_label }}
@@ -81,7 +81,7 @@
                 </div>
 
                 <div class="mt-4 flex gap-4">
-                    <button type="button" onclick="selectAllPermissions()" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
+                    <button type="button" onclick="selectAllPermissions()" class="text-primary-600 hover:text-primary-800 text-sm font-semibold">
                         <i class="fas fa-check-double mr-1"></i>সব নির্বাচন করুন
                     </button>
                     <button type="button" onclick="clearAllPermissions()" class="text-red-600 hover:text-red-800 text-sm font-semibold">
@@ -91,7 +91,7 @@
             </div>
 
             <div class="flex gap-4 mt-8 pt-6 border-t">
-                <button type="submit" class="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-8 py-3 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition shadow-lg">
+                <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                     <i class="fas fa-save mr-2"></i>সংরক্ষণ করুন
                 </button>
                 <a href="{{ route('admin.users.index') }}" class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">

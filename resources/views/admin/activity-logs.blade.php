@@ -23,10 +23,10 @@
                     <td class="px-6 py-4 font-semibold text-gray-800">{{ $log->user->name ?? 'System' }}</td>
                     <td class="px-6 py-4">
                         <span class="px-3 py-1 rounded-full text-xs font-semibold 
-                            @if(str_contains(strtolower($log->action), 'create')) bg-green-100 text-green-800
-                            @elseif(str_contains(strtolower($log->action), 'update')) bg-blue-100 text-blue-800
+                            @if(str_contains(strtolower($log->action), 'create')) bg-primary-100 text-primary-800
+                            @elseif(str_contains(strtolower($log->action), 'update')) bg-primary-100 text-primary-800
                             @elseif(str_contains(strtolower($log->action), 'delete')) bg-red-100 text-red-800
-                            @elseif(str_contains(strtolower($log->action), 'login')) bg-purple-100 text-purple-800
+                            @elseif(str_contains(strtolower($log->action), 'login')) bg-primary-100 text-primary-800
                             @elseif(str_contains(strtolower($log->action), 'logout')) bg-gray-100 text-gray-800
                             @else bg-yellow-100 text-yellow-800
                             @endif">
@@ -45,7 +45,7 @@
                     </td>
                     <td class="px-6 py-4 text-gray-600">
                         @if($log->changes)
-                            <button onclick="showDetails({{ json_encode($log->changes) }})" class="text-indigo-600 hover:text-indigo-800 text-sm">
+                            <button onclick="showDetails({{ json_encode($log->changes) }})" class="text-primary-600 hover:text-primary-800 text-sm">
                                 <i class="fas fa-eye mr-1"></i>View Details
                             </button>
                         @else

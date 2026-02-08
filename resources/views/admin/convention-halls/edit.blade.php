@@ -14,7 +14,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-building mr-2 text-green-600"></i>হলের নাম *
+                    <i class="fas fa-building mr-2 text-primary-600"></i>হলের নাম *
                 </label>
                 <input type="text" name="name" value="{{ old('name', $conventionHall->name) }}" required
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
@@ -23,7 +23,7 @@
 
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-align-left mr-2 text-green-600"></i>বর্ণনা
+                    <i class="fas fa-align-left mr-2 text-primary-600"></i>বর্ণনা
                 </label>
                 <textarea name="description" rows="3" 
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">{{ old('description', $conventionHall->description) }}</textarea>
@@ -31,7 +31,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-ruler-combined mr-2 text-green-600"></i>আয়তন (বর্গফুট) *
+                    <i class="fas fa-ruler-combined mr-2 text-primary-600"></i>আয়তন (বর্গফুট) *
                 </label>
                 <input type="number" step="0.01" name="dimensions" value="{{ old('dimensions', $conventionHall->dimensions) }}" required
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
@@ -40,7 +40,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-users mr-2 text-green-600"></i>সর্বোচ্চ ধারণক্ষমতা *
+                    <i class="fas fa-users mr-2 text-primary-600"></i>সর্বোচ্চ ধারণক্ষমতা *
                 </label>
                 <input type="number" name="max_capacity" value="{{ old('max_capacity', $conventionHall->max_capacity) }}" required
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
@@ -49,7 +49,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-bangladeshi-taka-sign mr-2 text-green-600"></i>ভাড়া (প্রতি দিন) *
+                    <i class="fas fa-bangladeshi-taka-sign mr-2 text-primary-600"></i>ভাড়া (প্রতি দিন) *
                 </label>
                 <input type="number" step="0.01" name="price_per_day" value="{{ old('price_per_day', $conventionHall->price_per_day) }}" required
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
@@ -58,7 +58,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-info-circle mr-2 text-green-600"></i>স্ট্যাটাস *
+                    <i class="fas fa-info-circle mr-2 text-primary-600"></i>স্ট্যাটাস *
                 </label>
                 <select name="status" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                     <option value="available" {{ $conventionHall->is_available ? 'selected' : '' }}>উপলব্ধ</option>
@@ -71,7 +71,7 @@
             @if($conventionHall->images && count($conventionHall->images) > 0)
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-images mr-2 text-green-600"></i>বর্তমান ছবি
+                    <i class="fas fa-images mr-2 text-primary-600"></i>বর্তমান ছবি
                 </label>
                 <div id="existingImages" class="grid grid-cols-4 gap-4">
                     @foreach($conventionHall->images as $image)
@@ -90,9 +90,9 @@
             <!-- New Images Upload -->
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-plus-circle mr-2 text-green-600"></i>নতুন ছবি যোগ করুন
+                    <i class="fas fa-plus-circle mr-2 text-primary-600"></i>নতুন ছবি যোগ করুন
                 </label>
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-500 transition">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition">
                     <input type="file" name="images[]" id="imageInput" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
                     <label for="imageInput" class="cursor-pointer">
                         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
@@ -106,14 +106,14 @@
             <!-- Amenities -->
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-check-circle mr-2 text-green-600"></i>সুবিধাসমূহ
+                    <i class="fas fa-check-circle mr-2 text-primary-600"></i>সুবিধাসমূহ
                 </label>
                 @php $currentAmenities = $conventionHall->amenities ?? []; @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     @foreach(['AC' => 'এসি', 'Projector' => 'প্রজেক্টর', 'Sound System' => 'সাউন্ড সিস্টেম', 'Stage' => 'মঞ্চ', 'Parking' => 'পার্কিং', 'WiFi' => 'ওয়াইফাই', 'Generator' => 'জেনারেটর', 'Kitchen' => 'রান্নাঘর'] as $key => $label)
                     <label class="flex items-center p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-green-50 transition">
                         <input type="checkbox" name="amenities[]" value="{{ $key }}" {{ in_array($key, old('amenities', $currentAmenities)) ? 'checked' : '' }}
-                            class="w-4 h-4 text-green-600 rounded focus:ring-green-500">
+                            class="w-4 h-4 text-primary-600 rounded focus:ring-green-500">
                         <span class="ml-2 text-sm text-gray-700">{{ $label }}</span>
                     </label>
                     @endforeach
@@ -123,14 +123,14 @@
             <!-- Event Types -->
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    <i class="fas fa-calendar-check mr-2 text-green-600"></i>ইভেন্ট ধরন
+                    <i class="fas fa-calendar-check mr-2 text-primary-600"></i>ইভেন্ট ধরন
                 </label>
                 @php $currentEventTypes = $conventionHall->event_types ?? []; @endphp
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     @foreach(['Wedding' => 'বিবাহ', 'Conference' => 'সম্মেলন', 'Birthday' => 'জন্মদিন', 'Meeting' => 'মিটিং', 'Seminar' => 'সেমিনার', 'Party' => 'পার্টি', 'Exhibition' => 'প্রদর্শনী', 'Other' => 'অন্যান্য'] as $key => $label)
                     <label class="flex items-center p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-green-50 transition">
                         <input type="checkbox" name="event_types[]" value="{{ $key }}" {{ in_array($key, old('event_types', $currentEventTypes)) ? 'checked' : '' }}
-                            class="w-4 h-4 text-green-600 rounded focus:ring-green-500">
+                            class="w-4 h-4 text-primary-600 rounded focus:ring-green-500">
                         <span class="ml-2 text-sm text-gray-700">{{ $label }}</span>
                     </label>
                     @endforeach
@@ -139,7 +139,7 @@
         </div>
 
         <div class="flex gap-4 mt-8 pt-6 border-t">
-            <button type="submit" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg">
+            <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                 <i class="fas fa-save mr-2"></i>আপডেট করুন
             </button>
             <a href="{{ route('admin.convention-halls.index') }}" class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">

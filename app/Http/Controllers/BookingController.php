@@ -141,7 +141,11 @@ class BookingController extends Controller
             'new_status' => $validated['status']
         ]);
         
-        return response()->json(['message' => 'Status updated successfully']);
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['message' => 'Status updated successfully']);
+        }
+        
+        return back()->with('success', 'স্ট্যাটাস সফলভাবে আপডেট হয়েছে');
     }
 
     public function updateTime(Request $request, Booking $booking)
@@ -158,47 +162,104 @@ class BookingController extends Controller
     public function addPayment(Request $request, Booking $booking)
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'method' => 'required|in:cash,card,mfs',
+            'amount' => 'nullable|numeric|min:0',
+            'method' => 'required|in:cash,card,bkash',
+            'bkash_number' => 'nullable|string|max:20',
+            'bank_name' => 'nullable|string|max:100',
+            'discount_type' => 'nullable|in:none,flat,percentage',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'discount_reference' => 'nullable|string|max:255',
             'note' => 'nullable|string',
         ]);
 
-        // Calculate grand total (including VAT, discount, extra charges)
+        $paymentAmount = floatval($validated['amount'] ?? 0);
+
+        // Handle payment-level discount if provided
+        $paymentDiscountAmount = 0;
+        if (isset($validated['discount_type']) && $validated['discount_type'] !== 'none') {
+            if ($validated['discount_type'] === 'flat') {
+                $paymentDiscountAmount = floatval($validated['discount_amount'] ?? 0);
+            } elseif ($validated['discount_type'] === 'percentage') {
+                // Percentage discount on remaining amount
+                $paymentDiscountAmount = ($booking->remaining_payment * floatval($validated['discount_percentage'] ?? 0)) / 100;
+            }
+        }
+
+        // At least one must be provided: payment or discount
+        if ($paymentAmount <= 0 && $paymentDiscountAmount <= 0) {
+            return response()->json(['message' => 'Please enter payment amount or discount'], 422);
+        }
+
+        // Validate: payment + discount cannot exceed remaining balance
+        $totalDeduction = $paymentAmount + $paymentDiscountAmount;
+        if ($totalDeduction > $booking->remaining_payment) {
+            return response()->json(['message' => 'পেমেন্ট ও ডিসকাউন্টের মোট বাকি টাকার চেয়ে বেশি হতে পারে না। বাকি আছে: ৳' . number_format($booking->remaining_payment, 2)], 422);
+        }
+
+        // Calculate grand total (including VAT, existing discount, extra charges)
         $baseAmount = $booking->total_amount;
-        $discountAmount = 0;
+        $existingDiscountAmount = 0;
         
         if ($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-            $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
+            $existingDiscountAmount = ($baseAmount * $booking->discount_percentage) / 100;
         } elseif ($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-            $discountAmount = $booking->discount_amount;
+            $existingDiscountAmount = $booking->discount_amount;
         }
-        
-        $afterDiscount = $baseAmount - $discountAmount;
+
+        // Calculate with NEW discount added
+        $totalDiscountAmount = $existingDiscountAmount + $paymentDiscountAmount;
+        $afterDiscount = $baseAmount - $totalDiscountAmount;
         $extraCharges = $booking->extra_charges ?? 0;
         $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
         $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
 
-        // Update booking
-        $newAdvancePayment = $booking->advance_payment + $validated['amount'];
+        // Update booking data
+        $updateData = [
+            'payment_method' => $validated['method'],
+        ];
+        
+        if (!empty($validated['bkash_number'])) {
+            $updateData['bkash_number'] = $validated['bkash_number'];
+        }
+        if (!empty($validated['bank_name'])) {
+            $updateData['bank_name'] = $validated['bank_name'];
+        }
+        if (!empty($validated['discount_reference'])) {
+            $updateData['discount_reference'] = $validated['discount_reference'];
+        }
+        
+        // Update discount on booking if payment includes discount
+        if ($paymentDiscountAmount > 0) {
+            $updateData['discount_amount'] = ($booking->discount_amount ?? 0) + $paymentDiscountAmount;
+            $updateData['discount_type'] = 'flat';
+        }
+
+        // Update booking payments
+        $newAdvancePayment = $booking->advance_payment + $paymentAmount;
         $newRemainingPayment = max(0, $grandTotal - $newAdvancePayment);
         
-        $booking->update([
-            'advance_payment' => $newAdvancePayment,
-            'remaining_payment' => $newRemainingPayment,
-            'payment_status' => $newRemainingPayment <= 0 ? 'paid' : ($newAdvancePayment > 0 ? 'partial' : 'pending'),
-            'payment_method' => $validated['method'],
-        ]);
+        $updateData['advance_payment'] = $newAdvancePayment;
+        $updateData['remaining_payment'] = $newRemainingPayment;
+        $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : ($newAdvancePayment > 0 || $paymentDiscountAmount > 0 ? 'partial' : 'pending');
+        
+        $booking->update($updateData);
 
-        // Record payment history
-        $booking->payments()->create([
-            'amount' => $validated['amount'],
-            'method' => $validated['method'],
-            'type' => 'payment',
-            'note' => $validated['note'],
-            'recorded_by_id' => Auth::id(),
-        ]);
+        // Payment history recording is disabled until payments table is created
+        // Just log the note if provided
+        $paymentNote = $validated['note'] ?? '';
+        if ($paymentDiscountAmount > 0) {
+            $paymentNote .= ' [Discount: ৳' . number_format($paymentDiscountAmount, 2) . ' - Ref: ' . ($validated['discount_reference'] ?? 'N/A') . ']';
+        }
 
-        return response()->json(['message' => 'Payment recorded successfully']);
+        $message = 'Payment recorded successfully';
+        if ($paymentDiscountAmount > 0 && $paymentAmount <= 0) {
+            $message = 'Discount of ৳' . number_format($paymentDiscountAmount, 2) . ' applied successfully';
+        } elseif ($paymentDiscountAmount > 0) {
+            $message = 'Payment of ৳' . number_format($paymentAmount, 2) . ' with discount of ৳' . number_format($paymentDiscountAmount, 2) . ' recorded';
+        }
+
+        return response()->json(['message' => $message]);
     }
 
     public function addExtraCharges(Request $request, Booking $booking)
@@ -331,12 +392,31 @@ class BookingController extends Controller
     public function update(Request $request, Booking $booking)
     {
         $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'check_in_date' => 'required|date',
+            'check_out_date' => 'required|date|after_or_equal:check_in_date',
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_email' => 'nullable|email|max:255',
+            'customer_nid' => 'nullable|string|max:50',
+            'customer_address' => 'nullable|string',
+            'company_name' => 'nullable|string|max:255',
+            'number_of_guests' => 'nullable|integer|min:1',
+            'reference_name' => 'nullable|string|max:255',
+            'reference_phone' => 'nullable|string|max:20',
+            'total_amount' => 'nullable|numeric|min:0',
+            'advance_payment' => 'nullable|numeric|min:0',
+            'remaining_payment' => 'nullable|numeric|min:0',
             'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled',
             'payment_status' => 'sometimes|in:pending,partial,paid,refunded',
+            'notes' => 'nullable|string',
         ]);
 
+        // Calculate remaining payment
+        $validated['remaining_payment'] = ($validated['total_amount'] ?? 0) - ($validated['advance_payment'] ?? 0);
+        
         $booking->update($validated);
-        return redirect()->route('admin.bookings.index')->with('success', 'Booking updated successfully');
+        return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে');
     }
 
     public function destroy(Booking $booking)

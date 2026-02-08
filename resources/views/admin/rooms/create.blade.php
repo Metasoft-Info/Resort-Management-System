@@ -97,7 +97,7 @@
         </div>
 
         <div class="flex gap-4">
-            <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700">
+            <button type="submit" class="bg-primary-600 text-white px-6 py-2 rounded hover:bg-primary-700">
                 Create Room
             </button>
             <a href="{{ route('admin.rooms.index') }}" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">

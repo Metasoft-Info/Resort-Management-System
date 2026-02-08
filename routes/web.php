@@ -19,6 +19,8 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\TodaysSummaryController;
 use App\Http\Controllers\Admin\PremiumBookingController;
 use App\Http\Controllers\Admin\PremiumConventionController;
+use App\Http\Controllers\Admin\ExtraChargeCategoryController;
+use App\Http\Controllers\Admin\CustomerController;
 
 // Public Website Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -57,6 +59,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/premium-booking', [PremiumBookingController::class, 'index'])->name('premium-booking.index');
     Route::post('/premium-booking/search', [PremiumBookingController::class, 'search'])->name('premium-booking.search');
     Route::post('/premium-booking/book', [PremiumBookingController::class, 'book'])->name('premium-booking.book');
+    Route::get('/premium-booking/search-customer', [PremiumBookingController::class, 'searchCustomer'])->name('premium-booking.search-customer');
     
     // Convention Halls
     Route::resource('convention-halls', ConventionHallController::class);
@@ -77,6 +80,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Addon Services
     Route::resource('addon-services', AddonServiceController::class);
+    
+    // Extra Charge Categories
+    Route::resource('extra-charge-categories', ExtraChargeCategoryController::class);
+    Route::get('api/extra-charge-categories', [ExtraChargeCategoryController::class, 'getCategories'])->name('extra-charge-categories.api');
     
     // Food Packages
     Route::resource('food-packages', FoodPackageController::class);
@@ -121,5 +128,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/reports/room-bookings/export', [ReportController::class, 'exportRoomBookings'])->name('reports.room-bookings.export');
     Route::get('/reports/convention-bookings', [ReportController::class, 'conventionBookings'])->name('reports.convention-bookings');
     Route::get('/reports/convention-bookings/export', [ReportController::class, 'exportConventionBookings'])->name('reports.convention-bookings.export');
+    
+    // Customers
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
+    Route::get('/customers/{phone}', [CustomerController::class, 'show'])->name('customers.show');
 });
 

@@ -20,21 +20,25 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: '#faf5ff',
-                            100: '#f3e8ff',
-                            200: '#e9d5ff',
-                            300: '#d8b4fe',
-                            400: '#c084fc',
-                            500: '#a855f7',
-                            600: '#9333ea',
-                            700: '#7e22ce',
-                            800: '#6b21a8',
-                            900: '#581c87',
+                            50: '#fef7f7',
+                            100: '#fdeaea',
+                            200: '#fbd5d5',
+                            300: '#f5a8a8',
+                            400: '#e87c7c',
+                            500: '#c94a4a',
+                            600: '#a83232',
+                            700: '#8b2929',
+                            800: '#742424',
+                            900: '#621f1f',
                         },
                         accent: {
-                            500: '#ec4899',
-                            600: '#db2777',
-                            700: '#be185d',
+                            50: '#fef7f7',
+                            100: '#fdeaea',
+                            200: '#fbd5d5',
+                            500: '#c94a4a',
+                            600: '#a83232',
+                            700: '#8b2929',
+                            800: '#742424',
                         }
                     }
                 }
@@ -42,7 +46,7 @@
         }
     </script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100">
     <div class="flex h-screen overflow-hidden">
         <!-- Mobile Menu Overlay -->
         <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
@@ -54,7 +58,7 @@
                     @if($resortInfo && $resortInfo->admin_logo)
                         <img src="{{ asset('storage/' . $resortInfo->admin_logo) }}" alt="Admin Logo" class="h-10 lg:h-12 w-auto rounded-xl object-contain shadow-lg">
                     @else
-                        <div class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-accent-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                        <div class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-accent-600 to-accent-800 rounded-xl flex items-center justify-center shadow-lg">
                             <i class="fas fa-hotel text-xl lg:text-2xl"></i>
                         </div>
                     @endif
@@ -103,7 +107,7 @@
                     <button onclick="toggleSidebar()" class="lg:hidden text-gray-700 hover:text-primary-600 p-2 -ml-2">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <h2 class="text-lg lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
+                    <h2 class="text-lg lg:text-2xl font-bold text-primary-800 truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
                     <div class="flex items-center space-x-2 lg:space-x-4">
                         <span class="text-xs lg:text-sm text-gray-600 hidden sm:inline"><i class="fas fa-user-circle mr-1 lg:mr-2"></i>{{ auth()->user()->name ?? 'Admin' }}</span>
                         <span class="text-xs text-gray-600 sm:hidden"><i class="fas fa-user-circle"></i></span>

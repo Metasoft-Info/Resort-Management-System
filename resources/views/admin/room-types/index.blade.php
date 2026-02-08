@@ -7,7 +7,7 @@
             <h1 class="text-3xl font-bold text-gray-800">রুম টাইপ</h1>
             <p class="text-gray-600 mt-2">সকল রুম টাইপ পরিচালনা করুন</p>
         </div>
-        <a href="{{ route('admin.room-types.create') }}" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg">
+        <a href="{{ route('admin.room-types.create') }}" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
             <i class="fas fa-plus mr-2"></i>নতুন রুম টাইপ যোগ করুন
         </a>
     </div>
@@ -33,7 +33,7 @@
                     <td class="px-6 py-4 text-gray-600">{{ $roomType->max_occupancy }} জন</td>
                     <td class="px-6 py-4 text-gray-600">{{ $roomType->rooms_count ?? 0 }}</td>
                     <td class="px-6 py-4 text-right">
-                        <a href="{{ route('admin.room-types.edit', $roomType) }}" class="text-blue-600 hover:text-blue-800 mr-3">
+                        <a href="{{ route('admin.room-types.edit', $roomType) }}" class="text-primary-600 hover:text-primary-800 mr-3">
                             <i class="fas fa-edit"></i>
                         </a>
                         <form action="{{ route('admin.room-types.destroy', $roomType) }}" method="POST" class="inline">

@@ -11,7 +11,7 @@
             <h2 class="text-2xl font-bold text-gray-800">Hero Slides Management</h2>
             <p class="text-gray-600 mt-1">Manage homepage carousel slides</p>
         </div>
-        <button onclick="openModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg font-semibold">
+        <button onclick="openModal()" class="bg-gradient-to-r from-primary-600 to-primary-600 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-700 transition shadow-lg font-semibold">
             <i class="fas fa-plus mr-2"></i>Add New Slide
         </button>
     </div>
@@ -25,7 +25,7 @@
                     alt="{{ $slide->title }}" 
                     class="w-full h-full object-cover">
                 <div class="absolute top-4 left-4">
-                    <span class="bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-bold">
                         #{{ $slide->order }}
                     </span>
                 </div>
@@ -45,14 +45,14 @@
                     <i class="fas fa-mouse-pointer"></i>
                     <span>Button: {{ $slide->button_text }}</span>
                     @if($slide->button_link)
-                        <span class="text-blue-600">→ {{ $slide->button_link }}</span>
+                        <span class="text-primary-600">→ {{ $slide->button_link }}</span>
                     @endif
                 </div>
                 @endif
 
                 <div class="flex items-center gap-3">
                     <button onclick="editSlide({{ $slide->id }})" 
-                        class="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition font-semibold">
+                        class="flex-1 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition font-semibold">
                         <i class="fas fa-edit mr-2"></i>Edit
                     </button>
                     <form action="{{ route('admin.hero-slides.destroy', $slide) }}" method="POST" class="flex-1" 
@@ -99,7 +99,7 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-3">
                         <i class="fas fa-image mr-2"></i>Hero Image * (Recommended: 1920x800px)
                     </label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-500 transition cursor-pointer"
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer"
                         onclick="document.getElementById('slideImage').click()">
                         <div id="imagePreview">
                             <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
@@ -117,7 +117,7 @@
                             <i class="fas fa-heading mr-2"></i>Title *
                         </label>
                         <input type="text" name="title" id="slideTitle" required 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
 
                     <div>
@@ -125,7 +125,7 @@
                             <i class="fas fa-sort-numeric-up mr-2"></i>Order *
                         </label>
                         <input type="number" name="order" id="slideOrder" value="1" min="1" required 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
 
@@ -134,7 +134,7 @@
                         <i class="fas fa-text-height mr-2"></i>Subtitle
                     </label>
                     <input type="text" name="subtitle" id="slideSubtitle" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -143,7 +143,7 @@
                             <i class="fas fa-mouse-pointer mr-2"></i>Button Text
                         </label>
                         <input type="text" name="button_text" id="slideButtonText" placeholder="e.g., Book Now" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
 
                     <div>
@@ -151,14 +151,14 @@
                             <i class="fas fa-link mr-2"></i>Button Link
                         </label>
                         <input type="text" name="button_link" id="slideButtonLink" placeholder="/rooms" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
 
                 <div>
                     <label class="flex items-center">
                         <input type="checkbox" name="is_active" id="slideIsActive" value="1" checked 
-                            class="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500">
+                            class="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500">
                         <span class="ml-3 text-sm font-semibold text-gray-700">
                             <i class="fas fa-toggle-on mr-2"></i>Active
                         </span>
@@ -168,7 +168,7 @@
 
             <div class="flex gap-4 mt-8">
                 <button type="submit" 
-                    class="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg font-semibold">
+                    class="flex-1 bg-gradient-to-r from-primary-600 to-primary-600 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-700 transition shadow-lg font-semibold">
                     <i class="fas fa-save mr-2"></i><span id="submitBtnText">Create Slide</span>
                 </button>
                 <button type="button" onclick="closeModal()" 

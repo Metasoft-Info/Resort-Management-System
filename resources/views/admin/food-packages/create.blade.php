@@ -12,7 +12,7 @@
                 <div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-2">আইটেম</label><textarea name="items" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="ভাত, মাছ, সবজি">{{ old('items') }}</textarea></div>
             </div>
             <div class="flex gap-4 mt-8">
-                <button type="submit" class="bg-gradient-to-r from-orange-600 to-orange-700 text-white px-8 py-3 rounded-lg hover:from-orange-700 hover:to-orange-800 transition shadow-lg"><i class="fas fa-save mr-2"></i>সংরক্ষণ করুন</button>
+                <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg"><i class="fas fa-save mr-2"></i>সংরক্ষণ করুন</button>
                 <a href="{{ route('admin.food-packages.index') }}" class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition"><i class="fas fa-times mr-2"></i>বাতিল</a>
             </div>
         </form>

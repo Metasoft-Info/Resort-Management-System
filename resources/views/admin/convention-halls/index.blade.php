@@ -8,7 +8,7 @@
     <div>
         <h3 class="text-lg font-semibold text-gray-700">মোট হল: <span class="text-primary-600">{{ $halls->total() }}</span></h3>
     </div>
-    <a href="{{ route('admin.convention-halls.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl hover:from-primary-700 hover:to-accent-700 transition font-semibold shadow-lg hover:shadow-xl">
+    <a href="{{ route('admin.convention-halls.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition font-semibold shadow-lg hover:shadow-xl">
         <i class="fas fa-plus mr-2"></i>নতুন হল যোগ করুন
     </a>
 </div>
@@ -18,7 +18,7 @@
     @forelse($halls as $hall)
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300">
             <!-- Hall Image -->
-            <div class="relative h-48 bg-gradient-to-br from-primary-100 to-accent-100">
+            <div class="relative h-48 bg-gradient-to-br from-primary-100 to-primary-200">
                 @php
                     $images = is_array($hall->images) ? $hall->images : (json_decode($hall->images, true) ?? []);
                 @endphp
@@ -89,7 +89,7 @@
                 
                 <!-- Actions -->
                 <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
-                    <a href="{{ route('admin.convention-halls.edit', $hall) }}" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-semibold text-center inline-flex items-center justify-center">
+                    <a href="{{ route('admin.convention-halls.edit', $hall) }}" class="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition text-sm font-semibold text-center inline-flex items-center justify-center">
                         <i class="fas fa-edit mr-2"></i>সম্পাদনা
                     </a>
                     <form action="{{ route('admin.convention-halls.destroy', $hall) }}" method="POST" class="flex-1" onsubmit="return confirmDelete(this, '{{ $hall->name }} মুছে ফেলতে চান?')">

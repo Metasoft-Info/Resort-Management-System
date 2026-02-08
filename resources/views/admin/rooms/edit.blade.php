@@ -17,7 +17,7 @@
                         <i class="fas fa-hashtag mr-2"></i>রুম নম্বর *
                     </label>
                     <input type="text" name="room_number" value="{{ old('room_number', $room->room_number) }}" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('room_number') border-red-500 @enderror">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('room_number') border-red-500 @enderror">
                     @error('room_number')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -28,7 +28,7 @@
                         <i class="fas fa-door-open mr-2"></i>রুমের নাম *
                     </label>
                     <input type="text" name="name" value="{{ old('name', $room->name) }}" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('name') border-red-500 @enderror">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('name') border-red-500 @enderror">
                     @error('name')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -39,7 +39,7 @@
                         <i class="fas fa-tag mr-2"></i>রুম টাইপ *
                     </label>
                     <select name="room_type_id" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('room_type_id') border-red-500 @enderror">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('room_type_id') border-red-500 @enderror">
                         <option value="">নির্বাচন করুন</option>
                         @foreach($roomTypes as $type)
                             <option value="{{ $type->id }}" {{ old('room_type_id', $room->room_type_id) == $type->id ? 'selected' : '' }}>
@@ -57,7 +57,7 @@
                         <i class="fas fa-bangladeshi-taka-sign mr-2"></i>প্রতি রাতের মূল্য (৳) *
                     </label>
                     <input type="number" name="price_per_night" value="{{ old('price_per_night', $room->price_per_night) }}" step="0.01" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -65,7 +65,7 @@
                         <i class="fas fa-users mr-2"></i>সর্বোচ্চ অতিথি
                     </label>
                     <input type="number" name="max_guests" value="{{ old('max_guests', $room->max_guests) }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div>
@@ -73,7 +73,7 @@
                         <i class="fas fa-bed mr-2"></i>বিছানার সংখ্যা
                     </label>
                     <input type="number" name="number_of_beds" value="{{ old('number_of_beds', $room->number_of_beds) }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div class="md:col-span-2">
@@ -81,7 +81,7 @@
                         <i class="fas fa-align-left mr-2"></i>বিবরণ
                     </label>
                     <textarea name="description" rows="3" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">{{ old('description', $room->description) }}</textarea>
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ old('description', $room->description) }}</textarea>
                 </div>
 
                 <div>
@@ -89,7 +89,7 @@
                         <i class="fas fa-info-circle mr-2"></i>স্ট্যাটাস *
                     </label>
                     <select name="status" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         <option value="available" {{ old('status', $room->status) == 'available' ? 'selected' : '' }}>Available</option>
                         <option value="booked" {{ old('status', $room->status) == 'booked' ? 'selected' : '' }}>Booked</option>
                         <option value="maintenance" {{ old('status', $room->status) == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
@@ -99,7 +99,7 @@
                 <div>
                     <label class="flex items-center mt-8">
                         <input type="checkbox" name="has_ac" value="1" {{ old('has_ac', $room->has_ac) ? 'checked' : '' }} 
-                            class="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                            class="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500">
                         <span class="ml-2 text-sm font-semibold text-gray-700">
                             <i class="fas fa-snowflake mr-2"></i>এসি আছে
                         </span>
@@ -110,7 +110,7 @@
             <!-- Image Upload Section -->
             <div class="mt-8 border-t pt-8">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">
-                    <i class="fas fa-images mr-2 text-blue-600"></i>Room Images
+                    <i class="fas fa-images mr-2 text-primary-600"></i>Room Images
                 </h3>
                 
                 <!-- Current Images -->
@@ -138,7 +138,7 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-3">
                         <i class="fas fa-cloud-upload-alt mr-2"></i>Upload New Images (Multiple)
                     </label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition cursor-pointer"
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer"
                         onclick="document.getElementById('images').click()">
                         <i class="fas fa-images text-4xl text-gray-400 mb-3"></i>
                         <p class="text-gray-600">Click to select room images or drag and drop</p>
@@ -153,7 +153,7 @@
 
             <div class="flex gap-4 mt-8">
                 <button type="submit" 
-                    class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-lg">
+                    class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                     <i class="fas fa-save mr-2"></i>আপডেট করুন
                 </button>
                 <a href="{{ route('admin.rooms.index') }}" 
@@ -179,7 +179,7 @@ function previewImages(input) {
                 div.className = 'relative group';
                 div.innerHTML = `
                     <img src="${e.target.result}" alt="Preview" class="w-full h-32 object-cover rounded-lg border-2 border-blue-300">
-                    <div class="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">New</div>
+                    <div class="absolute bottom-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded">New</div>
                 `;
                 preview.appendChild(div);
             }
