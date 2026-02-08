@@ -225,6 +225,17 @@ class PremiumBookingController extends Controller
             // Set default values for advance/remaining
             $validated['advance_payment'] = $validated['advance_payment'] ?? 0;
             $validated['remaining_payment'] = $validated['remaining_payment'] ?? $validated['total_amount'];
+            
+            // Set default values for optional fields that DB requires
+            $validated['extra_charges'] = $validated['extra_charges'] ?? 0;
+            $validated['discount_amount'] = $validated['discount_amount'] ?? 0;
+            $validated['discount_percentage'] = $validated['discount_percentage'] ?? 0;
+            $validated['discount_type'] = $validated['discount_type'] ?? 'none';
+            $validated['vat_enabled'] = $validated['vat_enabled'] ?? false;
+            $validated['vat_amount'] = $validated['vat_amount'] ?? 0;
+            $validated['food_package_guests'] = 0;
+            $validated['food_package_cost'] = 0;
+            $validated['addons_cost'] = 0;
 
             // Set payment status
             $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 
