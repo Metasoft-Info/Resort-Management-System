@@ -15,8 +15,9 @@
         
         $afterDiscount = $baseAmount - $discountAmount;
         $extraCharges = $booking->extra_charges ?? 0;
-        $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
+        $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
         $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
+        $remainingPayment = $grandTotal - $booking->advance_payment;
     @endphp
 
     <!-- Action Buttons (Screen Only) -->
@@ -27,7 +28,11 @@
                 <p class="text-gray-600 mt-1">Complete booking information and management</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                <button onclick="printReservationLetter()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reservation Letter</span>
+                </button>
+                <button onclick="printInvoice()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
                     <i class="fas fa-print"></i>
                     <span>Print Invoice</span>
                 </button>
@@ -243,8 +248,8 @@
                             @endif">
                             {{ strtoupper($booking->payment_status) }}
                         </span>
-                        @if($booking->remaining_payment > 0)
-                        <p class="text-xs text-gray-600 mt-1">Due: ৳{{ number_format($booking->remaining_payment, 2) }}</p>
+                        @if($remainingPayment > 0)
+                        <p class="text-xs text-gray-600 mt-1">Due: ৳{{ number_format($remainingPayment, 2) }}</p>
                         @endif
                     </div>
                 </div>
@@ -517,7 +522,7 @@
                     <div class="bg-yellow-500 text-gray-900 rounded-lg p-3">
                         <div class="flex justify-between">
                             <span class="font-bold">Remaining:</span>
-                            <span class="font-bold">৳{{ number_format($booking->remaining_payment, 2) }}</span>
+                            <span class="font-bold">৳{{ number_format($remainingPayment, 2) }}</span>
                         </div>
                     </div>
 
@@ -547,6 +552,9 @@
 
     <!-- Print Invoice (Hidden on screen) -->
     @include('admin.bookings.invoice-template')
+    
+    <!-- Print Reservation Letter (Hidden on screen) -->
+    @include('admin.bookings.reservation-letter-template')
 </div>
 
 <!-- Modals -->
@@ -858,6 +866,33 @@
 </div>
 
 <script>
+// Print functions
+function printInvoice() {
+    document.body.classList.remove('print-reservation');
+    document.body.classList.add('print-invoice');
+    document.getElementById('invoice-print-area').style.display = 'block';
+    document.getElementById('reservation-print-area').style.display = 'none';
+    window.print();
+    setTimeout(() => {
+        document.getElementById('invoice-print-area').style.display = '';
+        document.getElementById('reservation-print-area').style.display = '';
+        document.body.classList.remove('print-invoice');
+    }, 500);
+}
+
+function printReservationLetter() {
+    document.body.classList.remove('print-invoice');
+    document.body.classList.add('print-reservation');
+    document.getElementById('reservation-print-area').style.display = 'block';
+    document.getElementById('invoice-print-area').style.display = 'none';
+    window.print();
+    setTimeout(() => {
+        document.getElementById('invoice-print-area').style.display = '';
+        document.getElementById('reservation-print-area').style.display = '';
+        document.body.classList.remove('print-reservation');
+    }, 500);
+}
+
 // Modal functions
 function openTimeModal() {
     document.getElementById('timeModal').classList.remove('hidden');

@@ -100,7 +100,7 @@
                     @forelse($roomBookings as $booking)
                     <tr class="hover:bg-gray-50">
                         <td class="px-3 py-2">{{ $booking->created_at->format('d/m/Y') }}</td>
-                        <td class="px-3 py-2 font-semibold text-primary-700">{{ $booking->room->room_number ?? 'N/A' }}</td>
+                        <td class="px-3 py-2 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="px-3 py-2">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
                         <td class="px-3 py-2">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
                         <td class="px-3 py-2 text-right font-semibold">৳{{ number_format($booking->total_amount, 0) }}</td>

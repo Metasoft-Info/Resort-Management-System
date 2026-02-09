@@ -204,7 +204,7 @@
                                 <div class="font-semibold text-gray-800">{{ $booking->customer_name }}</div>
                                 <div class="text-sm text-gray-500">{{ $booking->customer_phone }}</div>
                             </td>
-                            <td class="px-6 py-4"><span class="font-semibold text-primary-600">{{ $booking->room->room_number ?? 'N/A' }}</span></td>
+                            <td class="px-6 py-4"><span class="font-semibold text-primary-600">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</span></td>
                             <td class="px-6 py-4 text-gray-700">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
                             <td class="px-6 py-4 font-bold text-primary-600">৳{{ number_format($booking->total_amount) }}</td>
                             <td class="px-6 py-4">

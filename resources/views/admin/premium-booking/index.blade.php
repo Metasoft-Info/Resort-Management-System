@@ -787,36 +787,58 @@ function recalculateAmount() {
     const baseAmount = selectedRooms.reduce((sum, room) => sum + (room.nights * room.pricePerNight), 0);
     document.getElementById('baseAmount').value = baseAmount.toFixed(2);
     
-    let total = baseAmount;
+    // total_amount stores only the base room rent (VAT is calculated dynamically in display)
+    document.getElementById('total_amount').value = baseAmount.toFixed(2);
     
-    // VAT
+    // VAT (stored separately, calculated dynamically in display)
     const vatEnabled = document.getElementById('vat_enabled').checked;
     const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
     document.getElementById('vat_amount').value = vatAmount.toFixed(2);
-    if (vatEnabled) total += vatAmount;
+    
+    // Calculate display grand total for UI only
+    let displayTotal = baseAmount;
+    if (vatEnabled) displayTotal += vatAmount;
     
     // Discount
     if (discountType === 'percentage') {
         const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
-        const discountAmount = (total * discountPercentage) / 100;
-        total -= discountAmount;
+        const discountAmount = (displayTotal * discountPercentage) / 100;
+        displayTotal -= discountAmount;
     } else if (discountType === 'flat') {
         const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
-        total -= discountAmount;
+        displayTotal -= discountAmount;
     }
     
     // Extra charges
     const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
-    total += extraCharges;
+    displayTotal += extraCharges;
     
-    document.getElementById('total_amount').value = total.toFixed(2);
     calculateRemaining();
 }
 
 function calculateRemaining() {
-    const total = parseFloat(document.getElementById('total_amount').value) || 0;
+    const baseAmount = parseFloat(document.getElementById('total_amount').value) || 0;
+    const vatEnabled = document.getElementById('vat_enabled').checked;
+    const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
+    
+    let grandTotal = baseAmount + vatAmount;
+    
+    // Apply discount
+    const discountType = document.getElementById('discount_type').value;
+    if (discountType === 'percentage') {
+        const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+        grandTotal -= (grandTotal * discountPercentage) / 100;
+    } else if (discountType === 'flat') {
+        const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+        grandTotal -= discountAmount;
+    }
+    
+    // Add extra charges
+    const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
+    grandTotal += extraCharges;
+    
     const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
-    document.getElementById('remaining_payment').value = (total - advance).toFixed(2);
+    document.getElementById('remaining_payment').value = (grandTotal - advance).toFixed(2);
 }
 
 // Form Submission - Single booking with multiple rooms

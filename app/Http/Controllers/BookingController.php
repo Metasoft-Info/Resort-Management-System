@@ -7,8 +7,12 @@ use App\Models\Room;
 use App\Models\AdditionalGuest;
 use App\Models\BookingPayment;
 use App\Models\ActivityLog;
+use App\Mail\BookingConfirmationMail;
+use App\Mail\CheckoutInvoiceMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
@@ -140,12 +144,47 @@ class BookingController extends Controller
             'old_status' => $oldStatus,
             'new_status' => $validated['status']
         ]);
+
+        // Send email notifications based on status change
+        $emailSent = false;
+        $emailError = null;
         
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['message' => 'Status updated successfully']);
+        if ($booking->customer_email) {
+            try {
+                if ($validated['status'] === 'confirmed' && $oldStatus !== 'confirmed') {
+                    // Send booking confirmation email
+                    Mail::to($booking->customer_email)->send(new BookingConfirmationMail($booking));
+                    $emailSent = true;
+                    Log::info("Booking confirmation email sent to {$booking->customer_email} for booking #{$booking->id}");
+                } elseif ($validated['status'] === 'checked_out' && $oldStatus !== 'checked_out') {
+                    // Send checkout invoice email
+                    Mail::to($booking->customer_email)->send(new CheckoutInvoiceMail($booking));
+                    $emailSent = true;
+                    Log::info("Checkout invoice email sent to {$booking->customer_email} for booking #{$booking->id}");
+                }
+            } catch (\Exception $e) {
+                $emailError = $e->getMessage();
+                Log::error("Failed to send email for booking #{$booking->id}: " . $e->getMessage());
+            }
         }
         
-        return back()->with('success', 'স্ট্যাটাস সফলভাবে আপডেট হয়েছে');
+        if ($request->ajax() || $request->wantsJson()) {
+            $response = ['message' => 'Status updated successfully'];
+            if ($emailSent) {
+                $response['email_sent'] = true;
+                $response['message'] .= '. Email notification sent.';
+            } elseif ($emailError) {
+                $response['email_error'] = $emailError;
+            }
+            return response()->json($response);
+        }
+        
+        $successMessage = 'স্ট্যাটাস সফলভাবে আপডেট হয়েছে';
+        if ($emailSent) {
+            $successMessage .= '. ইমেইল প্রেরিত হয়েছে।';
+        }
+        
+        return back()->with('success', $successMessage);
     }
 
     public function updateTime(Request $request, Booking $booking)
@@ -348,10 +387,11 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'vat_enabled' => 'required|boolean',
-            'vat_amount' => 'required|numeric|min:0',
         ]);
 
-        $booking->update($validated);
+        $booking->update([
+            'vat_enabled' => $validated['vat_enabled'],
+        ]);
         
         // Recalculate remaining payment
         $grandTotal = $this->calculateGrandTotal($booking);
@@ -378,7 +418,9 @@ class BookingController extends Controller
         
         $afterDiscount = $baseAmount - min($discountAmount, $baseAmount);
         $extraCharges = $booking->extra_charges ?? 0;
-        $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
+        
+        // Calculate VAT dynamically as 15% of after-discount amount
+        $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
         
         return $afterDiscount + $extraCharges + $vatAmount;
     }

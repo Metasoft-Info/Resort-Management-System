@@ -59,7 +59,7 @@
                         <td class="px-4 py-3 font-semibold">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 font-semibold">{{ $booking->customer_name }}</td>
                         <td class="px-4 py-3">{{ $booking->customer_phone }}</td>
-                        <td class="px-4 py-3 font-semibold text-primary-700">{{ $booking->room->room_number ?? 'N/A' }}</td>
+                        <td class="px-4 py-3 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="px-4 py-3">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3 text-right font-semibold">৳{{ number_format($booking->total_amount, 0) }}</td>
@@ -107,7 +107,7 @@
                         <td class="px-4 py-3 font-semibold">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 font-semibold">{{ $booking->customer_name }}</td>
                         <td class="px-4 py-3">{{ $booking->customer_phone }}</td>
-                        <td class="px-4 py-3 font-semibold text-primary-700">{{ $booking->room->room_number ?? 'N/A' }}</td>
+                        <td class="px-4 py-3 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="px-4 py-3">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3 text-right font-semibold">৳{{ number_format($booking->total_amount, 0) }}</td>
@@ -148,7 +148,7 @@
                         <td class="px-4 py-3 font-semibold">{{ $index + 1 }}</td>
                         <td class="px-4 py-3 font-semibold">{{ $booking->customer_name }}</td>
                         <td class="px-4 py-3">{{ $booking->customer_phone }}</td>
-                        <td class="px-4 py-3 font-semibold text-primary-700">{{ $booking->room->room_number ?? 'N/A' }}</td>
+                        <td class="px-4 py-3 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="px-4 py-3">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3 text-right font-semibold">৳{{ number_format($booking->total_amount, 0) }}</td>

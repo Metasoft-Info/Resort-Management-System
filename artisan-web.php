@@ -3,7 +3,74 @@
  * Web-based Artisan Command Runner
  * Use: /artisan-web.php?command=view:clear
  * SQL: /artisan-web.php?sql=SELECT...
+ * Extract: /artisan-web.php?extract=dompdf-vendor.tar.gz&key=install_786
  */
+
+// Handle archive extraction
+if (isset($_GET['extract']) && isset($_GET['key']) && $_GET['key'] === 'install_786') {
+    $archiveName = basename($_GET['extract']); // sanitize
+    $archivePath = __DIR__ . '/' . $archiveName;
+    
+    header('Content-Type: text/plain');
+    echo "=== Archive Extraction ===\n\n";
+    
+    if (!file_exists($archivePath)) {
+        echo "ERROR: Archive not found: {$archivePath}\n";
+        exit;
+    }
+    
+    try {
+        $phar = new PharData($archivePath);
+        $phar->extractTo(__DIR__, null, true);
+        echo "SUCCESS: Extracted {$archiveName}\n\n";
+        
+        // Verify
+        $checkPaths = [
+            'vendor/barryvdh/laravel-dompdf',
+            'vendor/dompdf/dompdf', 
+            'vendor/masterminds/html5'
+        ];
+        
+        echo "Verification:\n";
+        foreach ($checkPaths as $path) {
+            $full = __DIR__ . '/' . $path;
+            echo is_dir($full) ? "OK: {$path}\n" : "MISSING: {$path}\n";
+        }
+        
+        // Delete archive
+        unlink($archivePath);
+        echo "\nArchive deleted.\n";
+        
+    } catch (Exception $e) {
+        echo "ERROR: " . $e->getMessage() . "\n";
+    }
+    exit;
+}
+
+// Handle delete_views - manually delete all cached view files
+if (isset($_GET['delete_views']) && isset($_GET['key']) && $_GET['key'] === 'tufan_786') {
+    header('Content-Type: text/plain');
+    echo "=== Deleting Cached Views ===\n\n";
+    
+    $viewsPath = __DIR__ . '/storage/framework/views';
+    $deleted = 0;
+    $errors = 0;
+    
+    if (is_dir($viewsPath)) {
+        $files = glob($viewsPath . '/*.php');
+        foreach ($files as $file) {
+            if (unlink($file)) {
+                $deleted++;
+            } else {
+                $errors++;
+            }
+        }
+    }
+    
+    echo "Deleted: {$deleted} files\n";
+    echo "Errors: {$errors}\n";
+    exit;
+}
 
 // Handle SQL queries first
 if (isset($_GET['sql']) || isset($_POST['sql'])) {

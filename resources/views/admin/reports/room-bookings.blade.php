@@ -154,7 +154,7 @@
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->customer_phone }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">{{ $booking->room->room_number ?? 'N/A' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold">{{ number_format($booking->total_amount, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-primary-600">{{ number_format($booking->advance_payment, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right">{{ number_format($booking->extra_charges ?? 0, 0) }}</td>

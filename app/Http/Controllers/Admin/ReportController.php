@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Response;
 
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
-        $query = Booking::with(['room.roomType']);
+        $query = Booking::with(['room.roomType', 'bookingRooms.room']);
         if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
         if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
         if($request->status) $query->where('status', $request->status);

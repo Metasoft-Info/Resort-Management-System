@@ -7,9 +7,12 @@ use App\Models\Booking;
 use App\Models\BookingRoom;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Mail\BookingConfirmationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class PremiumBookingController extends Controller
@@ -304,10 +307,23 @@ class PremiumBookingController extends Controller
 
             DB::commit();
 
+            // Send confirmation email if booking is confirmed and customer has email
+            $emailSent = false;
+            if ($validated['status'] === 'confirmed' && !empty($validated['customer_email'])) {
+                try {
+                    Mail::to($validated['customer_email'])->send(new BookingConfirmationMail($booking));
+                    $emailSent = true;
+                    Log::info("Booking confirmation email sent to {$validated['customer_email']} for booking #{$booking->id}");
+                } catch (\Exception $e) {
+                    Log::error("Failed to send confirmation email for booking #{$booking->id}: " . $e->getMessage());
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Booking created successfully',
-                'booking' => $booking
+                'message' => 'Booking created successfully' . ($emailSent ? '. Confirmation email sent.' : ''),
+                'booking' => $booking,
+                'email_sent' => $emailSent
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();

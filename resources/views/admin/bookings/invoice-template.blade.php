@@ -1,70 +1,63 @@
 <!-- Print-only Invoice Template - BILL Format -->
 <div id="invoice-print-area" class="hidden print:block">
-    <div class="invoice-container bg-white text-xs">
+    <div class="invoice-container bg-white" style="font-family: 'Times New Roman', Times, serif; font-size: 13px; padding: 10mm 15mm; max-width: 210mm; margin: 0 auto;">
         
-        <!-- Header with Logo -->
-        <div class="text-center border-b-2 border-green-700 pb-2 mb-2">
+        <!-- Header with Logo - Centered -->
+        <div style="text-align: center; margin-bottom: 10px;">
             @if($resortInfo && $resortInfo->header_logo)
-                <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-10 mx-auto mb-1">
+                <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 65px; margin: 0 auto 5px; display: block;">
             @else
-                <h1 class="text-xl font-bold text-primary-800">{{ $resortInfo->resort_name ?? 'Tufan Convention Resort' }}</h1>
+                <div style="width: 65px; height: 65px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">Lake View</div>
             @endif
-            <p class="text-gray-600 text-xs">
-                @if($resortInfo && $resortInfo->address)
-                    {{ $resortInfo->address }}
-                @endif
-            </p>
-            <p class="text-gray-500 text-xs">
-                @if($resortInfo)
-                    Phone: {{ $resortInfo->phone ?? 'N/A' }} | Email: {{ $resortInfo->email ?? 'N/A' }}
-                @endif
-            </p>
+            <h1 style="font-size: 24px; font-weight: bold; margin: 3px 0; letter-spacing: 1px;">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
+            <p style="font-size: 11px; margin: 1px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
+            <p style="font-size: 11px; margin: 1px 0;">{{ $resortInfo->address ?? 'Kamalnagor, Satkhira' }}</p>
+            <p style="font-size: 11px; margin: 1px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }}, Mob. {{ $resortInfo->phone ?? '01958 216728' }}</p>
         </div>
 
         <!-- BILL Title -->
-        <div class="text-center mb-2">
-            <h2 class="text-lg font-bold text-gray-800 tracking-wider">BILL</h2>
+        <div style="text-align: center; margin: 12px 0 10px;">
+            <h2 style="font-size: 20px; font-weight: bold; text-decoration: underline; letter-spacing: 4px; margin: 0;">BILL</h2>
         </div>
 
-        <!-- Guest Info Row - Compact -->
-        <div class="grid grid-cols-3 gap-2 mb-2 text-xs">
-            <div>
-                <span class="font-semibold">Name:</span> {{ $booking->customer_name }}
-                @if($booking->company_name)
-                    <br><span class="font-semibold">Company:</span> {{ $booking->company_name }}
-                @endif
-                @if($booking->customer_nid)
-                    <br><span class="font-semibold">NID:</span> {{ $booking->customer_nid }}
-                @endif
-            </div>
-            <div>
-                <span class="font-semibold">Address:</span> {{ $booking->customer_address ?? 'N/A' }}
-                <br><span class="font-semibold">Phone:</span> {{ $booking->customer_phone }}
-            </div>
-            <div class="text-right">
-                <span class="font-semibold">Date:</span> {{ now()->format('d/m/Y') }}
-                <br><span class="font-semibold">Bill No:</span> #{{ str_pad($booking->id, 5, '0', STR_PAD_LEFT) }}
-            </div>
-        </div>
+        <!-- Guest Info Row - Table Layout for Print -->
+        <table style="width: 100%; margin-bottom: 10px; font-size: 12px; line-height: 1.4;">
+            <tr>
+                <td style="width: 60%; vertical-align: top;">
+                    <p style="margin: 2px 0;"><strong>Name:</strong> {{ $booking->customer_name }}</p>
+                    <p style="margin: 2px 0;"><strong>Address:</strong> {{ $booking->customer_address ?? 'N/A' }}</p>
+                    @if($booking->customer_phone)
+                    <p style="margin: 2px 0;"><strong>Phone:</strong> {{ $booking->customer_phone }}</p>
+                    @endif
+                    @if($booking->company_name)
+                    <p style="margin: 2px 0;"><strong>Company:</strong> {{ $booking->company_name }}</p>
+                    @endif
+                    @if($booking->customer_nid)
+                    <p style="margin: 2px 0;"><strong>NID:</strong> {{ $booking->customer_nid }}</p>
+                    @endif
+                </td>
+                <td style="width: 40%; vertical-align: top; text-align: right;">
+                    <p style="margin: 2px 0;"><strong>Date:</strong> {{ now()->format('d/m/Y') }}</p>
+                    <p style="margin: 2px 0;"><strong>Bill No:</strong> #{{ str_pad($booking->id, 5, '0', STR_PAD_LEFT) }}</p>
+                    <p style="margin: 2px 0;"><strong>Guests:</strong> {{ $booking->number_of_guests }} Person(s)</p>
+                </td>
+            </tr>
+        </table>
 
-        <!-- Additional Guests - Compact -->
+        <!-- Additional Guests if any -->
         @if($booking->additionalGuests && $booking->additionalGuests->count() > 0)
-        <div class="mb-2 text-xs border border-gray-300 rounded p-1">
-            <span class="font-semibold">Accompanying Guests ({{ $booking->additionalGuests->count() }}):</span>
-            <div class="grid grid-cols-3 gap-1 mt-1">
-                @foreach($booking->additionalGuests as $guest)
-                <div class="text-xs">
-                    <i class="fas fa-user text-primary-600"></i> {{ $guest->name }}
-                    @if($guest->nid) | {{ $guest->nid }}@endif
-                </div>
-                @endforeach
-            </div>
+        <div style="margin-bottom: 8px; padding: 5px; border: 1px solid #ddd; font-size: 11px;">
+            <strong>Additional Guests ({{ $booking->additionalGuests->count() }}):</strong>
+            @foreach($booking->additionalGuests as $guest)
+                {{ $guest->name }}{{ $guest->nid ? ' (' . $guest->nid . ')' : '' }}{{ !$loop->last ? ', ' : '' }}
+            @endforeach
         </div>
         @endif
 
         <!-- Billing Table -->
         @php
             $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
+            $invoiceNights = max(1, $invoiceNights);
             $invoiceBaseAmount = $booking->total_amount;
             $invoiceDiscountAmount = 0;
             
@@ -76,129 +69,208 @@
             
             $invoiceAfterDiscount = $invoiceBaseAmount - $invoiceDiscountAmount;
             $invoiceExtraCharges = $booking->extra_charges ?? 0;
-            $invoiceVatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
+            $invoiceVatAmount = $booking->vat_enabled ? ($invoiceAfterDiscount * 0.15) : 0;
             $invoiceGrandTotal = $invoiceAfterDiscount + $invoiceExtraCharges + $invoiceVatAmount;
+            $invoiceRemainingPayment = $invoiceGrandTotal - $booking->advance_payment;
             $allRooms = $booking->getAllRooms();
             $bookingRooms = $booking->bookingRooms;
+            
+            // Convert to words
+            $amountInWords = \App\Helpers\NumberToWords::convertTaka($invoiceGrandTotal);
         @endphp
 
-        <table class="w-full border-collapse border border-gray-400 mb-2 text-xs invoice-table">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 12px;">
             <thead>
-                <tr class="bg-gray-100">
-                    <th class="border border-gray-400 p-1 text-left">Arrival</th>
-                    <th class="border border-gray-400 p-1 text-left">Departure</th>
-                    <th class="border border-gray-400 p-1 text-center">Room</th>
-                    <th class="border border-gray-400 p-1 text-left">Room Type</th>
-                    <th class="border border-gray-400 p-1 text-center">Night</th>
-                    <th class="border border-gray-400 p-1 text-right">Rate</th>
-                    <th class="border border-gray-400 p-1 text-right">Amount</th>
+                <tr style="background-color: #f5f5f5;">
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Arrival Date</th>
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Departure Date</th>
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Room Number</th>
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Room Name</th>
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Stay</th>
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Room Rent</th>
+                    <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 @if($allRooms->count() > 0)
                     @foreach($allRooms as $index => $room)
                         @php
-                            // Get price from booking_rooms table if available, otherwise from room/roomType
                             $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
                             $roomPricePerNight = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
                             $roomAmount = $invoiceNights * $roomPricePerNight;
                         @endphp
                         <tr>
                             @if($index === 0)
-                            <td class="border border-gray-400 p-1" rowspan="{{ $allRooms->count() }}">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
-                            <td class="border border-gray-400 p-1" rowspan="{{ $allRooms->count() }}">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;" rowspan="{{ $allRooms->count() }}">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;" rowspan="{{ $allRooms->count() }}">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
                             @endif
-                            <td class="border border-gray-400 p-1 text-center">{{ $room->room_number }}</td>
-                            <td class="border border-gray-400 p-1">{{ $room->roomType->name ?? 'Room' }}</td>
-                            <td class="border border-gray-400 p-1 text-center">{{ $invoiceNights }}</td>
-                            <td class="border border-gray-400 p-1 text-right">৳{{ number_format($roomPricePerNight, 0) }}</td>
-                            <td class="border border-gray-400 p-1 text-right">৳{{ number_format($roomAmount, 0) }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $room->room_number }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $room->roomType->name ?? 'Room' }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $invoiceNights }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ number_format($roomPricePerNight, 0) }}/-</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ number_format($roomAmount, 0) }}/-</td>
                         </tr>
                     @endforeach
                 @else
                     <tr>
-                        <td class="border border-gray-400 p-1">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
-                        <td class="border border-gray-400 p-1">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
-                        <td class="border border-gray-400 p-1 text-center">-</td>
-                        <td class="border border-gray-400 p-1">-</td>
-                        <td class="border border-gray-400 p-1 text-center">{{ $invoiceNights }}</td>
-                        <td class="border border-gray-400 p-1 text-right">-</td>
-                        <td class="border border-gray-400 p-1 text-right">৳{{ number_format($invoiceBaseAmount, 0) }}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: center;">-</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: center;">-</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ $invoiceNights }}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: right;">-</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ number_format($invoiceBaseAmount, 0) }}/-</td>
                     </tr>
                 @endif
-                @if($allRooms->count() > 1)
-                <tr class="bg-gray-50">
-                    <td colspan="6" class="border border-gray-400 p-1 text-right font-semibold">Room Subtotal:</td>
-                    <td class="border border-gray-400 p-1 text-right font-semibold">৳{{ number_format($invoiceBaseAmount, 0) }}</td>
-                </tr>
-                @endif
-                @if($invoiceExtraCharges > 0)
-                <tr>
-                    <td colspan="6" class="border border-gray-400 p-1 text-right">Extra @if($booking->extra_charges_description)<span class="text-xs">({{ $booking->extra_charges_description }})</span>@endif:</td>
-                    <td class="border border-gray-400 p-1 text-right">৳{{ number_format($invoiceExtraCharges, 0) }}</td>
-                </tr>
-                @endif
-                @if($invoiceVatAmount > 0)
-                <tr>
-                    <td colspan="6" class="border border-gray-400 p-1 text-right">VAT (15%):</td>
-                    <td class="border border-gray-400 p-1 text-right">৳{{ number_format($invoiceVatAmount, 0) }}</td>
-                </tr>
-                @endif
-                <tr class="bg-gray-50">
-                    <td colspan="6" class="border border-gray-400 p-1 text-right font-semibold">Total:</td>
-                    <td class="border border-gray-400 p-1 text-right font-semibold">৳{{ number_format($invoiceBaseAmount + $invoiceExtraCharges + $invoiceVatAmount, 0) }}</td>
-                </tr>
-                @if($invoiceDiscountAmount > 0)
-                <tr class="text-red-600">
-                    <td colspan="6" class="border border-gray-400 p-1 text-right">Discount @if($booking->discount_type === 'percentage')({{ $booking->discount_percentage }}%)@endif:</td>
-                    <td class="border border-gray-400 p-1 text-right">- ৳{{ number_format($invoiceDiscountAmount, 0) }}</td>
-                </tr>
-                @endif
-                <tr class="bg-green-50 font-bold">
-                    <td colspan="6" class="border border-gray-400 p-1 text-right">Grand Total:</td>
-                    <td class="border border-gray-400 p-1 text-right text-primary-700">৳{{ number_format($invoiceGrandTotal, 0) }}</td>
-                </tr>
-                <tr>
-                    <td colspan="6" class="border border-gray-400 p-1 text-right">Advance Paid:</td>
-                    <td class="border border-gray-400 p-1 text-right text-primary-600">৳{{ number_format($booking->advance_payment, 0) }}</td>
-                </tr>
-                <tr class="font-semibold">
-                    <td colspan="6" class="border border-gray-400 p-1 text-right">Due Amount:</td>
-                    <td class="border border-gray-400 p-1 text-right text-red-600">৳{{ number_format($booking->remaining_payment, 0) }}</td>
-                </tr>
             </tbody>
         </table>
 
-        <!-- Signature Section - Compact -->
-        <div class="grid grid-cols-2 gap-4 mb-1 mt-2">
-            <div class="text-center">
-                <div class="border-t border-gray-400 pt-1 mt-4">
-                    <p class="text-xs">Guest Signature</p>
+        <!-- Detailed Transaction Summary -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 12px;">
+            <tr>
+                <td style="width: 60%; vertical-align: top; padding-right: 15px;">
+                    <!-- In Word -->
+                    <p style="margin: 3px 0; font-size: 11px;"><strong>In Word:</strong> {{ $amountInWords }}</p>
+                    
+                    <!-- Extra Charges Details -->
+                    @if($invoiceExtraCharges > 0)
+                    <p style="margin: 3px 0; font-size: 11px;"><strong>Extra Charges:</strong> 
+                        @if($booking->extra_charges_description){{ $booking->extra_charges_description }} - @endif
+                        ৳{{ number_format($invoiceExtraCharges, 0) }}
+                    </p>
+                    @endif
+                    
+                    <!-- Payment Method -->
+                    <p style="margin: 3px 0; font-size: 11px;"><strong>Payment Method:</strong> 
+                        {{ ucfirst($booking->payment_method ?? 'Cash') }}
+                        @if($booking->payment_method === 'bkash' && $booking->bkash_number) ({{ $booking->bkash_number }})@endif
+                        @if($booking->payment_method === 'card' && $booking->bank_name) ({{ $booking->bank_name }})@endif
+                    </p>
+                </td>
+                <td style="width: 40%; vertical-align: top;">
+                    <table style="width: 100%; font-size: 12px;">
+                        <tr>
+                            <td style="padding: 2px 5px; text-align: right;"><strong>Room Total:</strong></td>
+                            <td style="padding: 2px 5px; text-align: right; min-width: 80px;">{{ number_format($invoiceBaseAmount, 0) }}/-</td>
+                        </tr>
+                        @if($invoiceExtraCharges > 0)
+                        <tr>
+                            <td style="padding: 2px 5px; text-align: right;">Extra Charges:</td>
+                            <td style="padding: 2px 5px; text-align: right;">{{ number_format($invoiceExtraCharges, 0) }}/-</td>
+                        </tr>
+                        @endif
+                        @if($invoiceVatAmount > 0)
+                        <tr>
+                            <td style="padding: 2px 5px; text-align: right;">VAT (15%):</td>
+                            <td style="padding: 2px 5px; text-align: right;">{{ number_format($invoiceVatAmount, 0) }}/-</td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <td style="padding: 2px 5px; text-align: right; border-top: 1px solid #000;"><strong>Subtotal:</strong></td>
+                            <td style="padding: 2px 5px; text-align: right; border-top: 1px solid #000;">{{ number_format($invoiceAfterDiscount + $invoiceExtraCharges + $invoiceVatAmount, 0) }}/-</td>
+                        </tr>
+                        @if($invoiceDiscountAmount > 0)
+                        <tr style="color: #c00;">
+                            <td style="padding: 2px 5px; text-align: right;">Discount @if($booking->discount_type === 'percentage')({{ $booking->discount_percentage }}%)@endif:</td>
+                            <td style="padding: 2px 5px; text-align: right;">-{{ number_format($invoiceDiscountAmount, 0) }}/-</td>
+                        </tr>
+                        @endif
+                        <tr style="font-weight: bold; font-size: 13px;">
+                            <td style="padding: 3px 5px; text-align: right; border-top: 1px solid #000; border-bottom: 2px solid #000;"><strong>Grand Total:</strong></td>
+                            <td style="padding: 3px 5px; text-align: right; border-top: 1px solid #000; border-bottom: 2px solid #000;">{{ number_format($invoiceGrandTotal, 0) }}/-</td>
+                        </tr>
+                        <tr style="color: #060;">
+                            <td style="padding: 2px 5px; text-align: right;">Advance Paid:</td>
+                            <td style="padding: 2px 5px; text-align: right;">{{ number_format($booking->advance_payment, 0) }}/-</td>
+                        </tr>
+                        <tr style="font-weight: bold; color: #c00;">
+                            <td style="padding: 2px 5px; text-align: right;"><strong>Due Amount:</strong></td>
+                            <td style="padding: 2px 5px; text-align: right;">{{ number_format($invoiceRemainingPayment, 0) }}/-</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Payment History if exists -->
+        @if($booking->payments && $booking->payments->count() > 0)
+        <div style="margin-bottom: 8px; font-size: 11px;">
+            <strong>Payment History:</strong>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+                <tr style="background-color: #f5f5f5;">
+                    <th style="border: 1px solid #ccc; padding: 3px; text-align: left;">Date</th>
+                    <th style="border: 1px solid #ccc; padding: 3px; text-align: left;">Method</th>
+                    <th style="border: 1px solid #ccc; padding: 3px; text-align: right;">Amount</th>
+                    <th style="border: 1px solid #ccc; padding: 3px; text-align: left;">Note</th>
+                </tr>
+                @foreach($booking->payments as $payment)
+                <tr>
+                    <td style="border: 1px solid #ccc; padding: 3px;">{{ $payment->created_at->format('d/m/Y') }}</td>
+                    <td style="border: 1px solid #ccc; padding: 3px;">{{ ucfirst($payment->method) }}</td>
+                    <td style="border: 1px solid #ccc; padding: 3px; text-align: right;">৳{{ number_format($payment->amount, 0) }}</td>
+                    <td style="border: 1px solid #ccc; padding: 3px;">{{ $payment->note ?? '-' }}</td>
+                </tr>
+                @endforeach
+            </table>
+        </div>
+        @endif
+
+        <!-- Signature Section -->
+        <div style="display: flex; justify-content: space-between; margin: 25px 0 15px;">
+            <div style="text-align: center; width: 45%;">
+                <div style="border-top: 1px solid #000; padding-top: 3px; margin-top: 30px;">
+                    <span style="font-size: 11px;">Guest Signature</span>
                 </div>
             </div>
-            <div class="text-center">
-                <div class="border-t border-gray-400 pt-1 mt-4">
-                    <p class="text-xs">Authorised Signature</p>
+            <div style="text-align: center; width: 45%;">
+                <div style="border-top: 1px solid #000; padding-top: 3px; margin-top: 30px;">
+                    <span style="font-size: 11px;">Authorised Signature</span>
                 </div>
             </div>
         </div>
 
-        <!-- Amenities Section - Single Line -->
-        <div class="border border-gray-300 rounded p-1 mb-1">
-            <span class="font-bold text-gray-800 text-xs">Amenities:</span>
-            <span class="text-xs text-gray-700">Wi-Fi, Breakfast, Water, Parking, CCTV, Room Service, LED TV, Restaurant, Security, Hot Water</span>
+        <!-- Amenities Section -->
+        <div style="margin-bottom: 10px; font-size: 11px; line-height: 1.3;">
+            <p style="font-weight: bold; text-decoration: underline; margin-bottom: 5px;">The following amenities are included free of cost, as part of your stay:</p>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="width: 50%; vertical-align: top; padding: 1px 0;">
+                        <span style="display: block; margin: 1px 0;">&#8226; Wi-Fi Facility</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Daily One Mineral Water Bottle Complimentary (1L)</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Safety Car Parking</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; 24 Houry Control by CC Camera</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Room Service (24 Hours)</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; LED TV</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Own Restaurant</span>
+                    </td>
+                    <td style="width: 50%; vertical-align: top; padding: 1px 0;">
+                        <span style="display: block; margin: 1px 0;">&#8226; Morning Breakfast (Complimentary)</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Own Security System</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Modern Furniture</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Intercom Telephone</span>
+                        <span style="display: block; margin: 1px 0;">&#8226; Hot Water facility</span>
+                    </td>
+                </tr>
+            </table>
         </div>
 
-        <!-- Terms - Ultra Compact -->
-        <div class="border border-gray-300 rounded p-1 text-xs">
-            <span class="font-bold text-gray-800">Terms:</span>
-            <span class="text-gray-700">Check-in/out: 12:00 Noon | Cancellation not applicable after check-in | Full payment required 15 days before journey | Damage charges apply</span>
+        <!-- Policy Section -->
+        <div style="margin-bottom: 10px; font-size: 11px; line-height: 1.3;">
+            <p style="font-weight: bold; text-decoration: underline; margin-bottom: 3px;">Our Policy:</p>
+            <p style="margin: 1px 0;">Our check-in time 12:00 hours & check-out 12:00 hours.</p>
+            <p style="margin: 1px 0;">Cancellation policy: Cancellation and Refund policy not applicable.</p>
+            <p style="margin: 1px 0;">Booking confirmation us be done 15 days beore journey date.</p>
         </div>
 
-        <!-- Footer - Compact -->
-        <div class="text-center mt-1 pt-1 border-t border-gray-300">
-            <p class="text-xs text-gray-700">Thank you for staying with us! | {{ $resortInfo->resort_name ?? 'Tufan Convention Resort' }} | {{ $resortInfo->phone ?? '' }}</p>
-            <p class="text-xs text-gray-400">Developed By Mir Javed Jeetu | 01811480222</p>
+        <!-- Thank You Message -->
+        <div style="margin-top: 10px; font-size: 11px; line-height: 1.3;">
+            <p style="margin: 2px 0;">We assure you of our best services and hospitality at all times. We hope you will enjoy memorable stay with us.</p>
+            <p style="margin: 2px 0;">Please feel free to contact us for any further information/queries.</p>
+        </div>
+
+        <!-- Developer Credit -->
+        <div style="text-align: center; margin-top: 15px; padding-top: 8px; border-top: 1px dashed #ccc;">
+            <p style="font-size: 9px; color: #666; margin: 0;">Developed By Mir Javed Jeetu | 01811480222</p>
         </div>
     </div>
 </div>
@@ -207,11 +279,10 @@
 @media print {
     @page {
         size: A4;
-        margin: 5mm;
+        margin: 8mm;
     }
     
     html, body {
-        font-size: 9px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         margin: 0;
@@ -224,11 +295,25 @@
         visibility: hidden;
     }
     
-    #invoice-print-area, #invoice-print-area * {
-        visibility: visible;
+    body.print-invoice #invoice-print-area,
+    body.print-invoice #invoice-print-area * {
+        visibility: visible !important;
     }
     
-    #invoice-print-area {
+    body.print-invoice #reservation-print-area {
+        display: none !important;
+    }
+    
+    body.print-reservation #reservation-print-area,
+    body.print-reservation #reservation-print-area * {
+        visibility: visible !important;
+    }
+    
+    body.print-reservation #invoice-print-area {
+        display: none !important;
+    }
+    
+    #invoice-print-area, #reservation-print-area {
         position: absolute;
         left: 0;
         top: 0;
@@ -237,20 +322,10 @@
         overflow: visible !important;
     }
     
-    .invoice-container {
-        padding: 3mm;
+    .invoice-container, .reservation-container {
         width: 100%;
         height: auto !important;
         overflow: visible !important;
-    }
-    
-    .invoice-table {
-        page-break-inside: auto;
-    }
-    
-    .invoice-table tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
     }
     
     .print\:block {
