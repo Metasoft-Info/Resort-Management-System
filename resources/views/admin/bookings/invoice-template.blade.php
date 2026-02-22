@@ -58,7 +58,22 @@
         @php
             $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
             $invoiceNights = max(1, $invoiceNights);
-            $invoiceBaseAmount = $booking->total_amount;
+            $allRooms = $booking->getAllRooms();
+            $bookingRooms = $booking->bookingRooms;
+            
+            // Calculate room total from actual rooms (not stored total_amount)
+            $invoiceBaseAmount = 0;
+            foreach($allRooms as $room) {
+                $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
+                $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
+                $invoiceBaseAmount += $roomPrice * $invoiceNights;
+            }
+            
+            // If no rooms found, fallback to stored total_amount
+            if ($invoiceBaseAmount == 0) {
+                $invoiceBaseAmount = $booking->total_amount;
+            }
+            
             $invoiceDiscountAmount = 0;
             
             if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
@@ -72,8 +87,6 @@
             $invoiceVatAmount = $booking->vat_enabled ? ($invoiceAfterDiscount * 0.15) : 0;
             $invoiceGrandTotal = $invoiceAfterDiscount + $invoiceExtraCharges + $invoiceVatAmount;
             $invoiceRemainingPayment = $invoiceGrandTotal - $booking->advance_payment;
-            $allRooms = $booking->getAllRooms();
-            $bookingRooms = $booking->bookingRooms;
             
             // Convert to words
             $amountInWords = \App\Helpers\NumberToWords::convertTaka($invoiceGrandTotal);

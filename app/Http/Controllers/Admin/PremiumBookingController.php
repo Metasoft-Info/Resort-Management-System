@@ -261,6 +261,45 @@ class PremiumBookingController extends Controller
 
             DB::beginTransaction();
 
+            // IMPORTANT: Validate rooms are actually available before creating booking
+            $checkIn = Carbon::parse($validated['check_in_date']);
+            $checkOut = Carbon::parse($validated['check_out_date']);
+            $unavailableRooms = [];
+            
+            $roomIds = !empty($roomsData) ? collect($roomsData)->pluck('roomId')->toArray() : ($singleRoomId ? [$singleRoomId] : []);
+            
+            foreach ($roomIds as $roomId) {
+                // Check if room is already booked for these dates (in booking_rooms table)
+                $hasConflict = BookingRoom::where('room_id', $roomId)
+                    ->whereHas('booking', function($q) use ($checkIn, $checkOut) {
+                        $q->where('status', '!=', 'cancelled')
+                          ->where('check_in_date', '<', $checkOut)
+                          ->where('check_out_date', '>', $checkIn);
+                    })->exists();
+                
+                // Also check legacy room_id booking
+                if (!$hasConflict) {
+                    $hasConflict = Booking::where('room_id', $roomId)
+                        ->where('status', '!=', 'cancelled')
+                        ->where('check_in_date', '<', $checkOut)
+                        ->where('check_out_date', '>', $checkIn)
+                        ->exists();
+                }
+                
+                if ($hasConflict) {
+                    $room = Room::find($roomId);
+                    $unavailableRooms[] = $room ? $room->room_number : $roomId;
+                }
+            }
+            
+            if (!empty($unavailableRooms)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Room(s) ' . implode(', ', $unavailableRooms) . ' already booked for these dates. Please select different rooms or dates.'
+                ], 409);
+            }
+
             $booking = Booking::create($validated);
 
             // Add rooms to booking_rooms table

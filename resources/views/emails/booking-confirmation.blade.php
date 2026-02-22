@@ -76,7 +76,7 @@
 
                             <!-- Payment Summary -->
                             @php
-                                $baseAmount = $booking->total_amount;
+                                $baseAmount = $booking->getCalculatedTotal();
                                 $discountAmount = 0;
                                 
                                 if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {

@@ -75,8 +75,8 @@
             $allRooms = $booking->getAllRooms();
             $bookingRooms = $booking->bookingRooms;
             
-            // Calculate totals
-            $baseAmount = $booking->total_amount;
+            // Calculate totals from actual rooms
+            $baseAmount = $booking->getCalculatedTotal();
             $discountAmount = 0;
             
             if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {

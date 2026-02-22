@@ -66,6 +66,50 @@ class Booking extends Model
         return collect([]);
     }
 
+    // Calculate actual total from rooms (not stored total_amount)
+    public function getCalculatedTotal()
+    {
+        $nights = \Carbon\Carbon::parse($this->check_in_date)->diffInDays(\Carbon\Carbon::parse($this->check_out_date));
+        $nights = max(1, $nights);
+        
+        $allRooms = $this->getAllRooms();
+        $bookingRooms = $this->bookingRooms;
+        
+        $baseAmount = 0;
+        foreach($allRooms as $room) {
+            $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
+            $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
+            $baseAmount += $roomPrice * $nights;
+        }
+        
+        // If no rooms found, fallback to stored total_amount
+        if ($baseAmount == 0) {
+            $baseAmount = $this->total_amount;
+        }
+        
+        return $baseAmount;
+    }
+
+    // Get calculated remaining payment
+    public function getCalculatedRemaining()
+    {
+        $baseAmount = $this->getCalculatedTotal();
+        
+        $discountAmount = 0;
+        if($this->discount_type === 'percentage' && $this->discount_percentage > 0) {
+            $discountAmount = ($baseAmount * $this->discount_percentage) / 100;
+        } elseif($this->discount_type === 'flat' && $this->discount_amount > 0) {
+            $discountAmount = $this->discount_amount;
+        }
+        
+        $afterDiscount = $baseAmount - $discountAmount;
+        $extraCharges = $this->extra_charges ?? 0;
+        $vatAmount = $this->vat_enabled ? ($afterDiscount * 0.15) : 0;
+        $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
+        
+        return $grandTotal - $this->advance_payment;
+    }
+
     // Check if booking has multiple rooms
     public function hasMultipleRooms()
     {

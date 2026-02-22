@@ -151,12 +151,16 @@
                             @endif
                         </td>
                         <td class="px-4 py-3">
-                            <div class="font-bold text-gray-800">৳{{ number_format($booking->total_amount, 2) }}</div>
+                            @php 
+                                $calculatedTotal = $booking->getCalculatedTotal();
+                                $calculatedRemaining = $booking->getCalculatedRemaining();
+                            @endphp
+                            <div class="font-bold text-gray-800">৳{{ number_format($calculatedTotal, 2) }}</div>
                             @if($booking->advance_payment > 0)
                             <div class="text-xs text-primary-600">অগ্রিম: ৳{{ number_format($booking->advance_payment, 2) }}</div>
                             @endif
-                            @if($booking->remaining_payment > 0)
-                            <div class="text-xs text-red-600">বাকি: ৳{{ number_format($booking->remaining_payment, 2) }}</div>
+                            @if($calculatedRemaining > 0)
+                            <div class="text-xs text-red-600">বাকি: ৳{{ number_format($calculatedRemaining, 2) }}</div>
                             @endif
                         </td>
                         <td class="px-4 py-3">

@@ -25,9 +25,12 @@ class ReportController extends Controller {
         
         // Calculate totals before pagination for accurate figures
         $totalBookings = (clone $query)->count();
-        $totalRevenue = (clone $query)->sum('total_amount');
-        $totalAdvance = (clone $query)->sum('advance_payment');
-        $totalRemaining = (clone $query)->sum('remaining_payment');
+        
+        // Get all bookings for calculating correct totals
+        $allBookingsForTotals = (clone $query)->get();
+        $totalRevenue = $allBookingsForTotals->sum(fn($b) => $b->getCalculatedTotal());
+        $totalAdvance = $allBookingsForTotals->sum('advance_payment');
+        $totalRemaining = $allBookingsForTotals->sum(fn($b) => $b->getCalculatedRemaining());
         
         $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
         $roomTypes = RoomType::all();

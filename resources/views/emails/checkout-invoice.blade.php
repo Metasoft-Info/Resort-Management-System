@@ -73,7 +73,8 @@
                             <!-- Invoice Summary -->
                             @php
                                 $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
-                                $invoiceBaseAmount = $booking->total_amount;
+                                $invoiceNights = max(1, $invoiceNights);
+                                $invoiceBaseAmount = $booking->getCalculatedTotal();
                                 $invoiceDiscountAmount = 0;
                                 
                                 if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {

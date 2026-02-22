@@ -4,7 +4,23 @@
 <div class="print:p-0">
     @php
         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
-        $baseAmount = $booking->total_amount;
+        $nights = max(1, $nights);
+        $allRooms = $booking->getAllRooms();
+        $bookingRooms = $booking->bookingRooms;
+        
+        // Calculate base amount from actual rooms (not stored total_amount)
+        $baseAmount = 0;
+        foreach($allRooms as $room) {
+            $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
+            $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
+            $baseAmount += $roomPrice * $nights;
+        }
+        
+        // If no rooms found, fallback to stored total_amount
+        if ($baseAmount == 0) {
+            $baseAmount = $booking->total_amount;
+        }
+        
         $discountAmount = 0;
         
         if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {

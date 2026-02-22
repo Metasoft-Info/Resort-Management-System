@@ -206,7 +206,7 @@
                             </td>
                             <td class="px-6 py-4"><span class="font-semibold text-primary-600">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</span></td>
                             <td class="px-6 py-4 text-gray-700">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
-                            <td class="px-6 py-4 font-bold text-primary-600">৳{{ number_format($booking->total_amount) }}</td>
+                            <td class="px-6 py-4 font-bold text-primary-600">৳{{ number_format($booking->getCalculatedTotal()) }}</td>
                             <td class="px-6 py-4">
                                 @if($booking->status == 'confirmed')
                                     <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-bold"><i class="fas fa-check-circle mr-1"></i>Confirmed</span>

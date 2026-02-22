@@ -148,6 +148,8 @@
                     @php 
                         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
                         $totalNights += $nights;
+                        $calculatedTotal = $booking->getCalculatedTotal();
+                        $calculatedRemaining = $booking->getCalculatedRemaining();
                     @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>
@@ -155,10 +157,10 @@
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right font-semibold">{{ number_format($booking->total_amount, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right font-semibold">{{ number_format($calculatedTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-primary-600">{{ number_format($booking->advance_payment, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right">{{ number_format($booking->extra_charges ?? 0, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold">{{ number_format($booking->remaining_payment, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold">{{ number_format($calculatedRemaining, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m-Y') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center">{{ $nights }}</td>

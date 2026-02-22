@@ -33,7 +33,7 @@
             </div>
             <div>
                 <span class="font-semibold text-blue-800">Current Total:</span>
-                <span class="text-gray-700">৳{{ number_format($existingBooking->total_amount, 0) }}</span>
+                <span class="text-gray-700">৳{{ number_format($existingBooking->getCalculatedTotal(), 0) }}</span>
             </div>
         </div>
         <div class="mt-4">
