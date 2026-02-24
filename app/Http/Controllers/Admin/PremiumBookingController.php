@@ -151,6 +151,21 @@ class PremiumBookingController extends Controller
             $roomsData = [];
             if (is_string($roomsDataRaw) && !empty($roomsDataRaw)) {
                 $roomsData = json_decode($roomsDataRaw, true);
+                
+                // IMPORTANT: Deduplicate rooms by roomId to prevent duplicates
+                if (!empty($roomsData)) {
+                    $uniqueRooms = [];
+                    $seenRoomIds = [];
+                    foreach ($roomsData as $room) {
+                        $roomId = $room['roomId'] ?? null;
+                        if ($roomId && !in_array($roomId, $seenRoomIds)) {
+                            $seenRoomIds[] = $roomId;
+                            $uniqueRooms[] = $room;
+                        }
+                    }
+                    $roomsData = $uniqueRooms;
+                    \Log::info('Deduplicated rooms for booking', ['original_count' => count(json_decode($roomsDataRaw, true)), 'final_count' => count($roomsData)]);
+                }
             }
 
             // Check if we're adding rooms to an existing booking
@@ -304,23 +319,30 @@ class PremiumBookingController extends Controller
 
             $booking = Booking::create($validated);
 
-            // Add rooms to booking_rooms table
+            // Add rooms to booking_rooms table (use firstOrCreate to prevent duplicates)
             if (!empty($roomsData) && count($roomsData) > 0) {
+                $addedRooms = [];
                 foreach ($roomsData as $roomData) {
-                    BookingRoom::create([
-                        'booking_id' => $booking->id,
-                        'room_id' => $roomData['roomId'],
-                        'price_per_night' => $roomData['pricePerNight'] ?? 0,
-                    ]);
+                    $roomId = $roomData['roomId'];
+                    // Skip if already added (extra safety)
+                    if (in_array($roomId, $addedRooms)) {
+                        \Log::warning('Skipping duplicate room in booking', ['booking_id' => $booking->id, 'room_id' => $roomId]);
+                        continue;
+                    }
+                    BookingRoom::firstOrCreate(
+                        ['booking_id' => $booking->id, 'room_id' => $roomId],
+                        ['price_per_night' => $roomData['pricePerNight'] ?? 0]
+                    );
+                    $addedRooms[] = $roomId;
                 }
+                \Log::info('Rooms added to booking', ['booking_id' => $booking->id, 'rooms' => $addedRooms]);
             } elseif ($singleRoomId) {
                 // Single room - still add to booking_rooms for consistency
                 $room = Room::find($singleRoomId);
-                BookingRoom::create([
-                    'booking_id' => $booking->id,
-                    'room_id' => $singleRoomId,
-                    'price_per_night' => $room->price_per_night ?? $room->roomType->base_price ?? 0,
-                ]);
+                BookingRoom::firstOrCreate(
+                    ['booking_id' => $booking->id, 'room_id' => $singleRoomId],
+                    ['price_per_night' => $room->price_per_night ?? $room->roomType->base_price ?? 0]
+                );
             }
 
             // Add additional guests

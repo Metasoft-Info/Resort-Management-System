@@ -1453,6 +1453,16 @@ async function submitVatToggle() {
         }
     });
 }
+
+// Auto-print invoice if ?print=invoice parameter is present
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('print') === 'invoice') {
+        setTimeout(function() {
+            printInvoice();
+        }, 500);
+    }
+});
 </script>
 
 <style>

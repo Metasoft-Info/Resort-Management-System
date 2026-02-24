@@ -841,9 +841,18 @@ function calculateRemaining() {
     document.getElementById('remaining_payment').value = (grandTotal - advance).toFixed(2);
 }
 
+// Prevent double submission
+let isSubmitting = false;
+
 // Form Submission - Single booking with multiple rooms
 async function submitBooking(e) {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) {
+        console.warn('Submission already in progress');
+        return;
+    }
     
     // Check if we're adding to existing booking
     const existingBookingId = document.getElementById('existing_booking_id')?.value;
@@ -871,7 +880,7 @@ async function submitBooking(e) {
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + (existingBookingId ? 'Adding Rooms...' : 'Creating Booking...');
     submitBtn.disabled = true;
-    submitBtn.disabled = true;
+    isSubmitting = true;
     
     // Get additional guests
     const guestList = [];
@@ -890,13 +899,21 @@ async function submitBooking(e) {
     try {
         const formData = new FormData();
         
-        // Prepare rooms data for single booking with multiple rooms
-        const roomsData = selectedRooms.map(room => ({
-            roomId: room.roomId,
-            roomNumber: room.roomNumber,
-            pricePerNight: room.pricePerNight
-        }));
-        formData.append('rooms_data', JSON.stringify(roomsData));
+        // Prepare rooms data - DEDUPLICATE by roomId before sending
+        const seenRoomIds = new Set();
+        const uniqueRooms = [];
+        selectedRooms.forEach(room => {
+            if (!seenRoomIds.has(room.roomId)) {
+                seenRoomIds.add(room.roomId);
+                uniqueRooms.push({
+                    roomId: room.roomId,
+                    roomNumber: room.roomNumber,
+                    pricePerNight: room.pricePerNight
+                });
+            }
+        });
+        console.log('Sending rooms:', uniqueRooms);
+        formData.append('rooms_data', JSON.stringify(uniqueRooms));
         
         // Check if we're adding to existing booking
         if (existingBookingId) {
@@ -999,12 +1016,14 @@ async function submitBooking(e) {
             showGlobalModal('error', data.message || 'Booking failed!');
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
+            isSubmitting = false;
         }
     } catch (error) {
         console.error('Booking error:', error);
         showGlobalModal('error', 'Error creating booking');
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+        isSubmitting = false;
     }
 }
 

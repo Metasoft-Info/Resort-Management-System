@@ -126,8 +126,18 @@ class BookingController extends Controller
             'createdBy', 
             'additionalGuests', 
             'payments.recordedBy',
-            'foodPackage'
+            'foodPackage',
+            'bookingRooms.room.roomType'
         ]);
+        
+        // Return JSON for AJAX requests
+        if (request()->ajax() || request()->has('ajax')) {
+            return response()->json([
+                'success' => true,
+                'booking' => $booking
+            ]);
+        }
+        
         return view('admin.bookings.show', compact('booking'));
     }
 
