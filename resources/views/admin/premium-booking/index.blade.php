@@ -117,11 +117,11 @@
             <i class="fas fa-user-search text-3xl text-primary-600 mr-4"></i>
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Step 2: Customer Search (Optional)</h2>
-                <p class="text-sm text-gray-600">Search for existing customer by phone to auto-fill information</p>
+                <p class="text-sm text-gray-600">Search by Phone, NID, or Passport number to auto-fill information</p>
             </div>
         </div>
         <div class="flex gap-3">
-            <input type="text" id="searchPhone" placeholder="Enter phone number..." 
+            <input type="text" id="searchPhone" placeholder="Enter Phone / NID / Passport number..." 
                 class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
             <button onclick="searchCustomer()" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
                 <i class="fas fa-search mr-2"></i>Search Customer
@@ -427,11 +427,11 @@ let currentSearchDates = {};
 
 // Customer Search
 async function searchCustomer() {
-    const phone = document.getElementById('searchPhone').value.trim();
+    const searchQuery = document.getElementById('searchPhone').value.trim();
     const resultsDiv = document.getElementById('customerSearchResults');
     
-    if (!phone) {
-        resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700">Please enter a phone number</p></div>';
+    if (!searchQuery) {
+        resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700">Please enter Phone, NID, or Passport number</p></div>';
         return;
     }
 
@@ -439,7 +439,7 @@ async function searchCustomer() {
 
     try {
         // Use dedicated endpoint that returns latest customer data
-        const response = await fetch(`{{ route('admin.premium-booking.search-customer') }}?phone=${encodeURIComponent(phone)}`, {
+        const response = await fetch(`{{ route('admin.premium-booking.search-customer') }}?query=${encodeURIComponent(searchQuery)}`, {
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
@@ -452,7 +452,7 @@ async function searchCustomer() {
             fillCustomerInfo(data.customer);
             resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4"><p class="text-primary-700"><i class="fas fa-check-circle mr-2"></i>Customer found! Latest information auto-filled below.</p></div>';
         } else {
-            resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700"><i class="fas fa-info-circle mr-2"></i>No previous bookings found for this phone</p></div>';
+            resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700"><i class="fas fa-info-circle mr-2"></i>No previous bookings found</p></div>';
         }
     } catch (error) {
         console.error('Search error:', error);

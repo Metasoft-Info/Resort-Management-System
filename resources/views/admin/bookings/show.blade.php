@@ -575,8 +575,8 @@
 
 <!-- Modals -->
 <!-- Refund Modal -->
-<div id="refundModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+<div id="refundModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md my-8 mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">Process Refund</h3>
             <button onclick="closeRefundModal()" class="text-gray-500 hover:text-gray-700">
@@ -613,8 +613,8 @@
 </div>
 
 <!-- VAT Modal -->
-<div id="vatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+<div id="vatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md my-8 mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">{{ $booking->vat_enabled ? 'Disable' : 'Enable' }} VAT</h3>
             <button onclick="closeVatModal()" class="text-gray-500 hover:text-gray-700">
@@ -649,8 +649,8 @@
 </div>
 
 <!-- Edit Time Modal -->
-<div id="timeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+<div id="timeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md my-8 mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">Edit Check-In/Out Time</h3>
             <button onclick="closeTimeModal()" class="text-gray-500 hover:text-gray-700">
@@ -681,8 +681,8 @@
 </div>
 
 <!-- Add Payment Modal -->
-<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg my-8 mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">Record Payment</h3>
             <button onclick="closePaymentModal()" class="text-gray-500 hover:text-gray-700">
@@ -846,8 +846,8 @@
 </div>
 
 <!-- Add Guest Modal -->
-<div id="guestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+<div id="guestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md my-8 mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">Add Additional Guest</h3>
             <button onclick="closeGuestModal()" class="text-gray-500 hover:text-gray-700">

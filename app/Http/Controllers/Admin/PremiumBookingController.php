@@ -32,18 +32,20 @@ class PremiumBookingController extends Controller
     }
 
     /**
-     * Search for customer by phone and return the most recently updated record
+     * Search for customer by phone, NID, or passport and return the most recently updated record
      */
     public function searchCustomer(Request $request)
     {
-        $phone = $request->input('phone');
+        $query = $request->input('query') ?? $request->input('phone');
         
-        if (!$phone) {
-            return response()->json(['success' => false, 'message' => 'Phone required']);
+        if (!$query) {
+            return response()->json(['success' => false, 'message' => 'Search query required']);
         }
         
-        // Get the most recently updated booking for this phone
-        $booking = Booking::where('customer_phone', $phone)
+        // Get the most recently updated booking matching phone, NID, or passport
+        $booking = Booking::where('customer_phone', $query)
+            ->orWhere('customer_nid', $query)
+            ->orWhere('passport_number', $query)
             ->orderBy('updated_at', 'desc')
             ->first();
         
