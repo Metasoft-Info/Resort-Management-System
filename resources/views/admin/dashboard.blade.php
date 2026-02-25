@@ -1,420 +1,709 @@
 @extends('layouts.admin')
 @section('content')
-<div class="p-6 space-y-6">
-    <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-700 rounded-2xl shadow-2xl p-8 text-white">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-4xl font-bold mb-2">Welcome, {{ auth()->user()->name }}! 👋</h1>
-                <p class="text-primary-100 text-lg">Tufan Resort Management System</p>
-                <p class="text-primary-200 text-sm mt-2"><i class="fas fa-calendar mr-2"></i>{{ date('l, F j, Y') }}</p>
-            </div>
-            <div class="text-6xl opacity-20"><i class="fas fa-chart-line"></i></div>
+<div class="space-y-6">
+    <!-- Welcome Header with Mode Toggle -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ auth()->user()->name }}!</h1>
+            <p class="text-gray-500 mt-1">{{ date('l, F j, Y') }}</p>
         </div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500 hover:shadow-xl transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-semibold mb-2">Total Bookings</p>
-                    <p class="text-4xl font-bold text-primary-600">{{ $stats['total_bookings'] }}</p>
-                    <p class="text-xs text-gray-400 mt-1">All room bookings</p>
-                </div>
-                <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-calendar-check text-2xl text-white"></i>
-                </div>
+        
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            @if($hasResortAccess && $hasConventionAccess)
+            <!-- Dashboard Mode Toggle -->
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl shadow-inner">
+                <button type="button" id="modeResort" onclick="switchDashboardMode('resort')" 
+                    class="mode-btn flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 {{ $currentMode == 'resort' ? 'bg-white shadow-lg text-emerald-600' : 'text-slate-500 hover:text-slate-700' }}">
+                    <i class="fas fa-hotel mr-2"></i>রিসোর্ট
+                </button>
+                <button type="button" id="modeConvention" onclick="switchDashboardMode('convention')"
+                    class="mode-btn flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 {{ $currentMode == 'convention' ? 'bg-white shadow-lg text-violet-600' : 'text-slate-500 hover:text-slate-700' }}">
+                    <i class="fas fa-building-columns mr-2"></i>কনভেনশন
+                </button>
             </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500 hover:shadow-xl transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-semibold mb-2">Active Bookings</p>
-                    <p class="text-4xl font-bold text-primary-600">{{ $stats['active_bookings'] }}</p>
-                    <p class="text-xs text-gray-400 mt-1">Currently active</p>
-                </div>
-                <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-check-circle text-2xl text-white"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500 hover:shadow-xl transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-semibold mb-2">Available Rooms</p>
-                    <p class="text-4xl font-bold text-primary-600">{{ $stats['available_rooms'] }}<span class="text-xl text-gray-400">/{{ $stats['total_rooms'] }}</span></p>
-                    <p class="text-xs text-gray-400 mt-1">Ready to book</p>
-                </div>
-                <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-bed text-2xl text-white"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500 hover:shadow-xl transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-semibold mb-2">Total Revenue</p>
-                    <p class="text-3xl font-bold text-primary-600">৳{{ number_format($stats['total_revenue']) }}</p>
-                    <p class="text-xs text-gray-400 mt-1">All time earnings</p>
-                </div>
-                <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-bangladeshi-taka-sign text-2xl text-white"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500 hover:shadow-xl transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-semibold mb-2">Convention Bookings</p>
-                    <p class="text-4xl font-bold text-primary-600">{{ $stats['convention_bookings'] }}</p>
-                    <p class="text-xs text-gray-400 mt-1">Hall reservations</p>
-                </div>
-                <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-building text-2xl text-white"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary-500 hover:shadow-xl transition transform hover:-translate-y-1">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-semibold mb-2">Today's Check-ins</p>
-                    <p class="text-4xl font-bold text-primary-600">{{ $stats['today_checkins'] }}</p>
-                    <p class="text-xs text-gray-400 mt-1">Today's arrivals</p>
-                </div>
-                <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-door-open text-2xl text-white"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg p-6 hover:shadow-xl transition transform hover:-translate-y-1 lg:col-span-2">
-            <h3 class="text-white font-bold text-lg mb-4"><i class="fas fa-bolt mr-2"></i>Quick Actions</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <a href="{{ route('admin.premium-booking.index') }}" class="bg-white bg-opacity-20 hover:bg-opacity-30 backdrop-blur-sm text-white rounded-lg p-3 text-center transition">
-                    <i class="fas fa-plus-circle text-2xl mb-2"></i>
-                    <p class="text-sm font-semibold">New Booking</p>
+            @endif
+            
+            <div class="flex gap-2">
+                @if($hasResortAccess)
+                <a href="{{ route('admin.premium-booking.index') }}" class="resort-link inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-600 transition text-sm font-medium shadow-lg shadow-emerald-200 {{ $currentMode == 'convention' ? 'hidden' : '' }}">
+                    <i class="fas fa-plus mr-2"></i>Room Booking
                 </a>
-                <a href="{{ route('admin.premium-booking.index') }}" class="bg-white bg-opacity-20 hover:bg-opacity-30 backdrop-blur-sm text-white rounded-lg p-3 text-center transition">
-                    <i class="fas fa-search text-2xl mb-2"></i>
-                    <p class="text-sm font-semibold">Search Rooms</p>
+                @endif
+                @if($hasConventionAccess)
+                <a href="{{ route('admin.premium-convention.index') }}" class="convention-link inline-flex items-center px-4 py-2 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg hover:from-violet-700 hover:to-violet-600 transition text-sm font-medium shadow-lg shadow-violet-200 {{ $currentMode == 'resort' ? 'hidden' : '' }}">
+                    <i class="fas fa-plus mr-2"></i>Hall Booking
                 </a>
-                <a href="{{ route('admin.todays-summary') }}" class="bg-white bg-opacity-20 hover:bg-opacity-30 backdrop-blur-sm text-white rounded-lg p-3 text-center transition">
-                    <i class="fas fa-chart-bar text-2xl mb-2"></i>
-                    <p class="text-sm font-semibold">Today Summary</p>
-                </a>
-                <a href="{{ route('admin.reports.room-bookings') }}" class="bg-white bg-opacity-20 hover:bg-opacity-30 backdrop-blur-sm text-white rounded-lg p-3 text-center transition">
-                    <i class="fas fa-file-alt text-2xl mb-2"></i>
-                    <p class="text-sm font-semibold">Reports</p>
+                @endif
+                <a href="{{ route('admin.todays-summary') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm">
+                    <i class="fas fa-chart-bar mr-2"></i>Today
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Quick Search Section -->
+    <!-- ============ RESORT DASHBOARD ============ -->
+    <div id="resortDashboard" class="{{ $currentMode == 'convention' ? 'hidden' : '' }}">
+        <!-- Resort Stats Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 shadow-lg shadow-emerald-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-emerald-100 uppercase tracking-wide">Total Bookings</p>
+                        <p class="text-3xl font-bold text-white mt-2">{{ $resortStats['total_bookings'] }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-emerald-100"><i class="fas fa-hotel mr-1"></i>All room bookings</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-5 shadow-lg shadow-teal-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-teal-100 uppercase tracking-wide">Active Guests</p>
+                        <p class="text-3xl font-bold text-white mt-2">{{ $resortStats['active_bookings'] }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-teal-100"><i class="fas fa-check-circle mr-1"></i>Currently staying</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-5 shadow-lg shadow-cyan-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-cyan-100 uppercase tracking-wide">Available Rooms</p>
+                        <p class="text-3xl font-bold text-white mt-2">{{ $resortStats['available_rooms'] }}<span class="text-lg text-cyan-200">/{{ $resortStats['total_rooms'] }}</span></p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-bed text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-cyan-100"><i class="fas fa-door-open mr-1"></i>Ready to book</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 shadow-lg shadow-green-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-green-100 uppercase tracking-wide">Room Revenue</p>
+                        <p class="text-2xl font-bold text-white mt-2">৳{{ number_format($resortStats['room_revenue']) }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-bangladeshi-taka-sign text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-green-100"><i class="fas fa-chart-line mr-1"></i>All time revenue</div>
+            </div>
+        </div>
+
+        <!-- Today's Resort Activity -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-sign-in-alt text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $resortStats['today_checkins'] }}</p>
+                    <p class="text-xs text-gray-500">Today Check-in</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-sign-out-alt text-orange-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $resortStats['today_checkouts'] }}</p>
+                    <p class="text-xs text-gray-500">Today Check-out</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $resortStats['pending_bookings'] }}</p>
+                    <p class="text-xs text-gray-500">Pending</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-percentage text-emerald-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $resortStats['total_rooms'] > 0 ? round(($resortStats['total_rooms'] - $resortStats['available_rooms']) / $resortStats['total_rooms'] * 100) : 0 }}%</p>
+                    <p class="text-xs text-gray-500">Occupancy</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Resort Dashboard -->
+
+    <!-- ============ CONVENTION DASHBOARD ============ -->
+    <div id="conventionDashboard" class="{{ $currentMode == 'resort' ? 'hidden' : '' }}">
+        <!-- Convention Stats Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl p-5 shadow-lg shadow-violet-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-violet-100 uppercase tracking-wide">Total Bookings</p>
+                        <p class="text-3xl font-bold text-white mt-2">{{ $conventionStats['total_bookings'] }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-violet-100"><i class="fas fa-building-columns mr-1"></i>All hall bookings</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 shadow-lg shadow-purple-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-purple-100 uppercase tracking-wide">Today's Events</p>
+                        <p class="text-3xl font-bold text-white mt-2">{{ $conventionStats['today_events'] }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-calendar-day text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-purple-100"><i class="fas fa-star mr-1"></i>Events happening today</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 rounded-xl p-5 shadow-lg shadow-fuchsia-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-fuchsia-100 uppercase tracking-wide">Upcoming Events</p>
+                        <p class="text-3xl font-bold text-white mt-2">{{ $conventionStats['upcoming_events'] }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-calendar-alt text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-fuchsia-100"><i class="fas fa-arrow-right mr-1"></i>Future bookings</div>
+            </div>
+
+            <div class="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-5 shadow-lg shadow-pink-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-pink-100 uppercase tracking-wide">Hall Revenue</p>
+                        <p class="text-2xl font-bold text-white mt-2">৳{{ number_format($conventionStats['convention_revenue']) }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-bangladeshi-taka-sign text-white text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-pink-100"><i class="fas fa-chart-line mr-1"></i>All time revenue</div>
+            </div>
+        </div>
+
+        <!-- Convention Quick Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-building text-violet-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $conventionStats['total_halls'] }}</p>
+                    <p class="text-xs text-gray-500">Total Halls</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-check-circle text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $conventionStats['active_bookings'] }}</p>
+                    <p class="text-xs text-gray-500">Active Bookings</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $conventionStats['pending_bookings'] }}</p>
+                    <p class="text-xs text-gray-500">Pending</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center">
+                <div class="w-12 h-12 bg-fuchsia-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-calendar-week text-fuchsia-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-gray-900">{{ $conventionStats['today_events'] }}</p>
+                    <p class="text-xs text-gray-500">Today Events</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Convention Bookings -->
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-violet-50 to-purple-50">
+                <h3 class="font-semibold text-gray-900"><i class="fas fa-building-columns mr-2 text-violet-500"></i>Recent Hall Bookings</h3>
+                <a href="{{ route('admin.convention-bookings.index') }}" class="text-sm text-violet-600 hover:text-violet-800 font-medium">View all →</a>
+            </div>
+            <div class="divide-y divide-gray-100">
+                @forelse($recentConventionBookings->take(5) as $booking)
+                    <div class="p-4 hover:bg-violet-50/50 transition cursor-pointer" onclick="window.location='{{ route('admin.convention-bookings.show', $booking) }}'">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-bold text-violet-600">#{{ $booking->id }}</span>
+                            @if($booking->status == 'confirmed')
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Confirmed</span>
+                            @elseif($booking->status == 'pending')
+                                <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Pending</span>
+                            @else
+                                <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{{ ucfirst($booking->status) }}</span>
+                            @endif
+                        </div>
+                        <div class="text-sm font-medium text-gray-900">{{ $booking->customer_name }}</div>
+                        <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+                            <div>
+                                <i class="fas fa-building mr-1"></i>{{ $booking->conventionHall->name ?? 'N/A' }}
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-calendar mr-1"></i>{{ \Carbon\Carbon::parse($booking->event_date)->format('d M Y') }}
+                            </div>
+                            <div class="text-sm font-bold text-violet-600">৳{{ number_format($booking->total_amount) }}</div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-8 text-center text-gray-500">No convention bookings found</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+    <!-- End Convention Dashboard -->
+
+    <!-- ============ RESORT CHARTS - Only for Resort Mode ============ -->
+    <div id="chartsSection" class="{{ $currentMode == 'convention' ? 'hidden' : '' }}">
+    <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <div class="flex items-center mb-6 pb-4 border-b">
-                <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mr-4">
-                    <i class="fas fa-bed text-white text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-800">Check Room Availability</h3>
-                    <p class="text-sm text-gray-500">Search available rooms</p>
-                </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-semibold text-gray-900">Booking Trends</h3>
+                <span class="text-xs text-gray-500">Last 7 days</span>
             </div>
-            <form id="roomSearchForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Date</label>
-                    <input type="date" id="roomCheckIn" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Date</label>
-                    <input type="date" id="roomCheckOut" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required>
-                </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-semibold hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
-                    <i class="fas fa-search mr-2"></i>Search Available Rooms
-                </button>
-            </form>
-            <div id="roomResults" class="mt-4"></div>
+            <div class="h-64">
+                <canvas id="bookingTrendChart"></canvas>
+            </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <div class="flex items-center mb-6 pb-4 border-b">
-                <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mr-4">
-                    <i class="fas fa-building text-white text-xl"></i>
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-semibold text-gray-900">Revenue Overview</h3>
+                <span class="text-xs text-gray-500">Last 4 weeks</span>
+            </div>
+            <div class="h-64">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    </div>
+    <!-- End Charts Section (Resort Mode Only) -->
+
+    <!-- ============ ROOM STATUS - Only for Resort Mode ============ -->
+    <div id="roomStatusSection" class="{{ $currentMode == 'convention' ? 'hidden' : '' }}">
+    <!-- Room Status Grid - Premium -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 sm:px-6 py-4 border-b border-slate-700/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                    <i class="fas fa-door-open text-white"></i>
                 </div>
                 <div>
-                    <h3 class="text-xl font-bold text-gray-800">Check Hall Availability</h3>
-                    <p class="text-sm text-gray-500">Search convention halls</p>
+                    <h3 class="font-bold text-white text-lg">Room Status</h3>
+                    <p class="text-slate-400 text-xs">Click any room to book</p>
                 </div>
             </div>
-            <form id="hallSearchForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Event Date</label>
-                    <input type="date" id="hallDate" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required>
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                <input type="text" id="roomSearch" placeholder="Search room..." class="pl-9 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-44">
+            </div>
+        </div>
+        <div class="p-4 sm:p-6">
+            <div id="roomStatusGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                @foreach($roomsWithStatus as $rs)
+                <div class="room-card group relative rounded-2xl p-4 transition-all duration-300 cursor-pointer transform hover:scale-105 hover:z-10
+                    {{ $rs['status'] == 'occupied' 
+                        ? 'bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/30' 
+                        : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50' }}" 
+                    data-room="{{ strtolower($rs['room']->room_number) }}" 
+                    onclick="window.location='{{ route('admin.premium-booking.index') }}?room={{ $rs['room']->id }}'">
+                    <div class="absolute top-2 right-2">
+                        @if($rs['status'] == 'occupied')
+                            <span class="w-3 h-3 bg-white/30 rounded-full animate-pulse block"></span>
+                        @else
+                            <span class="w-3 h-3 bg-white rounded-full block"></span>
+                        @endif
+                    </div>
+                    <div class="text-center text-white">
+                        <div class="text-2xl sm:text-3xl font-black mb-1">{{ $rs['room']->room_number }}</div>
+                        <div class="text-xs opacity-80 truncate px-1" title="{{ $rs['room']->roomType->name ?? '' }}">{{ Str::limit($rs['room']->roomType->name ?? '', 18) }}</div>
+                        <div class="mt-3 flex items-center justify-center">
+                            @if($rs['status'] == 'occupied')
+                                <span class="inline-flex items-center px-3 py-1 bg-white/20 backdrop-blur rounded-full text-xs font-semibold">
+                                    <i class="fas fa-user-check mr-1.5"></i>Occupied
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 bg-white/30 backdrop-blur rounded-full text-xs font-bold">
+                                    <i class="fas fa-check-circle mr-1.5"></i>Available
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Time Slot</label>
-                    <select id="hallTime" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        <option value="morning">Morning (8AM - 2PM)</option>
-                        <option value="night">Night (6PM - 11PM)</option>
-                        <option value="full_day">Full Day (8AM - 11PM)</option>
-                    </select>
-                </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-semibold hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
-                    <i class="fas fa-search mr-2"></i>Search Available Halls
-                </button>
-            </form>
-            <div id="hallResults" class="mt-4"></div>
+                @endforeach
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-700/50 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-sm">
+                <span class="flex items-center text-white">
+                    <span class="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg mr-2 shadow"></span>
+                    Available <span class="ml-1.5 px-2 py-0.5 bg-emerald-500/20 rounded-full text-emerald-400 font-bold">{{ collect($roomsWithStatus)->where('status', 'available')->count() }}</span>
+                </span>
+                <span class="flex items-center text-white">
+                    <span class="w-5 h-5 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg mr-2 shadow"></span>
+                    Occupied <span class="ml-1.5 px-2 py-0.5 bg-rose-500/20 rounded-full text-rose-400 font-bold">{{ collect($roomsWithStatus)->where('status', 'occupied')->count() }}</span>
+                </span>
+            </div>
         </div>
     </div>
 
-    <!-- Recent Bookings -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-primary-50 to-primary-50 px-6 py-4 border-b">
-            <h3 class="text-2xl font-bold text-gray-800 flex items-center">
-                <i class="fas fa-clock-rotate-left mr-3 text-primary-600"></i>
-                Recent Bookings
-            </h3>
+    <!-- Recent Bookings - Responsive -->
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-900"><i class="fas fa-clock mr-2 text-gray-400"></i>Recent Bookings</h3>
+            <a href="{{ route('admin.bookings.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View all →</a>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full">
+        <!-- Mobile Card View -->
+        <div class="block sm:hidden divide-y divide-gray-100">
+            @forelse($recentBookings as $booking)
+                <div class="p-4 hover:bg-gray-50 transition cursor-pointer" onclick="window.location='{{ route('admin.bookings.show', $booking) }}'">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-bold text-gray-900">#{{ $booking->id }}</span>
+                        @if($booking->status == 'confirmed')
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Confirmed</span>
+                        @elseif($booking->status == 'pending')
+                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Pending</span>
+                        @elseif($booking->status == 'checked_in')
+                            <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Checked In</span>
+                        @else
+                            <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{{ ucfirst($booking->status) }}</span>
+                        @endif
+                    </div>
+                    <div class="text-sm font-medium text-gray-900">{{ $booking->customer_name }}</div>
+                    <div class="text-xs text-gray-500 mt-1">{{ $booking->customer_phone }}</div>
+                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div class="text-xs text-gray-500">
+                            <i class="fas fa-bed mr-1"></i>{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}
+                            <span class="mx-2">•</span>
+                            <i class="fas fa-calendar mr-1"></i>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M') }}
+                        </div>
+                        <div class="text-sm font-bold text-indigo-600">৳{{ number_format($booking->getCalculatedTotal()) }}</div>
+                    </div>
+                </div>
+            @empty
+                <div class="p-8 text-center text-gray-500">No bookings found</div>
+            @endforelse
+        </div>
+        <!-- Desktop Table View -->
+        <div class="hidden sm:block overflow-x-auto">
+            <table class="w-full min-w-[600px]">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">ID</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">Guest</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">Room</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">Check-in</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">Amount</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">Status</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase">Action</th>
+                        <th class="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ID</th>
+                        <th class="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Guest</th>
+                        <th class="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Room</th>
+                        <th class="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase whitespace-nowrap">Check-in</th>
+                        <th class="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                        <th class="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($recentBookings as $booking)
-                        <tr class="hover:bg-primary-50 transition">
-                            <td class="px-6 py-4 font-semibold text-gray-700">#{{ $booking->id }}</td>
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-gray-800">{{ $booking->customer_name }}</div>
-                                <div class="text-sm text-gray-500">{{ $booking->customer_phone }}</div>
+                        <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="window.location='{{ route('admin.bookings.show', $booking) }}'">
+                            <td class="px-4 lg:px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">#{{ $booking->id }}</td>
+                            <td class="px-4 lg:px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900 truncate max-w-[150px]">{{ $booking->customer_name }}</div>
+                                <div class="text-xs text-gray-500">{{ $booking->customer_phone }}</div>
                             </td>
-                            <td class="px-6 py-4"><span class="font-semibold text-primary-600">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</span></td>
-                            <td class="px-6 py-4 text-gray-700">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
-                            <td class="px-6 py-4 font-bold text-primary-600">৳{{ number_format($booking->getCalculatedTotal()) }}</td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
+                            <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M Y') }}</td>
+                            <td class="px-4 lg:px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">৳{{ number_format($booking->getCalculatedTotal()) }}</td>
+                            <td class="px-4 lg:px-6 py-4 whitespace-nowrap">
                                 @if($booking->status == 'confirmed')
-                                    <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-bold"><i class="fas fa-check-circle mr-1"></i>Confirmed</span>
+                                    <span class="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Confirmed</span>
                                 @elseif($booking->status == 'pending')
-                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold"><i class="fas fa-clock mr-1"></i>Pending</span>
+                                    <span class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Pending</span>
                                 @elseif($booking->status == 'checked_in')
-                                    <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-bold"><i class="fas fa-door-open mr-1"></i>Checked In</span>
+                                    <span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Checked In</span>
                                 @else
-                                    <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-bold">{{ $booking->status }}</span>
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{{ ucfirst($booking->status) }}</span>
                                 @endif
-                            </td>
-                            <td class="px-6 py-4">
-                                <a href="{{ route('admin.bookings.edit', $booking) }}" class="text-primary-600 hover:text-primary-800"><i class="fas fa-edit"></i></a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
-                                <div class="text-gray-400 text-5xl mb-3"><i class="fas fa-inbox"></i></div>
-                                <p class="text-gray-500 font-semibold">No bookings found</p>
-                            </td>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">No bookings found</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+    </div>
+    <!-- End Room Status Section (Resort Mode Only) -->
 
-    <!-- Room Status Grid -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-primary-50 to-primary-50 px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="text-2xl font-bold text-gray-800 flex items-center">
-                <i class="fas fa-bed mr-3 text-primary-600"></i>
-                রুম স্ট্যাটাস
-            </h3>
-            <div class="flex items-center gap-2">
-                <input type="text" id="roomSearch" placeholder="রুম নম্বর খুঁজুন..." class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-            </div>
-        </div>
-        <div class="p-6">
-            <div id="roomStatusGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                @foreach($roomsWithStatus as $rs)
-                <div class="room-card border rounded-xl p-4 transition hover:shadow-lg {{ $rs['status'] == 'occupied' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200' }}" data-room="{{ strtolower($rs['room']->room_number) }}">
-                    <div class="text-center">
-                        <div class="w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-2 {{ $rs['status'] == 'occupied' ? 'bg-red-200' : 'bg-green-200' }}">
-                            <i class="fas fa-bed text-xl {{ $rs['status'] == 'occupied' ? 'text-red-600' : 'text-green-600' }}"></i>
-                        </div>
-                        <h4 class="font-bold text-lg text-gray-800">{{ $rs['room']->room_number }}</h4>
-                        <p class="text-xs text-gray-500 mb-2">{{ $rs['room']->roomType->name ?? '' }}</p>
-                        
-                        @if($rs['status'] == 'occupied')
-                            <span class="inline-block px-2 py-1 bg-red-200 text-red-800 text-xs font-bold rounded-full mb-2">বুকড</span>
-                            @if($rs['current_booking'])
-                                <p class="text-xs text-gray-600"><i class="fas fa-user mr-1"></i>{{ Str::limit($rs['current_booking']->customer_name, 12) }}</p>
-                                <p class="text-xs text-red-600 font-semibold mt-1">
-                                    <i class="fas fa-calendar-check mr-1"></i>খালি হবে: {{ \Carbon\Carbon::parse($rs['current_booking']->check_out_date)->format('d/m') }}
-                                </p>
-                            @endif
-                        @else
-                            <span class="inline-block px-2 py-1 bg-green-200 text-green-800 text-xs font-bold rounded-full mb-2">ফাঁকা</span>
-                            @if($rs['upcoming_booking'])
-                                <p class="text-xs text-orange-600 font-semibold">
-                                    <i class="fas fa-clock mr-1"></i>পরবর্তী: {{ \Carbon\Carbon::parse($rs['upcoming_booking']->check_in_date)->format('d/m') }}
-                                </p>
-                            @else
-                                <p class="text-xs text-green-600 font-semibold">
-                                    <i class="fas fa-check mr-1"></i>সম্পূর্ণ ফ্রি
-                                </p>
-                            @endif
-                        @endif
-                        
-                        <a href="{{ route('admin.premium-booking.index') }}?room={{ $rs['room']->id }}" 
-                           class="mt-3 inline-block w-full bg-primary-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary-700 transition">
-                            <i class="fas fa-plus mr-1"></i>বুক করুন
-                        </a>
+    <!-- Search Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div id="roomSearchSection" class="bg-white rounded-xl border border-gray-200 p-6 {{ $currentMode == 'convention' ? 'hidden' : '' }}">
+            <h3 class="font-semibold text-gray-900 mb-4"><i class="fas fa-search mr-2 text-gray-400"></i>Check Room Availability</h3>
+            <form id="roomSearchForm" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Check-in</label>
+                        <input type="date" id="roomCheckIn" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Check-out</label>
+                        <input type="date" id="roomCheckOut" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required>
                     </div>
                 </div>
-                @endforeach
-            </div>
-            
-            <!-- Room status legend -->
-            <div class="mt-6 flex items-center justify-center gap-6 text-sm">
-                <span class="flex items-center"><span class="w-3 h-3 bg-green-400 rounded-full mr-2"></span>ফাঁকা ({{ collect($roomsWithStatus)->where('status', 'available')->count() }})</span>
-                <span class="flex items-center"><span class="w-3 h-3 bg-red-400 rounded-full mr-2"></span>বুকড ({{ collect($roomsWithStatus)->where('status', 'occupied')->count() }})</span>
-            </div>
+                <button type="submit" class="w-full bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 text-sm">
+                    <i class="fas fa-search mr-2"></i>Search Rooms
+                </button>
+            </form>
+            <div id="roomResults" class="mt-4"></div>
+        </div>
+
+        <div id="hallSearchSection" class="bg-white rounded-xl border border-gray-200 p-6 {{ $currentMode == 'resort' ? 'hidden' : '' }}">
+            <h3 class="font-semibold text-gray-900 mb-4"><i class="fas fa-building mr-2 text-gray-400"></i>Check Hall Availability</h3>
+            <form id="hallSearchForm" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Event Date</label>
+                        <input type="date" id="hallDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Time Slot</label>
+                        <select id="hallTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            <option value="morning">Morning</option>
+                            <option value="night">Night</option>
+                            <option value="full_day">Full Day</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-gray-900 text-white py-2.5 rounded-lg font-medium hover:bg-gray-800 text-sm">
+                    <i class="fas fa-search mr-2"></i>Search Halls
+                </button>
+            </form>
+            <div id="hallResults" class="mt-4"></div>
         </div>
     </div>
 </div>
 
 <script>
-// Room search filter
-document.getElementById('roomSearch').addEventListener('input', function(e) {
-    const query = e.target.value.toLowerCase();
-    document.querySelectorAll('.room-card').forEach(card => {
-        const roomNumber = card.dataset.room;
-        card.style.display = roomNumber.includes(query) ? 'block' : 'none';
-    });
-});
-
-document.getElementById('roomSearchForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const checkIn = document.getElementById('roomCheckIn').value;
-    const checkOut = document.getElementById('roomCheckOut').value;
-    const resultsDiv = document.getElementById('roomResults');
-    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i></div>';
-    
+// Dashboard Mode Switching
+async function switchDashboardMode(mode) {
     try {
-        const response = await fetch(`/admin/dashboard/search-rooms?checkIn=${checkIn}&checkOut=${checkOut}`, {
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        const data = await response.json();
-        const rooms = data.availableRooms || [];
+        // Update UI immediately for responsiveness
+        const resortDashboard = document.getElementById('resortDashboard');
+        const conventionDashboard = document.getElementById('conventionDashboard');
+        const roomStatusSection = document.getElementById('roomStatusSection');
+        const chartsSection = document.getElementById('chartsSection');
+        const roomSearchSection = document.getElementById('roomSearchSection');
+        const hallSearchSection = document.getElementById('hallSearchSection');
+        const modeResortBtn = document.getElementById('modeResort');
+        const modeConventionBtn = document.getElementById('modeConvention');
+        const resortLinks = document.querySelectorAll('.resort-link');
+        const conventionLinks = document.querySelectorAll('.convention-link');
         
-        if (rooms.length === 0) {
-            resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600 font-semibold"><i class="fas fa-times-circle mr-2"></i>No available rooms found for these dates</p></div>';
+        if (mode === 'resort') {
+            resortDashboard?.classList.remove('hidden');
+            conventionDashboard?.classList.add('hidden');
+            roomStatusSection?.classList.remove('hidden');
+            chartsSection?.classList.remove('hidden');
+            roomSearchSection?.classList.remove('hidden');
+            hallSearchSection?.classList.add('hidden');
+            modeResortBtn?.classList.add('bg-white', 'shadow-lg', 'text-emerald-600');
+            modeResortBtn?.classList.remove('text-slate-500', 'hover:text-slate-700');
+            modeConventionBtn?.classList.remove('bg-white', 'shadow-lg', 'text-violet-600');
+            modeConventionBtn?.classList.add('text-slate-500', 'hover:text-slate-700');
+            resortLinks.forEach(el => el.classList.remove('hidden'));
+            conventionLinks.forEach(el => el.classList.add('hidden'));
         } else {
-            let roomCardsHtml = `<div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p class="font-semibold text-primary-700 mb-3"><i class="fas fa-check-circle mr-2"></i>${rooms.length} available rooms found:</p>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">`;
-            rooms.forEach(room => {
-                const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
-                const roomType = room.room_type?.name || room.type || '';
-                roomCardsHtml += `
-                    <div class="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition">
-                        <div class="h-20 bg-gradient-to-br from-blue-400 to-primary-500 relative">
-                            ${roomImage ? `<img src="/storage/${roomImage}" alt="Room ${room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-2xl text-white/50"></i></div>`}
-                        </div>
-                        <div class="p-2 text-center">
-                            <p class="font-bold text-gray-800">Room ${room.room_number}</p>
-                            ${roomType ? `<p class="text-xs text-gray-500">${roomType}</p>` : ''}
-                            <p class="text-xs text-primary-600 font-semibold">৳${parseFloat(room.price_per_night || room.room_type?.base_price || 0).toLocaleString()}/night</p>
-                        </div>
-                    </div>`;
-            });
-            roomCardsHtml += `</div><a href="/admin/premium-booking" class="mt-3 inline-block bg-primary-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-700"><i class="fas fa-plus mr-1"></i>Create Booking</a></div>`;
-            resultsDiv.innerHTML = roomCardsHtml;
+            resortDashboard?.classList.add('hidden');
+            conventionDashboard?.classList.remove('hidden');
+            roomStatusSection?.classList.add('hidden');
+            chartsSection?.classList.add('hidden');
+            roomSearchSection?.classList.add('hidden');
+            hallSearchSection?.classList.remove('hidden');
+            modeConventionBtn?.classList.add('bg-white', 'shadow-lg', 'text-violet-600');
+            modeConventionBtn?.classList.remove('text-slate-500', 'hover:text-slate-700');
+            modeResortBtn?.classList.remove('bg-white', 'shadow-lg', 'text-emerald-600');
+            modeResortBtn?.classList.add('text-slate-500', 'hover:text-slate-700');
+            resortLinks.forEach(el => el.classList.add('hidden'));
+            conventionLinks.forEach(el => el.classList.remove('hidden'));
         }
-    } catch (error) {
-        console.error('Room search error:', error);
-        resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600">Error loading rooms</p></div>';
-    }
-});
-
-document.getElementById('hallSearchForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const date = document.getElementById('hallDate').value;
-    const slot = document.getElementById('hallTime').value;
-    const resultsDiv = document.getElementById('hallResults');
-    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i></div>';
-    
-    try {
-        const response = await fetch(`/admin/dashboard/search-halls?date=${date}&slot=${slot}`, {
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        const data = await response.json();
-        const bookedIds = data.bookedHallIds || [];
-        const allHalls = @json($allHalls ?? []);
-        const availableHalls = allHalls.filter(h => !bookedIds.includes(h.id));
         
-        if (availableHalls.length === 0) {
-            resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600 font-semibold"><i class="fas fa-times-circle mr-2"></i>এই সময়ের জন্য কোনো হল উপলব্ধ নেই</p></div>';
-        } else {
-            let hallCardsHtml = '<div class="grid gap-4">';
-            availableHalls.forEach(h => {
-                const images = h.images || [];
-                const firstImage = images.length > 0 ? images[0] : null;
-                const imageHtml = firstImage 
-                    ? `<img src="/storage/${firstImage}" alt="${h.name}" class="w-20 h-20 object-cover rounded-lg">`
-                    : `<div class="w-20 h-20 bg-gradient-to-br from-primary-100 to-primary-100 rounded-lg flex items-center justify-center"><i class="fas fa-building text-2xl text-green-300"></i></div>`;
-                
-                hallCardsHtml += `
-                    <div class="flex items-center gap-4 bg-green-50 border border-green-200 rounded-lg p-3">
-                        ${imageHtml}
-                        <div class="flex-1">
-                            <h4 class="font-bold text-gray-800">${h.name}</h4>
-                            <p class="text-sm text-gray-600"><i class="fas fa-users mr-1"></i>ধারণক্ষমতা: ${h.max_capacity} জন</p>
-                            <p class="text-sm font-bold text-primary-600">৳${Number(h.price_per_day).toLocaleString()}/দিন</p>
-                        </div>
-                        <span class="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-bold rounded-full">✅ উপলব্ধ</span>
-                    </div>
-                `;
-            });
-            hallCardsHtml += '</div>';
-            hallCardsHtml += '<a href="/admin/premium-convention" class="mt-4 inline-flex items-center bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"><i class="fas fa-plus mr-2"></i>বুকিং তৈরি করুন</a>';
-            resultsDiv.innerHTML = hallCardsHtml;
-        }
+        // Save preference to server
+        await fetch('{{ route("admin.dashboard.toggle-mode") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ mode: mode })
+        });
     } catch (error) {
-        console.error('Hall search error:', error);
-        resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center"><p class="text-red-600">Error loading halls</p></div>';
+        console.error('Error switching mode:', error);
     }
-});
+}
 
-// Set default dates
 document.addEventListener('DOMContentLoaded', function() {
+    // Room Search
+    document.getElementById('roomSearch').addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.room-card').forEach(card => {
+            card.style.display = card.dataset.room.includes(query) ? '' : 'none';
+        });
+    });
+
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded');
+        return;
+    }
+
+    // Booking Trend Chart
+    const bookingCanvas = document.getElementById('bookingTrendChart');
+    if (bookingCanvas) {
+        const bookingCtx = bookingCanvas.getContext('2d');
+        const bookingGradient = bookingCtx.createLinearGradient(0, 0, 0, 250);
+        bookingGradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)');
+        bookingGradient.addColorStop(1, 'rgba(99, 102, 241, 0.02)');
+        new Chart(bookingCtx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode($chartData['labels'] ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) !!},
+                datasets: [{
+                    label: 'Bookings',
+                    data: {!! json_encode($chartData['bookings'] ?? [3, 5, 2, 8, 4, 7, 6]) !!},
+                    borderColor: '#6366f1',
+                    backgroundColor: bookingGradient,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1 } }, 
+                    x: { grid: { display: false } } 
+                }
+            }
+        });
+    }
+
+    // Revenue Chart
+    const revenueCanvas = document.getElementById('revenueChart');
+    if (revenueCanvas) {
+        new Chart(revenueCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {!! json_encode($chartData['revenueLabels'] ?? ['Week 1', 'Week 2', 'Week 3', 'Week 4']) !!},
+                datasets: [{
+                    label: 'Revenue',
+                    data: {!! json_encode($chartData['revenue'] ?? [25000, 35000, 28000, 42000]) !!},
+                    backgroundColor: ['#6366f1', '#10b981', '#0ea5e9', '#f59e0b'],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { callback: v => '৳' + v.toLocaleString() } }, 
+                    x: { grid: { display: false } } 
+                }
+            }
+        });
+    }
+
+    // Occupancy Chart
+    const occupancyCanvas = document.getElementById('occupancyChart');
+    if (occupancyCanvas) {
+        new Chart(occupancyCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Occupied', 'Available'],
+                datasets: [{ 
+                    data: [{{ $stats['total_rooms'] - $stats['available_rooms'] }}, {{ $stats['available_rooms'] }}], 
+                    backgroundColor: ['#6366f1', '#e5e7eb'], 
+                    borderWidth: 0, 
+                    hoverBackgroundColor: ['#4f46e5', '#d1d5db'] 
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, cutout: '75%', plugins: { legend: { display: false } } }
+        });
+    }
+
+    // Room Search Form
+    document.getElementById('roomSearchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const resultsDiv = document.getElementById('roomResults');
+        resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-gray-400"></i></div>';
+        try {
+            const response = await fetch(`/admin/dashboard/search-rooms?checkIn=${document.getElementById('roomCheckIn').value}&checkOut=${document.getElementById('roomCheckOut').value}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await response.json();
+            const rooms = data.availableRooms || [];
+            if (rooms.length === 0) {
+                resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center text-sm text-red-600">No rooms available</div>';
+            } else {
+                let html = `<div class="bg-green-50 border border-green-200 rounded-lg p-3"><p class="text-sm text-green-700 font-medium mb-2">${rooms.length} rooms available</p><div class="flex flex-wrap gap-2">`;
+                rooms.forEach(r => html += `<span class="px-2 py-1 bg-white rounded text-xs font-medium border">${r.room_number}</span>`);
+                html += '</div><a href="/admin/premium-booking" class="mt-3 inline-block text-sm font-medium hover:underline">Create Booking →</a></div>';
+                resultsDiv.innerHTML = html;
+            }
+        } catch { resultsDiv.innerHTML = '<div class="bg-red-50 rounded-lg p-3 text-center text-sm text-red-600">Error</div>'; }
+    });
+
+    // Hall Search Form
+    document.getElementById('hallSearchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const resultsDiv = document.getElementById('hallResults');
+        resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-gray-400"></i></div>';
+        try {
+            const response = await fetch(`/admin/dashboard/search-halls?date=${document.getElementById('hallDate').value}&slot=${document.getElementById('hallTime').value}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await response.json();
+            const allHalls = @json($allHalls ?? []);
+            const available = allHalls.filter(h => !(data.bookedHallIds || []).includes(h.id));
+            if (available.length === 0) {
+                resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center text-sm text-red-600">No halls available</div>';
+            } else {
+                let html = `<div class="bg-green-50 border border-green-200 rounded-lg p-3"><p class="text-sm text-green-700 font-medium mb-2">${available.length} halls available</p>`;
+                available.forEach(h => html += `<div class="flex justify-between py-2 border-t border-green-200 mt-2"><span class="text-sm font-medium">${h.name}</span><span class="text-xs text-gray-500">৳${Number(h.price_per_day).toLocaleString()}</span></div>`);
+                html += '<a href="/admin/premium-convention" class="mt-3 inline-block text-sm font-medium hover:underline">Book Hall →</a></div>';
+                resultsDiv.innerHTML = html;
+            }
+        } catch { resultsDiv.innerHTML = '<div class="bg-red-50 rounded-lg p-3 text-center text-sm text-red-600">Error</div>'; }
+    });
+
+    // Set default dates
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('roomCheckIn').value = today;
     document.getElementById('hallDate').value = today;
-    
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
     document.getElementById('roomCheckOut').value = tomorrow.toISOString().split('T')[0];
 });
 </script>

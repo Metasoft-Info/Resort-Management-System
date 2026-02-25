@@ -7,6 +7,12 @@ use Carbon\Carbon;
 class TodaysSummaryController extends Controller {
     public function index() {
         $today = Carbon::today();
+        $user = auth()->user();
+        
+        // Determine user's access and current mode
+        $hasResortAccess = $user->hasResortAccess();
+        $hasConventionAccess = $user->hasConventionAccess();
+        $currentMode = $user->getDashboardMode();
         
         // Today's Check-ins: check_in_date is today AND not yet checked_out
         $todayCheckins = Booking::with('room')
@@ -29,12 +35,36 @@ class TodaysSummaryController extends Controller {
             ->where('check_in_date', '<=', $today)->where('check_out_date', '>=', $today)
             ->whereIn('status', ['confirmed', 'checked_in'])->get();
         $todayConventions = ConventionBooking::with('conventionHall')->whereDate('event_date', $today)->get();
+        
+        // Resort stats
+        $resortStats = [
+            'checkins_count' => $todayCheckins->count(),
+            'checkouts_count' => $todayCheckouts->count(),
+            'staying_count' => $currentlyStaying->count(),
+            'today_revenue' => $todayCheckins->sum('total_amount'),
+            'pending_payments' => $currentlyStaying->sum('remaining_payment'),
+        ];
+        
+        // Convention stats
+        $conventionStats = [
+            'events_count' => $todayConventions->count(),
+            'confirmed_count' => $todayConventions->where('status', 'confirmed')->count(),
+            'pending_count' => $todayConventions->where('status', 'pending')->count(),
+            'today_revenue' => $todayConventions->sum('total_amount'),
+        ];
+        
+        // Combined stats for backward compatibility
         $stats = [
             'checkins_count' => $todayCheckins->count(),
             'checkouts_count' => $todayCheckouts->count(),
             'staying_count' => $currentlyStaying->count(),
             'conventions_count' => $todayConventions->count(),
         ];
-        return view('admin.todays-summary', compact('stats', 'todayCheckins', 'todayCheckouts', 'currentlyStaying', 'todayConventions'));
+        
+        return view('admin.todays-summary', compact(
+            'stats', 'resortStats', 'conventionStats',
+            'todayCheckins', 'todayCheckouts', 'currentlyStaying', 'todayConventions',
+            'hasResortAccess', 'hasConventionAccess', 'currentMode'
+        ));
     }
 }

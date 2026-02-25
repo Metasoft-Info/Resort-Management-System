@@ -21,6 +21,7 @@ class PremiumBookingController extends Controller
     {
         $roomTypes = RoomType::all();
         $existingBooking = null;
+        $preselectedRoom = null;
         
         // If booking_id is provided, load existing booking for adding rooms
         if ($request->has('booking_id')) {
@@ -28,7 +29,12 @@ class PremiumBookingController extends Controller
                 ->find($request->booking_id);
         }
         
-        return view('admin.premium-booking.index', compact('roomTypes', 'existingBooking'));
+        // If room is provided, load room details for pre-selection
+        if ($request->has('room')) {
+            $preselectedRoom = Room::with('roomType')->find($request->room);
+        }
+        
+        return view('admin.premium-booking.index', compact('roomTypes', 'existingBooking', 'preselectedRoom'));
     }
 
     /**

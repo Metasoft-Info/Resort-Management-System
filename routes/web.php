@@ -36,6 +36,7 @@ Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.log
 // Admin routes (protected by auth middleware)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/toggle-mode', [DashboardController::class, 'toggleMode'])->name('dashboard.toggle-mode');
     Route::get('/dashboard/search-rooms', [DashboardController::class, 'searchRoomAvailability']);
     Route::get('/dashboard/search-halls', [DashboardController::class, 'searchHallAvailability']);
     

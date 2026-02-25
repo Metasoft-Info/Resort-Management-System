@@ -15,7 +15,13 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
         $today = Carbon::today();
+        
+        // Determine user's access and current mode
+        $hasResortAccess = $user->hasResortAccess();
+        $hasConventionAccess = $user->hasConventionAccess();
+        $currentMode = $user->getDashboardMode();
         
         // Get rooms that are currently occupied (have active bookings for today)
         // Check legacy room_id column
@@ -45,6 +51,30 @@ class DashboardController extends Controller
         $conventionRevenue = ConventionBooking::where('status', '!=', 'cancelled')->sum('total_amount');
         $totalRevenue = $roomRevenue + $conventionRevenue;
         
+        // Resort Stats
+        $resortStats = [
+            'total_bookings' => Booking::count(),
+            'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'total_rooms' => $totalRooms,
+            'available_rooms' => $availableRoomsCount,
+            'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'room_revenue' => $roomRevenue,
+            'pending_bookings' => Booking::where('status', 'pending')->count(),
+        ];
+        
+        // Convention Stats
+        $conventionStats = [
+            'total_bookings' => ConventionBooking::count(),
+            'active_bookings' => ConventionBooking::whereIn('status', ['confirmed', 'pending'])->count(),
+            'total_halls' => ConventionHall::count(),
+            'today_events' => ConventionBooking::whereDate('event_date', $today)->whereIn('status', ['confirmed'])->count(),
+            'upcoming_events' => ConventionBooking::where('event_date', '>', $today)->whereIn('status', ['confirmed', 'pending'])->count(),
+            'convention_revenue' => $conventionRevenue,
+            'pending_bookings' => ConventionBooking::where('status', 'pending')->count(),
+        ];
+        
+        // Combined stats for overview
         $stats = [
             'total_bookings' => Booking::count(),
             'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])->count(),
@@ -52,12 +82,14 @@ class DashboardController extends Controller
             'available_rooms' => $availableRoomsCount,
             'convention_bookings' => ConventionBooking::count(),
             'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
             'total_revenue' => $totalRevenue,
             'room_revenue' => $roomRevenue,
             'convention_revenue' => $conventionRevenue,
         ];
 
         $recentBookings = Booking::with('room')->latest()->take(10)->get();
+        $recentConventionBookings = ConventionBooking::with('conventionHall')->latest()->take(10)->get();
         $allRooms = Room::with('roomType')->get();
         $allHalls = ConventionHall::all();
         
@@ -116,7 +148,91 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('admin.dashboard', compact('stats', 'recentBookings', 'allRooms', 'allHalls', 'roomsWithStatus'));
+        // Chart data for last 7 days
+        $chartLabels = [];
+        $chartBookings = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $chartLabels[] = $date->format('D');
+            $chartBookings[] = Booking::whereDate('created_at', $date)->count();
+        }
+
+        // Revenue data for last 4 weeks
+        $revenueLabels = [];
+        $revenueData = [];
+        $conventionRevenueData = [];
+        for ($i = 3; $i >= 0; $i--) {
+            $weekStart = Carbon::today()->subWeeks($i)->startOfWeek();
+            $weekEnd = Carbon::today()->subWeeks($i)->endOfWeek();
+            $revenueLabels[] = 'Week ' . (4 - $i);
+            $weekRoomRevenue = Booking::whereBetween('created_at', [$weekStart, $weekEnd])
+                ->where('status', '!=', 'cancelled')
+                ->sum('total_amount');
+            $weekConventionRevenue = ConventionBooking::whereBetween('created_at', [$weekStart, $weekEnd])
+                ->where('status', '!=', 'cancelled')
+                ->sum('total_amount');
+            $revenueData[] = $weekRoomRevenue;
+            $conventionRevenueData[] = $weekConventionRevenue;
+        }
+        
+        // Convention booking chart data
+        $conventionChartBookings = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $conventionChartBookings[] = ConventionBooking::whereDate('created_at', $date)->count();
+        }
+
+        $chartData = [
+            'labels' => $chartLabels,
+            'bookings' => $chartBookings,
+            'conventionBookings' => $conventionChartBookings,
+            'revenueLabels' => $revenueLabels,
+            'revenue' => $revenueData,
+            'conventionRevenue' => $conventionRevenueData,
+        ];
+
+        // Today's checkouts - already calculated above
+
+        return view('admin.dashboard', compact(
+            'stats', 
+            'resortStats',
+            'conventionStats',
+            'recentBookings', 
+            'recentConventionBookings',
+            'allRooms', 
+            'allHalls', 
+            'roomsWithStatus', 
+            'chartData',
+            'hasResortAccess',
+            'hasConventionAccess',
+            'currentMode'
+        ));
+    }
+    
+    /**
+     * Toggle dashboard mode (Resort / Convention)
+     */
+    public function toggleMode(Request $request)
+    {
+        $user = auth()->user();
+        $newMode = $request->input('mode');
+        
+        if (in_array($newMode, ['resort', 'convention'])) {
+            // Verify user has access to this mode
+            if ($newMode === 'resort' && !$user->hasResortAccess()) {
+                return response()->json(['success' => false, 'message' => 'No resort access']);
+            }
+            if ($newMode === 'convention' && !$user->hasConventionAccess()) {
+                return response()->json(['success' => false, 'message' => 'No convention access']);
+            }
+            
+            $user->dashboard_mode = $newMode;
+            $user->save();
+            
+            return response()->json(['success' => true, 'mode' => $newMode]);
+        }
+        
+        return response()->json(['success' => false, 'message' => 'Invalid mode']);
     }
 
     public function searchRoomAvailability(Request $request)

@@ -14,31 +14,86 @@
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Global responsive fixes */
+        .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+        table { border-collapse: collapse; }
+        @media (max-width: 640px) {
+            .responsive-table { display: block; }
+            .responsive-table thead { display: none; }
+            .responsive-table tbody { display: block; }
+            .responsive-table tr { display: block; margin-bottom: 1rem; background: white; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1rem; }
+            .responsive-table td { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6; }
+            .responsive-table td:last-child { border-bottom: none; }
+            .responsive-table td::before { content: attr(data-label); font-weight: 600; color: #374151; margin-right: 1rem; }
+        }
+        /* Prevent horizontal overflow */
+        .main-content { max-width: 100%; overflow-x: hidden; }
+        .main-content > * { max-width: 100%; }
+        /* Input and select fixes for mobile */
+        @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px !important; }
+        }
+        /* Premium Sidebar Styles */
+        .sidebar-collapsed { width: 72px !important; }
+        .sidebar-collapsed .sidebar-text { display: none; }
+        .sidebar-collapsed .sidebar-logo-text { display: none; }
+        .sidebar-collapsed .sidebar-section-title { display: none; }
+        .sidebar-collapsed .sidebar-menu-item { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .sidebar-menu-item i { margin-right: 0; }
+        .sidebar-collapsed .sidebar-collapse-btn i { transform: rotate(180deg); }
+        .sidebar-collapsed .sidebar-header { padding: 1rem 0.5rem; justify-content: center; }
+        .sidebar-collapsed .sidebar-logo { margin: 0 auto; }
+        .sidebar-section { overflow: hidden; transition: max-height 0.3s ease-out; }
+        .sidebar-section.collapsed { max-height: 0 !important; }
+        .sidebar-section-header { cursor: pointer; user-select: none; }
+        .sidebar-section-header .chevron { transition: transform 0.3s ease; }
+        .sidebar-section-header.collapsed .chevron { transform: rotate(-90deg); }
+        /* Scrollbar Styling */
+        .sidebar-nav { overflow-x: hidden; }
+        .sidebar-nav::-webkit-scrollbar { width: 4px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        /* Tooltip for collapsed sidebar */
+        .sidebar-tooltip { 
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            background: #1f2937; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem;
+            font-size: 0.75rem; white-space: nowrap; opacity: 0; visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s; margin-left: 0.5rem; z-index: 100;
+        }
+        .sidebar-collapsed .sidebar-menu-item:hover .sidebar-tooltip { opacity: 1; visibility: visible; }
+        /* Main content transition */
+        .main-wrapper { transition: margin-left 0.3s ease; }
+        .main-wrapper.sidebar-collapsed { margin-left: 72px !important; }
+    </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         primary: {
-                            50: '#fef7f7',
-                            100: '#fdeaea',
-                            200: '#fbd5d5',
-                            300: '#f5a8a8',
-                            400: '#e87c7c',
-                            500: '#c94a4a',
-                            600: '#a83232',
-                            700: '#8b2929',
-                            800: '#742424',
-                            900: '#621f1f',
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
                         },
                         accent: {
-                            50: '#fef7f7',
-                            100: '#fdeaea',
-                            200: '#fbd5d5',
-                            500: '#c94a4a',
-                            600: '#a83232',
-                            700: '#8b2929',
-                            800: '#742424',
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
                         }
                     }
                 }
@@ -46,77 +101,193 @@
         }
     </script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
     <div class="flex h-screen overflow-hidden">
         <!-- Mobile Menu Overlay -->
-        <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" onclick="toggleMobileSidebar()"></div>
         
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-primary-900 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
-            <div class="p-4 lg:p-6 border-b border-primary-700">
+        <!-- Premium Sidebar -->
+        <aside id="sidebar" class="w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-in-out overflow-hidden">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header p-4 border-b border-slate-700/50 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     @if($resortInfo && $resortInfo->admin_logo)
-                        <img src="{{ asset('storage/' . $resortInfo->admin_logo) }}" alt="Admin Logo" class="h-10 lg:h-12 w-auto rounded-xl object-contain shadow-lg">
+                        <img src="{{ asset('storage/' . $resortInfo->admin_logo) }}" alt="Admin Logo" class="sidebar-logo h-10 w-10 rounded-xl object-contain bg-white p-1 shadow-lg">
                     @else
-                        <div class="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-accent-600 to-accent-800 rounded-xl flex items-center justify-center shadow-lg">
-                            <i class="fas fa-hotel text-xl lg:text-2xl"></i>
+                        <div class="sidebar-logo w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-hotel text-white text-lg"></i>
                         </div>
                     @endif
-                    <div class="flex-1">
-                        <p class="text-xs lg:text-sm text-primary-200 font-medium">Resort Management</p>
+                    <div class="sidebar-logo-text">
+                        <p class="text-sm font-bold text-white">Tufan Resort</p>
+                        <p class="text-[10px] text-slate-400">Management System</p>
                     </div>
-                    <!-- Close button for mobile -->
-                    <button onclick="toggleSidebar()" class="lg:hidden text-white hover:text-primary-200 p-1">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
                 </div>
+                <!-- Mobile Close Button -->
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-white p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+                <!-- Desktop Collapse Button -->
+                <button onclick="toggleSidebarCollapse()" class="sidebar-collapse-btn hidden lg:flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-slate-400 hover:text-white">
+                    <i class="fas fa-chevron-left text-xs transition-transform duration-300"></i>
+                </button>
             </div>
-            <nav class="mt-4 lg:mt-6 px-2 lg:px-3 flex-1 overflow-y-auto pb-8" style="max-height: calc(100vh - 120px);">
+            
+            <!-- Navigation -->
+            <nav class="sidebar-nav flex-1 overflow-y-auto py-4 px-3 min-h-0">
                 @php
-                    $groupedMenus = \App\Models\AdminMenuSetting::getMenusForUser(auth()->user());
+                    $user = auth()->user();
+                    $groupedMenus = \App\Models\AdminMenuSetting::getMenusForUser($user);
+                    
+                    // Define section categories
+                    $sectionConfig = [
+                        'main' => [
+                            'title' => null,
+                            'icon' => null,
+                            'groups' => [null], // Dashboard, Today's Summary
+                            'color' => 'slate'
+                        ],
+                        'resort' => [
+                            'title' => 'রিসোর্ট ম্যানেজমেন্ট',
+                            'icon' => 'fas fa-hotel',
+                            'groups' => ['Rooms Management', 'Room Bookings', 'Services'],
+                            'color' => 'emerald'
+                        ],
+                        'convention' => [
+                            'title' => 'কনভেনশন হল',
+                            'icon' => 'fas fa-building-columns',
+                            'groups' => ['Convention Halls'],
+                            'color' => 'violet'
+                        ],
+                        'website' => [
+                            'title' => 'ওয়েবসাইট',
+                            'icon' => 'fas fa-globe',
+                            'groups' => ['Website'],
+                            'color' => 'sky'
+                        ],
+                        'reports' => [
+                            'title' => 'রিপোর্টস',
+                            'icon' => 'fas fa-chart-pie',
+                            'groups' => ['Reports'],
+                            'color' => 'amber'
+                        ],
+                        'system' => [
+                            'title' => 'সিস্টেম',
+                            'icon' => 'fas fa-cogs',
+                            'groups' => ['System'],
+                            'color' => 'rose'
+                        ],
+                    ];
+                    
+                    // Organize menus by sections
+                    $organizedMenus = [];
+                    foreach ($sectionConfig as $sectionKey => $config) {
+                        $sectionMenus = [];
+                        foreach ($config['groups'] as $groupName) {
+                            if (isset($groupedMenus[$groupName])) {
+                                foreach ($groupedMenus[$groupName] as $menu) {
+                                    $sectionMenus[] = ['menu' => $menu, 'group' => $groupName];
+                                }
+                            }
+                        }
+                        if (!empty($sectionMenus)) {
+                            $organizedMenus[$sectionKey] = [
+                                'config' => $config,
+                                'menus' => $sectionMenus
+                            ];
+                        }
+                    }
                 @endphp
 
-                @foreach($groupedMenus as $groupName => $menus)
-                    @if($groupName)
-                        <div class="text-xs text-primary-300 px-4 py-2 mt-4 font-semibold uppercase tracking-wider">{{ $groupName }}</div>
+                @foreach($organizedMenus as $sectionKey => $section)
+                    @if($section['config']['title'])
+                        <!-- Section Header -->
+                        <div class="sidebar-section-header flex items-center justify-between px-3 py-2 mt-4 mb-1 rounded-lg hover:bg-slate-800/50 transition" onclick="toggleSection('{{ $sectionKey }}')">
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 rounded-md bg-{{ $section['config']['color'] }}-500/20 flex items-center justify-center mr-2">
+                                    <i class="{{ $section['config']['icon'] }} text-{{ $section['config']['color'] }}-400 text-xs"></i>
+                                </div>
+                                <span class="sidebar-text text-xs font-bold uppercase tracking-wider text-slate-400">{{ $section['config']['title'] }}</span>
+                            </div>
+                            <i class="fas fa-chevron-down chevron text-slate-500 text-xs sidebar-text"></i>
+                        </div>
                     @endif
-                    @foreach($menus as $menu)
-                        <a href="{{ route($menu->route_name) }}" class="flex items-center px-3 lg:px-4 py-2.5 lg:py-3 mb-1 lg:mb-2 rounded-xl transition text-sm lg:text-base @if(request()->routeIs($menu->route_pattern)) bg-primary-700 shadow-lg @else hover:bg-primary-700/50 @endif">
-                            <i class="{{ $menu->menu_icon }} w-5 mr-2 lg:mr-3 text-sm"></i>
-                            <span class="font-medium lg:font-semibold">{{ $menu->menu_label }}</span>
-                        </a>
-                    @endforeach
+                    
+                    <!-- Section Content -->
+                    <div id="section-{{ $sectionKey }}" class="sidebar-section" style="max-height: 1000px;">
+                        @php $lastGroup = null; @endphp
+                        @foreach($section['menus'] as $item)
+                            @if($item['group'] && $item['group'] !== $lastGroup && count($section['menus']) > 3)
+                                <div class="sidebar-text text-[10px] text-slate-500 px-3 py-1 mt-2 uppercase tracking-wider">{{ $item['group'] }}</div>
+                            @endif
+                            @php $lastGroup = $item['group']; @endphp
+                            
+                            <a href="{{ route($item['menu']->route_name) }}" 
+                               class="sidebar-menu-item group relative flex items-center px-3 py-2.5 mb-1 rounded-xl transition-all duration-200 text-sm
+                                      @if(request()->routeIs($item['menu']->route_pattern)) 
+                                          bg-gradient-to-r from-{{ $section['config']['color'] }}-500 to-{{ $section['config']['color'] }}-600 text-white shadow-lg shadow-{{ $section['config']['color'] }}-500/30
+                                      @else 
+                                          text-slate-300 hover:bg-slate-800/80 hover:text-white
+                                      @endif">
+                                <i class="{{ $item['menu']->menu_icon }} w-5 mr-3 text-sm @if(request()->routeIs($item['menu']->route_pattern)) text-white @else text-slate-400 group-hover:text-{{ $section['config']['color'] }}-400 @endif"></i>
+                                <span class="sidebar-text">{{ $item['menu']->menu_label }}</span>
+                                <span class="sidebar-tooltip">{{ $item['menu']->menu_label }}</span>
+                            </a>
+                        @endforeach
+                    </div>
                 @endforeach
                 
-                <div class="border-t border-primary-700 my-4"></div>
-                <form method="POST" action="{{ route('admin.logout') }}">
-                    @csrf
-                    <button type="submit" class="flex items-center w-full px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl hover:bg-red-500/20 text-red-200 hover:text-red-100 transition text-sm lg:text-base">
-                        <i class="fas fa-sign-out-alt w-5 mr-2 lg:mr-3"></i>
-                        <span class="font-medium lg:font-semibold">Logout</span>
-                    </button>
-                </form>
+                <!-- Logout -->
+                <div class="border-t border-slate-700/50 mt-4 pt-4">
+                    <form method="POST" action="{{ route('admin.logout') }}">
+                        @csrf
+                        <button type="submit" class="sidebar-menu-item group relative flex items-center w-full px-3 py-2.5 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition text-sm">
+                            <i class="fas fa-sign-out-alt w-5 mr-3 group-hover:text-red-400"></i>
+                            <span class="sidebar-text">Logout</span>
+                            <span class="sidebar-tooltip">Logout</span>
+                        </button>
+                    </form>
+                </div>
             </nav>
+            
+            <!-- Sidebar Footer -->
+            <div class="p-3 border-t border-slate-700/50">
+                <div class="sidebar-text flex items-center justify-between px-2 py-2 bg-slate-800/50 rounded-xl">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-2">
+                            <i class="fas fa-user text-white text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-white truncate max-w-[100px]">{{ auth()->user()->name ?? 'Admin' }}</p>
+                            <p class="text-[10px] text-slate-400 capitalize">{{ auth()->user()->role ?? 'User' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col lg:ml-64 overflow-hidden w-full">
-            <header class="bg-white shadow-md z-20">
-                <div class="px-4 lg:px-8 py-4 lg:py-5 flex items-center justify-between">
+        <div id="mainWrapper" class="main-wrapper flex-1 flex flex-col lg:ml-64 overflow-hidden w-full">
+            <header class="bg-white border-b border-gray-200 z-20 shadow-sm">
+                <div class="px-4 lg:px-6 py-3 lg:py-4 flex items-center justify-between">
                     <!-- Mobile Menu Button -->
-                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-700 hover:text-primary-600 p-2 -ml-2">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-gray-600 hover:text-gray-900 p-2 -ml-2">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <h2 class="text-lg lg:text-2xl font-bold text-primary-800 truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
-                    <div class="flex items-center space-x-2 lg:space-x-4">
-                        <span class="text-xs lg:text-sm text-gray-600 hidden sm:inline"><i class="fas fa-user-circle mr-1 lg:mr-2"></i>{{ auth()->user()->name ?? 'Admin' }}</span>
-                        <span class="text-xs text-gray-600 sm:hidden"><i class="fas fa-user-circle"></i></span>
+                    <h2 class="text-lg lg:text-xl font-bold text-gray-800 truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
+                    <div class="flex items-center space-x-3">
+                        <div class="hidden sm:flex items-center bg-gradient-to-r from-slate-100 to-slate-50 rounded-full px-4 py-2 shadow-sm border border-slate-200">
+                            <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow">
+                                <i class="fas fa-user text-white text-xs"></i>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700">{{ auth()->user()->name ?? 'Admin' }}</span>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto bg-gray-50">
-                <div class="p-4 lg:p-8">
+            <main class="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50">
+                <div class="p-3 sm:p-4 lg:p-8 main-content">
                     @yield('content')
                 </div>
             </main>
@@ -129,19 +300,74 @@
     </div>
     
     <script>
-        function toggleSidebar() {
+        // Sidebar collapse state
+        let sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        
+        // Initialize sidebar state on load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (sidebarCollapsed && window.innerWidth >= 1024) {
+                document.getElementById('sidebar').classList.add('sidebar-collapsed');
+                document.getElementById('mainWrapper').classList.add('sidebar-collapsed');
+            }
+            
+            // Restore section collapse states
+            const sectionStates = JSON.parse(localStorage.getItem('sidebarSections') || '{}');
+            Object.keys(sectionStates).forEach(key => {
+                if (sectionStates[key]) {
+                    const section = document.getElementById('section-' + key);
+                    const header = document.querySelector(`[onclick="toggleSection('${key}')"]`);
+                    if (section) {
+                        section.classList.add('collapsed');
+                        section.style.maxHeight = '0';
+                    }
+                    if (header) header.classList.add('collapsed');
+                }
+            });
+        });
+        
+        function toggleMobileSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
             
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
             
-            // Prevent body scroll when sidebar is open
             if (!sidebar.classList.contains('-translate-x-full')) {
                 document.body.style.overflow = 'hidden';
             } else {
                 document.body.style.overflow = '';
             }
+        }
+        
+        function toggleSidebarCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            const mainWrapper = document.getElementById('mainWrapper');
+            
+            sidebar.classList.toggle('sidebar-collapsed');
+            mainWrapper.classList.toggle('sidebar-collapsed');
+            
+            sidebarCollapsed = sidebar.classList.contains('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+        }
+        
+        function toggleSection(sectionKey) {
+            const section = document.getElementById('section-' + sectionKey);
+            const header = document.querySelector(`[onclick="toggleSection('${sectionKey}')"]`);
+            
+            if (section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+                section.style.maxHeight = section.scrollHeight + 'px';
+                header.classList.remove('collapsed');
+            } else {
+                section.classList.add('collapsed');
+                section.style.maxHeight = '0';
+                header.classList.add('collapsed');
+            }
+            
+            // Save state
+            const sectionStates = JSON.parse(localStorage.getItem('sidebarSections') || '{}');
+            sectionStates[sectionKey] = section.classList.contains('collapsed');
+            localStorage.setItem('sidebarSections', JSON.stringify(sectionStates));
         }
         
         // Close sidebar on window resize to desktop

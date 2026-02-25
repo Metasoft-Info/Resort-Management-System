@@ -123,24 +123,24 @@
 
     <!-- Bookings Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden print:shadow-none print:rounded-none">
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm border-collapse border border-gray-400">
+        <div class="w-full">
+            <table class="w-full text-sm border-collapse border border-gray-400 table-fixed">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">তারিখ</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">মোবাইল নম্বর</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">নাম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">পেশা/কোম্পানী</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">রুম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right">বিল</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right">বিল জমা</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right">অতিরিক্ত চার্জ</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right">বাকি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">চেক ইন</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">চেক আউট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center">রাত্রি (দিন)</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">মন্তব্য</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden">অ্যাকশন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">তারিখ</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[9%]">মোবাইল নম্বর</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[10%]">নাম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">পেশা/কোম্পানী</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[5%]">রুম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বিল</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বিল জমা</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">অতিরিক্ত</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বাকি</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">চেক ইন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">চেক আউট</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center w-[4%]">রাত্রি</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[10%]">মন্তব্য</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden w-[6%]">অ্যাকশন</th>
                     </tr>
                 </thead>
                 <tbody>

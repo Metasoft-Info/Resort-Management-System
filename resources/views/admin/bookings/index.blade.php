@@ -5,26 +5,26 @@
 
 @section('content')
 <!-- Filters Section -->
-<div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+<div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
     <form method="GET" action="{{ route('admin.bookings.index') }}" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <!-- Search -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">অনুসন্ধান</label>
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">অনুসন্ধান</label>
                 <div class="flex gap-2">
-                    <select name="type" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <select name="type" class="px-2 sm:px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 flex-shrink-0">
                         <option value="name" {{ request('type') == 'name' ? 'selected' : '' }}>নাম</option>
                         <option value="phone" {{ request('type') == 'phone' ? 'selected' : '' }}>ফোন</option>
                         <option value="email" {{ request('type') == 'email' ? 'selected' : '' }}>ইমেইল</option>
                     </select>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="অনুসন্ধান..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="অনুসন্ধান..." class="flex-1 min-w-0 px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
 
             <!-- Status Filter -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">বুকিং স্ট্যাটাস</label>
-                <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">বুকিং স্ট্যাটাস</label>
+                <select name="status" class="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>সব</option>
                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
                     <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>কনফার্মড</option>
@@ -36,8 +36,8 @@
 
             <!-- Payment Status Filter -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">পেমেন্ট স্ট্যাটাস</label>
-                <select name="payment_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">পেমেন্ট স্ট্যাটাস</label>
+                <select name="payment_status" class="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <option value="all" {{ request('payment_status') == 'all' ? 'selected' : '' }}>সব</option>
                     <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
                     <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>আংশিক</option>
@@ -48,8 +48,8 @@
 
             <!-- Quick Date Filters -->
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">তারিখ ফিল্টার</label>
-                <select id="dateFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">তারিখ ফিল্টার</label>
+                <select id="dateFilter" class="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <option value="">কাস্টম</option>
                     <option value="today">আজ</option>
                     <option value="yesterday">গতকাল</option>
@@ -60,37 +60,58 @@
             </div>
         </div>
 
-        <!-- Date Range Filters -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+        <!-- Date Range Filters - Collapsible on mobile -->
+        <details class="sm:hidden">
+            <summary class="text-sm font-semibold text-indigo-600 cursor-pointer py-2">📅 তারিখ রেঞ্জ দেখুন</summary>
+            <div class="grid grid-cols-1 gap-3 pt-2">
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-700">চেক-ইন</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="date" name="check_in_from_m" value="{{ request('check_in_from') }}" class="px-2 py-2 text-sm border border-gray-300 rounded-lg">
+                        <input type="date" name="check_in_to_m" value="{{ request('check_in_to') }}" class="px-2 py-2 text-sm border border-gray-300 rounded-lg">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-gray-700">চেক-আউট</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="date" name="check_out_from_m" value="{{ request('check_out_from') }}" class="px-2 py-2 text-sm border border-gray-300 rounded-lg">
+                        <input type="date" name="check_out_to_m" value="{{ request('check_out_to') }}" class="px-2 py-2 text-sm border border-gray-300 rounded-lg">
+                    </div>
+                </div>
+            </div>
+        </details>
+        
+        <!-- Desktop Date Range -->
+        <div class="hidden sm:grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-700">চেক-ইন তারিখ</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="date" name="check_in_from" value="{{ request('check_in_from') }}" placeholder="থেকে" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                    <input type="date" name="check_in_to" value="{{ request('check_in_to') }}" placeholder="পর্যন্ত" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <input type="date" name="check_in_from" value="{{ request('check_in_from') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" name="check_in_to" value="{{ request('check_in_to') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-700">চেক-আউট তারিখ</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="date" name="check_out_from" value="{{ request('check_out_from') }}" placeholder="থেকে" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                    <input type="date" name="check_out_to" value="{{ request('check_out_to') }}" placeholder="পর্যন্ত" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <input type="date" name="check_out_from" value="{{ request('check_out_from') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" name="check_out_to" value="{{ request('check_out_to') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-700">বুকিং তারিখ</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="date" name="booking_from" value="{{ request('booking_from') }}" placeholder="থেকে" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                    <input type="date" name="booking_to" value="{{ request('booking_to') }}" placeholder="পর্যন্ত" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <input type="date" name="booking_from" value="{{ request('booking_from') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <input type="date" name="booking_to" value="{{ request('booking_to') }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                 </div>
             </div>
         </div>
 
         <!-- Filter Buttons -->
-        <div class="flex gap-3 pt-4">
-            <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-md">
-                <i class="fas fa-filter mr-2"></i>ফিল্টার প্রয়োগ করুন
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+            <button type="submit" class="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 sm:px-6 py-2.5 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition shadow-md text-sm font-medium">
+                <i class="fas fa-filter mr-2"></i>ফিল্টার
             </button>
-            <a href="{{ route('admin.bookings.index') }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition">
+            <a href="{{ route('admin.bookings.index') }}" class="bg-gray-500 text-white px-4 sm:px-6 py-2.5 rounded-lg hover:bg-gray-600 transition text-center text-sm font-medium">
                 <i class="fas fa-redo mr-2"></i>রিসেট
             </a>
         </div>
@@ -99,38 +120,94 @@
 
 <!-- Bookings Table -->
 <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead class="bg-gradient-to-r from-primary-50 to-primary-100">
+    <!-- Mobile Card View -->
+    <div class="sm:hidden divide-y divide-gray-100">
+        @forelse($bookings as $booking)
+            <div class="p-4 hover:bg-gray-50" onclick="window.location='{{ route('admin.bookings.show', $booking) }}'">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-bold text-indigo-600">#{{ $booking->id }}</span>
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full 
+                        @if($booking->status == 'confirmed') bg-blue-100 text-blue-800
+                        @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-800
+                        @elseif($booking->status == 'checked_in') bg-green-100 text-green-800
+                        @elseif($booking->status == 'checked_out') bg-gray-100 text-gray-800
+                        @else bg-red-100 text-red-800
+                        @endif">
+                        @if($booking->status == 'confirmed') কনফার্মড
+                        @elseif($booking->status == 'pending') পেন্ডিং
+                        @elseif($booking->status == 'checked_in') চেক-ইন
+                        @elseif($booking->status == 'checked_out') চেক-আউট
+                        @else বাতিল
+                        @endif
+                    </span>
+                </div>
+                <div class="font-semibold text-gray-800">{{ $booking->customer_name }}</div>
+                <div class="text-xs text-gray-500 mt-1"><i class="fas fa-phone mr-1"></i>{{ $booking->customer_phone }}</div>
+                @php $allRooms = $booking->getAllRooms(); @endphp
+                <div class="text-xs text-gray-600 mt-2">
+                    <i class="fas fa-bed mr-1"></i>
+                    @if($allRooms->count() > 1)
+                        {{ $allRooms->count() }} Rooms ({{ $allRooms->pluck('room_number')->implode(', ') }})
+                    @elseif($allRooms->count() == 1)
+                        {{ $allRooms->first()->room_number }}
+                    @else
+                        N/A
+                    @endif
+                </div>
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                    <div class="text-xs text-gray-500">
+                        {{ $booking->check_in_date->format('d M') }} - {{ $booking->check_out_date->format('d M Y') }}
+                    </div>
+                    @php $calculatedTotal = $booking->getCalculatedTotal(); @endphp
+                    <div class="text-sm font-bold text-gray-800">৳{{ number_format($calculatedTotal) }}</div>
+                </div>
+                <div class="flex gap-3 mt-3">
+                    <a href="{{ route('admin.bookings.show', $booking) }}" class="flex-1 text-center py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-medium">
+                        <i class="fas fa-eye mr-1"></i>View
+                    </a>
+                    <a href="{{ route('admin.bookings.edit', $booking) }}" class="flex-1 text-center py-2 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium">
+                        <i class="fas fa-edit mr-1"></i>Edit
+                    </a>
+                </div>
+            </div>
+        @empty
+            <div class="px-6 py-8 text-center text-gray-500">
+                <i class="fas fa-inbox text-4xl mb-2 text-gray-300"></i>
+                <div>কোন বুকিং পাওয়া যায়নি</div>
+            </div>
+        @endforelse
+    </div>
+    
+    <!-- Desktop Table View -->
+    <div class="hidden sm:block overflow-x-auto">
+        <table class="w-full min-w-[900px]">
+            <thead class="bg-gradient-to-r from-indigo-50 to-indigo-100">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">আইডি</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">কাস্টমার</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">রুম</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">চেক-ইন</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">চেক-আউট</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">মোট টাকা</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">রেফারেন্স</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">তৈরি করেছেন</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">স্ট্যাটাস</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">অ্যাকশন</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">আইডি</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">কাস্টমার</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">রুম</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">চেক-ইন</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">চেক-আউট</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">মোট টাকা</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">রেফারেন্স</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">তৈরি করেছেন</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">স্ট্যাটাস</th>
+                    <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">অ্যাকশন</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($bookings as $booking)
-                    <tr class="hover:bg-primary-50 transition">
-                        <td class="px-4 py-3 font-semibold text-gray-700">#{{ $booking->id }}</td>
-                        <td class="px-4 py-3">
-                            <div class="font-semibold text-gray-800">{{ $booking->customer_name }}</div>
+                    <tr class="hover:bg-indigo-50/50 transition">
+                        <td class="px-3 lg:px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">#{{ $booking->id }}</td>
+                        <td class="px-3 lg:px-4 py-3">
+                            <div class="font-semibold text-gray-800 truncate max-w-[120px]">{{ $booking->customer_name }}</div>
                             <div class="text-xs text-gray-500"><i class="fas fa-phone mr-1"></i>{{ $booking->customer_phone }}</div>
-                            @if($booking->customer_email)
-                            <div class="text-xs text-gray-500"><i class="fas fa-envelope mr-1"></i>{{ $booking->customer_email }}</div>
-                            @endif
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
                             @php $allRooms = $booking->getAllRooms(); @endphp
                             @if($allRooms->count() > 1)
                                 <div class="font-medium text-gray-800">{{ $allRooms->count() }} Rooms</div>
-                                <div class="text-xs text-gray-500">{{ $allRooms->pluck('room_number')->implode(', ') }}</div>
+                                <div class="text-xs text-gray-500 truncate max-w-[100px]">{{ $allRooms->pluck('room_number')->implode(', ') }}</div>
                             @elseif($allRooms->count() == 1)
                                 <div class="font-medium text-gray-800">{{ $allRooms->first()->roomType->name ?? 'Room' }}</div>
                                 <div class="text-xs text-gray-500">{{ $allRooms->first()->room_number }}</div>
@@ -138,34 +215,34 @@
                                 <div class="text-gray-500">No room</div>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
-                            <div class="text-gray-700">{{ $booking->check_in_date->format('d M Y') }}</div>
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
+                            <div class="text-gray-700 text-sm">{{ $booking->check_in_date->format('d M Y') }}</div>
                             @if($booking->check_in_time)
                             <div class="text-xs text-gray-500">{{ $booking->check_in_time }}</div>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
-                            <div class="text-gray-700">{{ $booking->check_out_date->format('d M Y') }}</div>
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
+                            <div class="text-gray-700 text-sm">{{ $booking->check_out_date->format('d M Y') }}</div>
                             @if($booking->check_out_time)
                             <div class="text-xs text-gray-500">{{ $booking->check_out_time }}</div>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
                             @php 
                                 $calculatedTotal = $booking->getCalculatedTotal();
                                 $calculatedRemaining = $booking->getCalculatedRemaining();
                             @endphp
-                            <div class="font-bold text-gray-800">৳{{ number_format($calculatedTotal, 2) }}</div>
+                            <div class="font-bold text-gray-800">৳{{ number_format($calculatedTotal) }}</div>
                             @if($booking->advance_payment > 0)
-                            <div class="text-xs text-primary-600">অগ্রিম: ৳{{ number_format($booking->advance_payment, 2) }}</div>
+                            <div class="text-xs text-indigo-600">অগ্রিম: ৳{{ number_format($booking->advance_payment) }}</div>
                             @endif
                             @if($calculatedRemaining > 0)
-                            <div class="text-xs text-red-600">বাকি: ৳{{ number_format($calculatedRemaining, 2) }}</div>
+                            <div class="text-xs text-red-600">বাকি: ৳{{ number_format($calculatedRemaining) }}</div>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
                             @if($booking->reference_name)
-                            <div class="font-medium text-gray-800">{{ $booking->reference_name }}</div>
+                            <div class="font-medium text-gray-800 text-sm truncate max-w-[100px]">{{ $booking->reference_name }}</div>
                             @if($booking->reference_phone)
                             <div class="text-xs text-gray-500">{{ $booking->reference_phone }}</div>
                             @endif
@@ -173,18 +250,18 @@
                             <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
                             @if($booking->createdBy)
-                            <div class="font-medium text-gray-800">{{ $booking->createdBy->name }}</div>
+                            <div class="font-medium text-gray-800 text-sm truncate max-w-[80px]">{{ $booking->createdBy->name }}</div>
                             @else
                             <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3">
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full 
-                                @if($booking->status == 'confirmed') bg-primary-100 text-primary-800
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                @if($booking->status == 'confirmed') bg-blue-100 text-blue-800
                                 @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-800
-                                @elseif($booking->status == 'checked_in') bg-primary-100 text-primary-800
+                                @elseif($booking->status == 'checked_in') bg-green-100 text-green-800
                                 @elseif($booking->status == 'checked_out') bg-gray-100 text-gray-800
                                 @else bg-red-100 text-red-800
                                 @endif">
@@ -196,12 +273,12 @@
                                 @endif
                             </span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
                             <div class="flex gap-2">
-                                <a href="{{ route('admin.bookings.show', $booking) }}" class="text-primary-600 hover:text-primary-800 transition" title="View">
+                                <a href="{{ route('admin.bookings.show', $booking) }}" class="text-indigo-600 hover:text-indigo-800 transition" title="View">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('admin.bookings.edit', $booking) }}" class="text-primary-600 hover:text-primary-800 transition" title="Edit">
+                                <a href="{{ route('admin.bookings.edit', $booking) }}" class="text-indigo-600 hover:text-indigo-800 transition" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
                             </div>

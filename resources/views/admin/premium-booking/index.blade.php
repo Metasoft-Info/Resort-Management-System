@@ -1,48 +1,48 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="p-6">
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Room Booking</h1>
-        <p class="text-gray-600 mt-2">Comprehensive booking system with guest search, room availability, and complete customer information</p>
+<div class="p-3 sm:p-4 lg:p-6">
+    <div class="mb-4 sm:mb-6">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Room Booking</h1>
+        <p class="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">Comprehensive booking system with guest search, room availability</p>
     </div>
 
     @if(isset($existingBooking) && $existingBooking)
     <!-- Existing Booking Info - Adding Room Mode -->
-    <div class="bg-blue-50 border-2 border-blue-400 rounded-xl p-6 mb-6">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center">
-                <i class="fas fa-info-circle text-3xl text-blue-600 mr-4"></i>
+    <div class="bg-blue-50 border-2 border-blue-400 rounded-xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
+            <div class="flex items-start sm:items-center">
+                <i class="fas fa-info-circle text-xl sm:text-2xl lg:text-3xl text-blue-600 mr-3 sm:mr-4"></i>
                 <div>
-                    <h2 class="text-xl font-bold text-blue-800">Adding Room to Existing Booking #{{ $existingBooking->id }}</h2>
-                    <p class="text-sm text-blue-600">Select additional rooms to add to this booking</p>
+                    <h2 class="text-base sm:text-lg lg:text-xl font-bold text-blue-800">Adding Room to Booking #{{ $existingBooking->id }}</h2>
+                    <p class="text-xs sm:text-sm text-blue-600">Select additional rooms to add</p>
                 </div>
             </div>
-            <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="text-blue-600 hover:text-blue-800">
+            <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
                 <i class="fas fa-arrow-left mr-1"></i>Back to Booking
             </a>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
             <div>
                 <span class="font-semibold text-blue-800">Customer:</span>
-                <span class="text-gray-700">{{ $existingBooking->customer_name }} ({{ $existingBooking->customer_phone }})</span>
+                <span class="text-gray-700">{{ $existingBooking->customer_name }}</span>
             </div>
             <div>
                 <span class="font-semibold text-blue-800">Dates:</span>
-                <span class="text-gray-700">{{ \Carbon\Carbon::parse($existingBooking->check_in_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($existingBooking->check_out_date)->format('d M Y') }}</span>
+                <span class="text-gray-700">{{ \Carbon\Carbon::parse($existingBooking->check_in_date)->format('d M') }} - {{ \Carbon\Carbon::parse($existingBooking->check_out_date)->format('d M Y') }}</span>
             </div>
             <div>
-                <span class="font-semibold text-blue-800">Current Total:</span>
+                <span class="font-semibold text-blue-800">Total:</span>
                 <span class="text-gray-700">৳{{ number_format($existingBooking->getCalculatedTotal(), 0) }}</span>
             </div>
         </div>
-        <div class="mt-4">
-            <span class="font-semibold text-blue-800">Already Booked Rooms:</span>
-            <div class="flex flex-wrap gap-2 mt-2">
+        <div class="mt-3 sm:mt-4">
+            <span class="font-semibold text-blue-800 text-sm">Already Booked:</span>
+            <div class="flex flex-wrap gap-1 sm:gap-2 mt-2">
                 @php $existingRooms = $existingBooking->getAllRooms(); @endphp
                 @foreach($existingRooms as $room)
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-200 text-blue-800">
-                        <i class="fas fa-bed mr-1"></i>Room {{ $room->room_number }} - {{ $room->roomType->name ?? 'N/A' }}
+                    <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-blue-200 text-blue-800">
+                        <i class="fas fa-bed mr-1"></i>{{ $room->room_number }}
                     </span>
                 @endforeach
             </div>
@@ -51,59 +51,59 @@
     @endif
 
     <!-- Step 1: Room Availability -->
-    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div class="flex items-center mb-4">
-            <i class="fas fa-bed text-3xl text-primary-600 mr-4"></i>
+    <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+        <div class="flex items-center mb-3 sm:mb-4">
+            <i class="fas fa-bed text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
             <div>
-                <h2 class="text-2xl font-bold text-gray-800">Step 1: Check Room Availability</h2>
-                <p class="text-sm text-gray-600">Select dates and find available rooms</p>
+                <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 1: Check Availability</h2>
+                <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Select dates and find available rooms</p>
             </div>
         </div>
         <form id="searchRoomsForm">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Date *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Check-in *</label>
                     <input type="date" id="checkInDate" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Date *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Check-out *</label>
                     <input type="date" id="checkOutDate" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Check-in Time</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">In Time</label>
                     <input type="time" id="checkInTime" value="12:00"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Check-out Time</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Out Time</label>
                     <input type="time" id="checkOutTime" value="12:00"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
             </div>
-            <button type="submit" class="mt-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
-                <i class="fas fa-search mr-2"></i>Search Available Rooms
+            <button type="submit" class="mt-3 sm:mt-4 w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm sm:text-base">
+                <i class="fas fa-search mr-2"></i>Search Rooms
             </button>
         </form>
-        <div id="roomResults" class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="roomResults" class="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
         
         <!-- Selected Rooms Panel -->
-        <div id="selectedRoomsPanel" class="hidden mt-6 bg-green-50 border-2 border-green-300 rounded-xl p-4">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-lg font-bold text-green-800"><i class="fas fa-check-circle mr-2"></i>Selected Rooms</h3>
-                <button type="button" onclick="clearAllSelectedRooms()" class="text-red-600 hover:text-red-800 text-sm"><i class="fas fa-trash mr-1"></i>Clear All</button>
+        <div id="selectedRoomsPanel" class="hidden mt-4 sm:mt-6 bg-green-50 border-2 border-green-300 rounded-xl p-3 sm:p-4">
+            <div class="flex items-center justify-between mb-2 sm:mb-3">
+                <h3 class="text-sm sm:text-lg font-bold text-green-800"><i class="fas fa-check-circle mr-1 sm:mr-2"></i>Selected Rooms</h3>
+                <button type="button" onclick="clearAllSelectedRooms()" class="text-red-600 hover:text-red-800 text-xs sm:text-sm"><i class="fas fa-trash mr-1"></i>Clear</button>
             </div>
-            <div id="selectedRoomsList" class="flex flex-wrap gap-2"></div>
-            <div class="mt-3 pt-3 border-t border-green-300 flex items-center justify-between">
-                <p class="text-green-800 font-semibold">Total: <span id="selectedRoomsTotal">৳0</span></p>
+            <div id="selectedRoomsList" class="flex flex-wrap gap-1 sm:gap-2"></div>
+            <div class="mt-3 pt-3 border-t border-green-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <p class="text-green-800 font-semibold text-sm">Total: <span id="selectedRoomsTotal">৳0</span></p>
                 @if(isset($existingBooking) && $existingBooking)
-                <button type="button" onclick="submitAddRooms()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
-                    <i class="fas fa-plus-circle mr-2"></i>Add Rooms to Booking
+                <button type="button" onclick="submitAddRooms()" class="w-full sm:w-auto bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-purple-700 transition text-sm">
+                    <i class="fas fa-plus-circle mr-2"></i>Add Rooms
                 </button>
                 @else
-                <button type="button" onclick="proceedToBookingForm()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
-                    <i class="fas fa-arrow-right mr-2"></i>Proceed to Booking
+                <button type="button" onclick="proceedToBookingForm()" class="w-full sm:w-auto bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition text-sm">
+                    <i class="fas fa-arrow-right mr-2"></i>Proceed
                 </button>
                 @endif
             </div>
@@ -112,22 +112,22 @@
 
     @if(!isset($existingBooking) || !$existingBooking)
     <!-- Step 2: Customer Search (Optional) - Hidden when adding room to existing booking -->
-    <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-6 mb-6">
-        <div class="flex items-center mb-4">
-            <i class="fas fa-user-search text-3xl text-primary-600 mr-4"></i>
+    <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+        <div class="flex items-center mb-3 sm:mb-4">
+            <i class="fas fa-user-search text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
             <div>
-                <h2 class="text-2xl font-bold text-gray-800">Step 2: Customer Search (Optional)</h2>
-                <p class="text-sm text-gray-600">Search by Phone, NID, or Passport number to auto-fill information</p>
+                <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 2: Customer Search</h2>
+                <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Search by Phone, NID, or Passport to auto-fill</p>
             </div>
         </div>
-        <div class="flex gap-3">
-            <input type="text" id="searchPhone" placeholder="Enter Phone / NID / Passport number..." 
-                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-            <button onclick="searchCustomer()" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
-                <i class="fas fa-search mr-2"></i>Search Customer
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <input type="text" id="searchPhone" placeholder="Enter Phone / NID / Passport..." 
+                class="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+            <button onclick="searchCustomer()" class="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm">
+                <i class="fas fa-search mr-2"></i>Search
             </button>
         </div>
-        <div id="customerSearchResults" class="mt-4"></div>
+        <div id="customerSearchResults" class="mt-3 sm:mt-4"></div>
     </div>
     @endif
 
@@ -136,98 +136,98 @@
         <!-- Hidden field for existing booking ID when adding rooms -->
         <input type="hidden" id="existing_booking_id" value="{{ $existingBooking->id ?? '' }}">
         
-        <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-4 mb-6 rounded-lg"></div>
+        <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg text-sm"></div>
 
         @if(!isset($existingBooking) || !$existingBooking)
         <!-- Customer Information - Hidden when adding room to existing booking -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-user text-primary-600 mr-3"></i>
+        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+            <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                <i class="fas fa-user text-primary-600 mr-2 sm:mr-3"></i>
                 Customer Information
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Full Name *</label>
                     <input type="text" id="customer_name" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">NID Number</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID Number</label>
                     <input type="text" id="customer_nid"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone *</label>
                     <input type="tel" id="customer_phone" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">WhatsApp Number</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">WhatsApp</label>
                     <input type="tel" id="customer_whatsapp"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Email</label>
                     <input type="email" id="customer_email"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Passport Number</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
                     <input type="text" id="passport_number"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Company Name</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Company</label>
                     <input type="text" id="company_name"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Address</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Address</label>
                     <textarea id="customer_address" rows="2"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
                 </div>
             </div>
 
             <!-- Document Uploads -->
-            <div class="mt-6 border-t pt-6">
-                <h3 class="text-lg font-bold text-gray-700 mb-4">Document Uploads (Optional)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
+                <h3 class="text-sm sm:text-lg font-bold text-gray-700 mb-3 sm:mb-4">Documents (Optional)</h3>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Photo</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Photo</label>
                         <input type="file" id="customer_photo" accept="image/*"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">NID Document</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID</label>
                         <input type="file" id="customer_nid_document" accept="image/*,application/pdf"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Passport Document</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
                         <input type="file" id="passport_document" accept="image/*,application/pdf"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Visiting Card</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">V. Card</label>
                         <input type="file" id="visiting_card" accept="image/*"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
                     </div>
                 </div>
             </div>
 
             <!-- Reference Person -->
-            <div class="mt-6 border-t pt-6">
-                <h3 class="text-lg font-bold text-gray-700 mb-4">Reference Person (Optional)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
+                <h3 class="text-sm sm:text-lg font-bold text-gray-700 mb-3 sm:mb-4">Reference (Optional)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Reference Name</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Name</label>
                         <input type="text" id="reference_name"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
+                            class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Reference Phone</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone</label>
                         <input type="tel" id="reference_phone"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
+                            class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
                     </div>
                 </div>
             </div>
@@ -236,14 +236,14 @@
 
         @if(!isset($existingBooking) || !$existingBooking)
         <!-- Additional Guests -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-users text-primary-600 mr-3"></i>
-                    Additional Guests
+        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+            <div class="flex justify-between items-center mb-3 sm:mb-4">
+                <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-users text-primary-600 mr-2 sm:mr-3"></i>
+                    <span class="hidden sm:inline">Additional </span>Guests
                 </h2>
-                <button type="button" onclick="addAdditionalGuest()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
-                    <i class="fas fa-plus mr-2"></i>Add Guest
+                <button type="button" onclick="addAdditionalGuest()" class="bg-primary-600 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-primary-700 transition text-xs sm:text-sm">
+                    <i class="fas fa-plus mr-1 sm:mr-2"></i>Add
                 </button>
             </div>
             <div id="additionalGuestsList"></div>
@@ -252,42 +252,42 @@
 
         @if(!isset($existingBooking) || !$existingBooking)
         <!-- Booking Details -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-calendar-check text-primary-600 mr-3"></i>
+        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+            <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                <i class="fas fa-calendar-check text-primary-600 mr-2 sm:mr-3"></i>
                 Booking Details
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Number of Guests *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Guests *</label>
                     <input type="number" id="number_of_guests" min="1" value="1" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">AC Preference *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">AC *</label>
                     <select id="ac_preference" required onchange="recalculateAmount()"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                         <option value="ac">AC</option>
                         <option value="non-ac">Non-AC</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Booking Status *</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Status *</label>
                     <select id="status" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                         <option value="confirmed">Confirmed</option>
                         <option value="pending">Pending</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Total Nights</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Nights</label>
                     <input type="text" id="totalNights" readonly
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100">
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
                 </div>
-                <div class="md:col-span-2 lg:col-span-4">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+                <div class="col-span-2 lg:col-span-4">
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Notes</label>
                     <textarea id="notes" rows="2"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
+                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
                 </div>
             </div>
         </div>
@@ -295,95 +295,95 @@
         <!-- Payment & Pricing - Hidden when adding to existing booking -->
         @endif
         @if(!isset($existingBooking) || !$existingBooking)
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-money-bill-wave text-yellow-600 mr-3"></i>
+        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+            <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                <i class="fas fa-money-bill-wave text-yellow-600 mr-2 sm:mr-3"></i>
                 Payment & Pricing
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Base Amount (৳)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Base (৳)</label>
                     <input type="number" id="baseAmount" step="0.01" readonly
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <input type="checkbox" id="vat_enabled" onchange="recalculateAmount()"> VAT (15%)
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+                        <input type="checkbox" id="vat_enabled" onchange="recalculateAmount()"> VAT 15%
                     </label>
                     <input type="number" id="vat_amount" step="0.01" readonly
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Type</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount</label>
                     <select id="discount_type" onchange="recalculateAmount()"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                        <option value="none">No Discount</option>
-                        <option value="percentage">Percentage</option>
-                        <option value="flat">Flat Amount</option>
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        <option value="none">None</option>
+                        <option value="percentage">%</option>
+                        <option value="flat">Flat</option>
                     </select>
                 </div>
                 <div id="discount_percentage_div" class="hidden">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Percentage (%)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount %</label>
                     <input type="number" id="discount_percentage" min="0" max="100" step="0.01" value="0" onchange="recalculateAmount()"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
                 </div>
                 <div id="discount_amount_div" class="hidden">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Amount (৳)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount ৳</label>
                     <input type="number" id="discount_amount" step="0.01" value="0" onchange="recalculateAmount()"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Extra Charges (৳)</label>
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra (৳)</label>
                     <input type="number" id="extra_charges" step="0.01" value="0" onchange="recalculateAmount()"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Extra Charges Description</label>
+                <div class="col-span-2">
+                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra Description</label>
                     <input type="text" id="extra_charges_description"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
                 </div>
-                <div class="lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="col-span-2 lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-3 sm:p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-primary-700 mb-2">Total Amount (৳) *</label>
+                            <label class="block text-xs sm:text-sm font-semibold text-primary-700 mb-1 sm:mb-2">Total *</label>
                             <input type="number" id="total_amount" step="0.01" required readonly
-                                class="w-full px-4 py-3 border-2 border-green-600 rounded-lg bg-white font-bold text-primary-600 text-lg">
+                                class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border-2 border-green-600 rounded-lg bg-white font-bold text-primary-600">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment (৳)</label>
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Advance</label>
                             <input type="number" id="advance_payment" step="0.01" value="0" oninput="calculateRemaining()"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Remaining Payment (৳)</label>
+                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Remaining</label>
                             <input type="number" id="remaining_payment" step="0.01" readonly
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-yellow-50 font-bold text-yellow-600">
+                                class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-yellow-50 font-bold text-yellow-600">
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method *</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Payment Method *</label>
                         <select id="payment_method" required onchange="togglePaymentFields()"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+                            class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
                             <option value="cash">Cash</option>
                             <option value="bkash">bKash</option>
                             <option value="card">Card</option>
                         </select>
                     </div>
                     <div id="bkash_field" class="hidden">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">bKash Number</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">bKash Number</label>
                         <input type="text" id="bkash_number" placeholder="01XXXXXXXXX"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                            class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
                     <div id="bank_field" class="hidden">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Bank</label>
                         <select id="bank_name"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                            class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                             <option value="">Select Bank</option>
                             <option value="Pubali Bank">Pubali Bank</option>
                             <option value="City Bank">City Bank</option>
-                            <option value="Dutch Bangla Bank">Dutch Bangla Bank</option>
+                            <option value="Dutch Bangla Bank">DBBL</option>
                         </select>
                     </div>
                 </div>
@@ -400,19 +400,19 @@
         <input type="hidden" id="price_per_night">
 
         <!-- Submit Buttons -->
-        <div class="flex gap-4">
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
             @if(isset($existingBooking) && $existingBooking)
-            <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-lg font-bold">
+            <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-sm sm:text-lg font-bold">
                 <i class="fas fa-plus-circle mr-2"></i>Add Rooms to Booking #{{ $existingBooking->id }}
             </button>
-            <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="bg-gray-500 text-white px-8 py-4 rounded-lg hover:bg-gray-600 transition flex items-center">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Booking
+            <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="bg-gray-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-gray-600 transition flex items-center justify-center text-sm">
+                <i class="fas fa-arrow-left mr-2"></i>Back
             </a>
             @else
-            <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-lg font-bold">
+            <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm sm:text-lg font-bold">
                 <i class="fas fa-check-circle mr-2"></i>Confirm Booking
             </button>
-            <button type="button" onclick="resetAll()" class="bg-gray-500 text-white px-8 py-4 rounded-lg hover:bg-gray-600 transition">
+            <button type="button" onclick="resetAll()" class="bg-gray-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-gray-600 transition text-sm">
                 <i class="fas fa-times mr-2"></i>Cancel
             </button>
             @endif
@@ -507,7 +507,7 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
         currentSearchDates = { checkIn, checkOut, checkInTime, checkOutTime, nights };
 
         if (data.availableRooms.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 col-span-3 text-center py-8">No rooms available for selected dates</p>';
+            container.innerHTML = '<p class="text-gray-500 col-span-full text-center py-6 sm:py-8 text-sm">No rooms available for selected dates</p>';
         } else {
             data.availableRooms.forEach(room => {
                 const pricePerNight = parseFloat(room.price_per_night) || parseFloat(room.room_type?.base_price) || 0;
@@ -517,19 +517,19 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
                 
                 container.innerHTML += `
                     <div id="roomCard-${room.id}" class="border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'} rounded-lg overflow-hidden hover:border-primary-500 hover:shadow-lg transition cursor-pointer">
-                        <div class="h-32 bg-gradient-to-br from-blue-400 to-primary-500 relative">
-                            ${roomImage ? `<img src="/storage/${roomImage}" alt="${room.name || room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-4xl text-white/50"></i></div>`}
-                            <div class="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs font-bold text-primary-700">${room.room_type?.name || room.type || 'N/A'}</div>
-                            ${isSelected ? '<div class="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold"><i class="fas fa-check"></i></div>' : ''}
+                        <div class="h-24 sm:h-32 bg-gradient-to-br from-blue-400 to-primary-500 relative">
+                            ${roomImage ? `<img src="/storage/${roomImage}" alt="${room.name || room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-2xl sm:text-4xl text-white/50"></i></div>`}
+                            <div class="absolute top-1 sm:top-2 right-1 sm:right-2 bg-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold text-primary-700">${room.room_type?.name || room.type || 'N/A'}</div>
+                            ${isSelected ? '<div class="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold"><i class="fas fa-check"></i></div>' : ''}
                         </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-lg text-gray-800">Room ${room.room_number}</h3>
-                            <p class="text-sm text-gray-600">${room.room_type?.name || 'Room'}</p>
-                            <p class="text-primary-600 font-semibold mt-2">৳${pricePerNight.toLocaleString()} / night</p>
-                            <p class="text-sm text-gray-500">${nights} night${nights > 1 ? 's' : ''} = ৳${totalPrice.toLocaleString()}</p>
+                        <div class="p-2 sm:p-4">
+                            <h3 class="font-bold text-sm sm:text-lg text-gray-800">Room ${room.room_number}</h3>
+                            <p class="text-xs sm:text-sm text-gray-600">${room.room_type?.name || 'Room'}</p>
+                            <p class="text-primary-600 font-semibold mt-1 sm:mt-2 text-sm sm:text-base">৳${pricePerNight.toLocaleString()} /night</p>
+                            <p class="text-xs sm:text-sm text-gray-500">${nights}N = ৳${totalPrice.toLocaleString()}</p>
                             <button type="button" onclick="toggleRoomSelection(${room.id}, '${room.room_number}', '${(room.name || room.room_type?.name || 'Room').replace(/'/g, "\\'")}', ${nights}, ${pricePerNight})" 
-                                class="mt-3 w-full ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'} text-white px-4 py-2 rounded-lg transition">
-                                <i class="fas ${isSelected ? 'fa-times' : 'fa-plus'} mr-2"></i>${isSelected ? 'Remove' : 'Add Room'}
+                                class="mt-2 sm:mt-3 w-full ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'} text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition text-xs sm:text-sm">
+                                <i class="fas ${isSelected ? 'fa-times' : 'fa-plus'} mr-1 sm:mr-2"></i>${isSelected ? 'Remove' : 'Add'}
                             </button>
                         </div>
                     </div>
@@ -1070,5 +1070,57 @@ document.getElementById('discount_type').addEventListener('change', recalculateA
         }, 500);
     }
 })();
+
+// Handle preselected room from dashboard
+@if(isset($preselectedRoom) && $preselectedRoom)
+(function() {
+    // Set today's date as check-in
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    document.getElementById('checkInDate').value = today;
+    document.getElementById('checkOutDate').value = tomorrowStr;
+    
+    // Wait for page to load, then search and select room
+    setTimeout(async () => {
+        // Trigger room search
+        const form = document.getElementById('searchRoomsForm');
+        form.dispatchEvent(new Event('submit'));
+        
+        // Wait for results to load
+        setTimeout(() => {
+            // Find and click the preselected room
+            const preselectedRoomId = {{ $preselectedRoom->id }};
+            const roomCard = document.getElementById('roomCard-' + preselectedRoomId);
+            if (roomCard) {
+                // Add room to selection
+                const room = {
+                    roomId: preselectedRoomId,
+                    roomNumber: '{{ $preselectedRoom->room_number }}',
+                    roomType: '{{ $preselectedRoom->roomType->name ?? "Room" }}',
+                    pricePerNight: {{ $preselectedRoom->roomType->base_price ?? 0 }}
+                };
+                
+                // Check if addRoom function exists
+                if (typeof addRoom === 'function') {
+                    addRoom(room);
+                } else {
+                    // Manually select the room
+                    selectedRooms.push(room);
+                    roomCard.classList.add('ring-4', 'ring-primary-500', 'ring-offset-2');
+                    roomCard.querySelector('.select-btn')?.classList.add('hidden');
+                    roomCard.querySelector('.selected-badge')?.classList.remove('hidden');
+                    updateSelectedRoomsUI();
+                }
+                
+                // Scroll to booking form
+                document.querySelector('[name="customer_name"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 1500);
+    }, 100);
+})();
+@endif
 </script>
 @endsection
