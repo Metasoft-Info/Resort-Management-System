@@ -1,59 +1,74 @@
 @extends('layouts.admin')
 
+@section('title', 'কনভেনশন হল বুকিং')
+@section('header', 'কনভেনশন হল বুকিং')
+
 @section('content')
-<div class="p-6">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">🎪 প্রিমিয়াম কনভেনশন বুকিং</h1>
-        <p class="text-gray-600 mt-2">সম্পূর্ণ কনভেনশন হল বুকিং - খাবার প্যাকেজ ও অ্যাডঅন সার্ভিস সহ</p>
+<div class="p-2 lg:p-6">
+    <!-- Premium Header -->
+    <div class="bg-gradient-to-r from-violet-600 via-purple-600 to-violet-700 rounded-2xl shadow-xl p-6 mb-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="text-white">
+                <h1 class="text-2xl lg:text-3xl font-bold flex items-center">
+                    <i class="fas fa-building-columns mr-3 text-violet-200"></i>
+                    কনভেনশন হল বুকিং
+                </h1>
+                <p class="text-violet-100 mt-2 text-sm lg:text-base">সম্পূর্ণ কনভেনশন হল বুকিং - খাবার প্যাকেজ ও অ্যাডঅন সার্ভিস সহ</p>
+            </div>
+            <a href="{{ route('admin.convention-bookings.index') }}" class="inline-flex items-center justify-center px-6 py-3 bg-white/20 text-white border border-white/30 rounded-xl hover:bg-white/30 transition font-semibold">
+                <i class="fas fa-list mr-2"></i>
+                সকল বুকিং দেখুন
+            </a>
+        </div>
     </div>
 
     <!-- Progress Steps -->
-    <div class="flex justify-between mb-8 max-w-4xl mx-auto">
+    <div class="flex justify-between mb-8 max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-4">
         <div class="flex items-center flex-1">
             <div class="flex flex-col items-center flex-1">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-primary-600 text-white" id="step1-circle">1</div>
-                <span class="text-sm mt-2 font-semibold">হল ও ইভেন্ট</span>
+                <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-violet-600 text-white shadow-lg" id="step1-circle">1</div>
+                <span class="text-sm mt-2 font-semibold text-gray-700">হল ও ইভেন্ট</span>
             </div>
         </div>
         <div class="flex items-center flex-1">
             <div class="flex flex-col items-center flex-1">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-gray-300 text-gray-600" id="step2-circle">2</div>
-                <span class="text-sm mt-2 font-semibold">খাবার ও সার্ভিস</span>
+                <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-gray-200 text-gray-500" id="step2-circle">2</div>
+                <span class="text-sm mt-2 font-semibold text-gray-500">খাবার ও সার্ভিস</span>
             </div>
         </div>
         <div class="flex items-center flex-1">
             <div class="flex flex-col items-center flex-1">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-gray-300 text-gray-600" id="step3-circle">3</div>
-                <span class="text-sm mt-2 font-semibold">পেমেন্ট</span>
+                <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-gray-200 text-gray-500" id="step3-circle">3</div>
+                <span class="text-sm mt-2 font-semibold text-gray-500">পেমেন্ট</span>
             </div>
         </div>
     </div>
 
-    <form action="{{ route('admin.convention-bookings.store') }}" method="POST" id="bookingForm" class="max-w-6xl mx-auto">
+    <form action="{{ route('admin.convention-bookings.store') }}" method="POST" id="bookingForm" class="max-w-6xl mx-auto" novalidate onsubmit="return validateForm()">
         @csrf
         
         <!-- Step 1: Hall & Event Details -->
-        <div id="step1" class="bg-white rounded-2xl shadow-xl p-8">
-            <h2 class="text-2xl font-bold mb-6 text-primary-600 flex items-center">
+        <div id="step1" class="bg-white rounded-2xl shadow-xl p-6 lg:p-8">
+            <h2 class="text-xl lg:text-2xl font-bold mb-6 text-violet-600 flex items-center">
                 <i class="fas fa-building mr-3"></i>হল ও ইভেন্ট বিবরণ
             </h2>
             
             <!-- Date & Time First -->
-            <div class="bg-primary-50 border-2 border-purple-300 rounded-xl p-6 mb-6">
-                <h3 class="text-lg font-bold text-primary-800 mb-4 flex items-center">
+            <div class="bg-violet-50 border-2 border-violet-200 rounded-xl p-4 lg:p-6 mb-6">
+                <h3 class="text-lg font-bold text-violet-800 mb-4 flex items-center">
                     <i class="fas fa-calendar mr-2"></i>প্রথমে তারিখ ও সময় নির্বাচন করুন
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">ইভেন্টের তারিখ *</label>
                         <input type="date" id="eventDate" name="event_date" required min="{{ date('Y-m-d') }}"
-                            class="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-primary-600"
+                            class="w-full px-4 py-3 border-2 border-violet-200 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                             onchange="checkAvailability()">
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">সময় স্লট *</label>
                         <select id="timeSlot" name="time_slot" required
-                            class="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-primary-600"
+                            class="w-full px-4 py-3 border-2 border-violet-200 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                             onchange="checkAvailability()">
                             <option value="">সময় নির্বাচন করুন</option>
                             <option value="morning">🌅 সকাল (৮টা - ২টা)</option>
@@ -68,7 +83,7 @@
             <div id="hallsContainer" class="hidden mb-6">
                 <label class="block text-gray-700 font-semibold mb-4">
                     উপলব্ধ কনভেনশন হল *
-                    <span class="ml-2 text-sm text-primary-600 font-normal">✅ নির্বাচিত তারিখ ও সময়ের জন্য উপলব্ধ হল দেখাচ্ছে</span>
+                    <span class="ml-2 text-sm text-violet-600 font-normal">✅ নির্বাচিত তারিখ ও সময়ের জন্য উপলব্ধ হল দেখাচ্ছে</span>
                 </label>
                 <div id="hallsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 <input type="hidden" name="hall_id" id="selectedHallId">
@@ -80,10 +95,10 @@
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">
                         📱 ফোন নম্বর *
-                        <span id="customerFound" class="ml-2 text-primary-600 text-sm font-bold hidden">✅ গ্রাহক খুঁজে পাওয়া গেছে!</span>
+                        <span id="customerFound" class="ml-2 text-violet-600 text-sm font-bold hidden">✅ গ্রাহক খুঁজে পাওয়া গেছে!</span>
                     </label>
                     <input type="tel" name="customer_phone" id="customerPhone" required
-                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                         placeholder="ফোন নম্বর লিখুন (বিদ্যমান গ্রাহক হলে তথ্য স্বয়ংক্রিয়ভাবে পূরণ হবে)"
                         onblur="searchCustomer(this.value)">
                     <p class="text-sm text-gray-500 mt-1">💡 ফোন নম্বর লিখে Tab চাপুন - গ্রাহক থাকলে তথ্য স্বয়ংক্রিয়ভাবে পূরণ হবে</p>
@@ -93,32 +108,32 @@
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">গ্রাহকের নাম *</label>
                         <input type="text" name="customer_name" id="customerName" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500">
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">প্রতিষ্ঠানের নাম</label>
                         <input type="text" name="organization_name" id="organizationName"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500">
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">ইমেইল</label>
                         <input type="email" name="customer_email" id="customerEmail"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500">
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">হোয়াটসঅ্যাপ</label>
                         <input type="tel" name="customer_whatsapp" id="customerWhatsapp"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500">
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">এনআইডি নম্বর</label>
                         <input type="text" name="customer_nid" id="customerNid"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500">
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">ইভেন্টের ধরন *</label>
                         <select name="event_type" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600">
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500">
                             <option value="conference">কনফারেন্স</option>
                             <option value="wedding">বিয়ে</option>
                             <option value="meeting">মিটিং</option>
@@ -129,36 +144,36 @@
                     </div>
                     <div>
                         <label class="block text-gray-700 font-semibold mb-2">অতিথি সংখ্যা *</label>
-                        <input type="number" name="number_of_guests" id="numberOfGuests" min="1" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600"
+                        <input type="number" name="number_of_guests" id="numberOfGuests" min="1"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500"
                             onchange="updateFoodCost()">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-gray-700 font-semibold mb-2">ঠিকানা</label>
                         <textarea name="customer_address" id="customerAddress" rows="2"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600"></textarea>
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500"></textarea>
                     </div>
                 </div>
             </div>
 
             <div class="flex justify-end mt-8">
-                <button type="button" onclick="nextStep(2)" class="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition font-semibold">
+                <button type="button" onclick="nextStep(2)" class="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-violet-700 hover:to-purple-700 transition font-semibold shadow-lg">
                     পরবর্তী ধাপ <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
         </div>
 
         <!-- Step 2: Food & Addon Services -->
-        <div id="step2" class="bg-white rounded-2xl shadow-xl p-8 hidden">
-            <h2 class="text-2xl font-bold mb-6 text-primary-600 flex items-center">
+        <div id="step2" class="bg-white rounded-2xl shadow-xl p-6 lg:p-8 hidden">
+            <h2 class="text-xl lg:text-2xl font-bold mb-6 text-violet-600 flex items-center">
                 <i class="fas fa-utensils mr-3"></i>খাবার ও অ্যাডঅন সার্ভিস
             </h2>
 
             <!-- Food Packages -->
             <div class="mb-8">
-                <h3 class="text-xl font-bold mb-4">খাবার প্যাকেজ</h3>
+                <h3 class="text-xl font-bold mb-4 text-gray-700">খাবার প্যাকেজ</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="border-2 border-gray-300 rounded-lg p-4 cursor-pointer hover:border-primary-500 transition"
+                    <div class="border-2 border-gray-200 rounded-xl p-4 cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition"
                         onclick="selectFoodPackage(0, 'নিজস্ব', 0)">
                         <input type="radio" name="selected_food_package_id" value="" class="mr-3">
                         <span class="font-semibold">নিজস্ব খাবার</span>
@@ -170,7 +185,7 @@
                         <input type="radio" name="selected_food_package_id" value="{{ $package->id }}" class="mr-3">
                         <div>
                             <div class="font-semibold">{{ $package->name }}</div>
-                            <div class="text-primary-600 font-bold">৳{{ number_format($package->price_per_person, 0) }}/person</div>
+                            <div class="text-violet-600 font-bold">৳{{ number_format($package->price_per_person, 0) }}/person</div>
                         </div>
                     </div>
                     @endforeach
@@ -180,25 +195,25 @@
 
             <!-- Addon Services -->
             <div class="mb-8">
-                <h3 class="text-xl font-bold mb-4">অ্যাডঅন সার্ভিস</h3>
+                <h3 class="text-xl font-bold mb-4 text-gray-700">অ্যাডঅন সার্ভিস</h3>
                 <div class="flex flex-wrap gap-2 mb-4">
-                    <button type="button" class="px-4 py-2 rounded-lg bg-primary-600 text-white" onclick="filterAddons('all')">সব</button>
-                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200" onclick="filterAddons('decoration')">সাজসজ্জা</button>
-                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200" onclick="filterAddons('sound_system')">সাউন্ড</button>
-                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200" onclick="filterAddons('photography')">ফটোগ্রাফি</button>
-                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200" onclick="filterAddons('catering')">ক্যাটারিং</button>
-                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200" onclick="filterAddons('transport')">পরিবহন</button>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-violet-600 text-white" onclick="filterAddons('all')">সব</button>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-violet-100" onclick="filterAddons('decoration')">সাজসজ্জা</button>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-violet-100" onclick="filterAddons('sound_system')">সাউন্ড</button>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-violet-100" onclick="filterAddons('photography')">ফটোগ্রাফি</button>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-violet-100" onclick="filterAddons('catering')">ক্যাটারিং</button>
+                    <button type="button" class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-violet-100" onclick="filterAddons('transport')">পরিবহন</button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="addonsList">
                     @foreach($addonServices as $addon)
-                    <div class="border-2 border-gray-200 rounded-lg p-4 addon-item" data-category="{{ $addon->category }}">
+                    <div class="border-2 border-gray-200 rounded-xl p-4 addon-item hover:border-violet-300 hover:bg-violet-50 transition" data-category="{{ $addon->category }}">
                         <div class="flex items-start mb-2">
-                            <input type="checkbox" name="selected_addons[]" value="{{ $addon->id }}" class="mr-3 w-5 h-5"
+                            <input type="checkbox" name="selected_addons[]" value="{{ $addon->id }}" class="mr-3 w-5 h-5 text-violet-600"
                                 data-price="{{ $addon->price }}" onchange="toggleAddonQuantity({{ $addon->id }}, this.checked)">
                             <div class="flex-1">
                                 <div class="font-semibold">{{ $addon->name }}</div>
-                                <div class="text-primary-600 font-bold">৳{{ number_format($addon->price, 0) }}</div>
+                                <div class="text-violet-600 font-bold">৳{{ number_format($addon->price, 0) }}</div>
                             </div>
                         </div>
                         <div class="addon-quantity hidden" id="quantity-{{ $addon->id }}">
@@ -213,18 +228,18 @@
             </div>
 
             <div class="flex justify-between mt-8">
-                <button type="button" onclick="nextStep(1)" class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition font-semibold">
+                <button type="button" onclick="nextStep(1)" class="bg-gray-500 text-white px-8 py-3 rounded-xl hover:bg-gray-600 transition font-semibold">
                     <i class="fas fa-arrow-left mr-2"></i>পূর্ববর্তী
                 </button>
-                <button type="button" onclick="nextStep(3)" class="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition font-semibold">
+                <button type="button" onclick="nextStep(3)" class="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-violet-700 hover:to-purple-700 transition font-semibold shadow-lg">
                     পরবর্তী ধাপ <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
         </div>
 
         <!-- Step 3: Payment & Summary -->
-        <div id="step3" class="bg-white rounded-2xl shadow-xl p-8 hidden">
-            <h2 class="text-2xl font-bold mb-6 text-primary-600 flex items-center">
+        <div id="step3" class="bg-white rounded-2xl shadow-xl p-6 lg:p-8 hidden">
+            <h2 class="text-xl lg:text-2xl font-bold mb-6 text-violet-600 flex items-center">
                 <i class="fas fa-calculator mr-3"></i>পেমেন্ট ও সারসংক্ষেপ
             </h2>
 
@@ -283,8 +298,8 @@
                 </div>
 
                 <!-- Right: Summary -->
-                <div class="bg-gray-50 p-6 rounded-lg">
-                    <h3 class="text-xl font-bold mb-4">বুকিং সারসংক্ষেপ</h3>
+                <div class="bg-gradient-to-br from-violet-50 to-purple-50 p-6 rounded-xl border border-violet-100">
+                    <h3 class="text-xl font-bold mb-4 text-violet-800">বুকিং সারসংক্ষেপ</h3>
                     <div class="space-y-3">
                         <div class="flex justify-between">
                             <span>হল ভাড়া:</span>
@@ -306,13 +321,13 @@
                             <span>ভ্যাট:</span>
                             <span class="font-semibold" id="displayVat">৳0</span>
                         </div>
-                        <div class="border-t pt-3">
-                            <div class="flex justify-between text-lg font-bold text-primary-600">
+                        <div class="border-t border-violet-200 pt-3">
+                            <div class="flex justify-between text-lg font-bold text-violet-700">
                                 <span>মোট টাকা:</span>
                                 <span id="displayTotal">৳0</span>
                             </div>
                         </div>
-                        <div class="flex justify-between text-primary-600">
+                        <div class="flex justify-between text-violet-600">
                             <span>অগ্রিম পেমেন্ট:</span>
                             <span class="font-semibold" id="displayAdvance">৳0</span>
                         </div>
@@ -328,10 +343,10 @@
             <input type="hidden" name="status" value="confirmed">
 
             <div class="flex justify-between mt-8">
-                <button type="button" onclick="nextStep(2)" class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition font-semibold">
+                <button type="button" onclick="nextStep(2)" class="bg-gray-500 text-white px-8 py-3 rounded-xl hover:bg-gray-600 transition font-semibold">
                     <i class="fas fa-arrow-left mr-2"></i>পূর্ববর্তী
                 </button>
-                <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition font-semibold text-lg">
+                <button type="submit" class="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-violet-700 hover:to-purple-700 transition font-semibold text-lg shadow-lg">
                     <i class="fas fa-check mr-2"></i>বুকিং নিশ্চিত করুন
                 </button>
             </div>
@@ -342,6 +357,33 @@
 <script>
 let selectedFoodPrice = 0;
 
+function validateForm() {
+    const requiredFields = [
+        { id: 'eventDate', name: 'ইভেন্টের তারিখ' },
+        { id: 'timeSlot', name: 'সময় স্লট' },
+        { id: 'selectedHallId', name: 'কনভেনশন হল' },
+        { id: 'customerPhone', name: 'ফোন নম্বর' },
+        { id: 'customerName', name: 'গ্রাহকের নাম' },
+        { id: 'numberOfGuests', name: 'অতিথি সংখ্যা' }
+    ];
+    
+    let errors = [];
+    
+    for (let field of requiredFields) {
+        const el = document.getElementById(field.id);
+        if (!el || !el.value || el.value.trim() === '') {
+            errors.push(field.name);
+        }
+    }
+    
+    if (errors.length > 0) {
+        alert('অনুগ্রহ করে নিম্নলিখিত তথ্য পূরণ করুন:\n\n• ' + errors.join('\n• '));
+        return false;
+    }
+    
+    return true;
+}
+
 function nextStep(step) {
     // Hide all steps
     document.getElementById('step1').classList.add('hidden');
@@ -349,17 +391,17 @@ function nextStep(step) {
     document.getElementById('step3').classList.add('hidden');
     
     // Reset step circles
-    document.getElementById('step1-circle').classList.remove('bg-primary-600', 'text-white');
-    document.getElementById('step1-circle').classList.add('bg-gray-300', 'text-gray-600');
-    document.getElementById('step2-circle').classList.remove('bg-primary-600', 'text-white');
-    document.getElementById('step2-circle').classList.add('bg-gray-300', 'text-gray-600');
-    document.getElementById('step3-circle').classList.remove('bg-primary-600', 'text-white');
-    document.getElementById('step3-circle').classList.add('bg-gray-300', 'text-gray-600');
+    document.getElementById('step1-circle').classList.remove('bg-violet-600', 'text-white', 'shadow-lg');
+    document.getElementById('step1-circle').classList.add('bg-gray-200', 'text-gray-500');
+    document.getElementById('step2-circle').classList.remove('bg-violet-600', 'text-white', 'shadow-lg');
+    document.getElementById('step2-circle').classList.add('bg-gray-200', 'text-gray-500');
+    document.getElementById('step3-circle').classList.remove('bg-violet-600', 'text-white', 'shadow-lg');
+    document.getElementById('step3-circle').classList.add('bg-gray-200', 'text-gray-500');
     
     // Show selected step
     document.getElementById('step' + step).classList.remove('hidden');
-    document.getElementById('step' + step + '-circle').classList.remove('bg-gray-300', 'text-gray-600');
-    document.getElementById('step' + step + '-circle').classList.add('bg-primary-600', 'text-white');
+    document.getElementById('step' + step + '-circle').classList.remove('bg-gray-200', 'text-gray-500');
+    document.getElementById('step' + step + '-circle').classList.add('bg-violet-600', 'text-white', 'shadow-lg');
     
     if (step === 3) {
         calculateTotal();
@@ -386,7 +428,7 @@ async function checkAvailability() {
         container.innerHTML = '';
         
         if (data.availableHalls.length === 0) {
-            container.innerHTML = '<div class="col-span-2 bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center"><p class="text-red-800 font-semibold">❌ এই তারিখ ও সময়ের জন্য কোনো হল উপলব্ধ নেই</p></div>';
+            container.innerHTML = '<div class="col-span-2 bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center"><p class="text-red-800 font-semibold">❌ কোনো হল খালি নেই</p></div>';
         } else {
             data.availableHalls.forEach(hall => {
                 console.log('Hall data:', hall); // Debug log
@@ -410,12 +452,23 @@ async function checkAvailability() {
                         <div class="p-4">
                             <h4 class="font-bold text-lg text-gray-800">${hall.name}</h4>
                             <p class="text-sm text-gray-600 mt-1"><i class="fas fa-users mr-1"></i>ধারণক্ষমতা: ${hallCapacity} জন</p>
-                            <p class="text-xl font-bold text-primary-600 mt-2">৳${Number(hall.price_per_day).toLocaleString()}/দিন</p>
-                            <span class="inline-block mt-3 px-3 py-1 bg-primary-100 text-primary-800 text-xs font-bold rounded-full">✅ উপলব্ধ</span>
+                            <p class="text-xl font-bold text-violet-600 mt-2">৳${Number(hall.price_per_day).toLocaleString()}/দিন</p>
+                            <span class="inline-block mt-3 px-3 py-1 bg-violet-100 text-primary-800 text-xs font-bold rounded-full">✅ উপলব্ধ</span>
                         </div>
                     </div>
                 `;
             });
+            
+            // Auto-select hall if pre-selected from dashboard
+            if (window.preSelectedHallId) {
+                const hallToSelect = data.availableHalls.find(h => h.id == window.preSelectedHallId);
+                if (hallToSelect) {
+                    setTimeout(() => {
+                        selectHall(hallToSelect.id, hallToSelect.price_per_day, slot);
+                    }, 100);
+                }
+                window.preSelectedHallId = null; // Clear after use
+            }
         }
         
         document.getElementById('hallsContainer').classList.remove('hidden');
@@ -426,12 +479,12 @@ async function checkAvailability() {
 
 function selectHall(hallId, price, timeSlot) {
     document.querySelectorAll('.hall-card').forEach(card => {
-        card.classList.remove('border-primary-600', 'bg-primary-50');
+        card.classList.remove('border-violet-500', 'bg-violet-50');
         card.classList.add('border-gray-300');
     });
     
     event.target.closest('.hall-card').classList.remove('border-gray-300');
-    event.target.closest('.hall-card').classList.add('border-primary-600', 'bg-primary-50');
+    event.target.closest('.hall-card').classList.add('border-violet-500', 'bg-violet-50');
     
     let finalPrice = price;
     if (timeSlot === 'morning' || timeSlot === 'afternoon' || timeSlot === 'evening') {
@@ -558,5 +611,27 @@ function calculateTotal() {
     const remaining = Math.max(0, total - advance);
     document.getElementById('displayRemaining').textContent = '৳' + remaining.toFixed(2);
 }
+
+// Handle URL parameters for pre-selection from dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const preHall = urlParams.get('hall');
+    const preDate = urlParams.get('date');
+    const preSlot = urlParams.get('slot');
+    
+    if (preDate && preSlot) {
+        // Set date and slot
+        document.getElementById('eventDate').value = preDate;
+        document.getElementById('timeSlot').value = preSlot;
+        
+        // Store pre-selected hall ID
+        if (preHall) {
+            window.preSelectedHallId = preHall;
+        }
+        
+        // Trigger availability check
+        setTimeout(() => checkAvailability(), 100);
+    }
+});
 </script>
 @endsection

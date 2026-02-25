@@ -276,6 +276,29 @@
                     </button>
                     <h2 class="text-lg lg:text-xl font-bold text-gray-800 truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
                     <div class="flex items-center space-x-3">
+                        <!-- Notification Bell -->
+                        <div class="relative" id="notificationWrapper">
+                            <button onclick="toggleNotifications()" class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
+                                <i class="fas fa-bell text-xl"></i>
+                                <span id="notificationBadge" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden">0</span>
+                            </button>
+                            <!-- Notification Dropdown -->
+                            <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[80vh] overflow-hidden">
+                                <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3 flex items-center justify-between">
+                                    <h3 class="text-white font-bold"><i class="fas fa-bell mr-2"></i>নোটিফিকেশন</h3>
+                                    <button onclick="markAllRead()" class="text-white/80 hover:text-white text-xs">সব পড়া হয়েছে</button>
+                                </div>
+                                <div id="notificationList" class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                                    <div class="p-4 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p class="text-sm">লোডিং...</p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 px-4 py-2 text-center border-t">
+                                    <a href="#" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">সব দেখুন</a>
+                                </div>
+                            </div>
+                        </div>
                         <div class="hidden sm:flex items-center bg-gradient-to-r from-slate-100 to-slate-50 rounded-full px-4 py-2 shadow-sm border border-slate-200">
                             <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow">
                                 <i class="fas fa-user text-white text-xs"></i>
@@ -583,6 +606,125 @@
                 showGlobalModal('error', response.message || response.error || 'কিছু একটা সমস্যা হয়েছে!');
             }
         }
+
+        // =================== NOTIFICATION SYSTEM ===================
+        let notificationOpen = false;
+        
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            notificationOpen = !notificationOpen;
+            
+            if (notificationOpen) {
+                dropdown.classList.remove('hidden');
+                loadNotifications();
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('notificationWrapper');
+            if (wrapper && !wrapper.contains(e.target) && notificationOpen) {
+                document.getElementById('notificationDropdown').classList.add('hidden');
+                notificationOpen = false;
+            }
+        });
+        
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/admin/notifications', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+                const data = await response.json();
+                renderNotifications(data.notifications);
+                updateBadge(data.unreadCount);
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                document.getElementById('notificationList').innerHTML = '<div class="p-4 text-center text-red-500"><i class="fas fa-exclamation-circle mr-2"></i>লোড করতে সমস্যা হয়েছে</div>';
+            }
+        }
+        
+        function renderNotifications(notifications) {
+            const container = document.getElementById('notificationList');
+            
+            if (notifications.length === 0) {
+                container.innerHTML = '<div class="p-6 text-center text-gray-400"><i class="fas fa-bell-slash text-3xl mb-2"></i><p class="text-sm">কোনো নোটিফিকেশন নেই</p></div>';
+                return;
+            }
+            
+            let html = '';
+            notifications.forEach(n => {
+                const iconClass = getNotificationIcon(n.type);
+                const bgClass = n.read ? 'bg-white' : 'bg-blue-50';
+                html += `
+                    <div class="p-3 hover:bg-gray-50 cursor-pointer ${bgClass}" onclick="handleNotificationClick('${n.type}', '${n.link || ''}')">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full ${iconClass.bg} flex items-center justify-center mr-3">
+                                <i class="${iconClass.icon} ${iconClass.color}"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900">${n.title}</p>
+                                <p class="text-xs text-gray-500 mt-1">${n.message}</p>
+                                <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock mr-1"></i>${n.time}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function getNotificationIcon(type) {
+            const icons = {
+                'checkin': { icon: 'fas fa-sign-in-alt', color: 'text-green-600', bg: 'bg-green-100' },
+                'checkout': { icon: 'fas fa-sign-out-alt', color: 'text-orange-600', bg: 'bg-orange-100' },
+                'due_payment': { icon: 'fas fa-exclamation-circle', color: 'text-red-600', bg: 'bg-red-100' },
+                'convention_today': { icon: 'fas fa-building-columns', color: 'text-violet-600', bg: 'bg-violet-100' },
+                'convention_upcoming': { icon: 'fas fa-calendar-check', color: 'text-purple-600', bg: 'bg-purple-100' },
+                'new_booking': { icon: 'fas fa-plus-circle', color: 'text-blue-600', bg: 'bg-blue-100' },
+                'default': { icon: 'fas fa-info-circle', color: 'text-gray-600', bg: 'bg-gray-100' }
+            };
+            return icons[type] || icons['default'];
+        }
+        
+        function handleNotificationClick(type, link) {
+            if (link) {
+                window.location.href = link;
+            }
+        }
+        
+        function updateBadge(count) {
+            const badge = document.getElementById('notificationBadge');
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        
+        function markAllRead() {
+            fetch('/admin/notifications/mark-read', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            }).then(() => {
+                updateBadge(0);
+                loadNotifications();
+            });
+        }
+        
+        // Load notifications on page load and refresh every 60 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(loadNotifications, 1000);
+            setInterval(loadNotifications, 60000);
+        });
     </script>
 </body>
 </html>

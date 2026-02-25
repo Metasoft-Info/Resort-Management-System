@@ -8,6 +8,7 @@ use App\Models\ConventionPayment;
 use App\Models\FoodPackage;
 use App\Models\AddonService;
 use App\Models\ActivityLog;
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -15,18 +16,37 @@ class ConventionBookingController extends Controller
 {
     public function searchCustomer($phone)
     {
-        $booking = ConventionBooking::where('customer_phone', $phone)
+        // First check convention bookings
+        $conventionBooking = ConventionBooking::where('customer_phone', $phone)
             ->latest()
             ->first();
         
-        if ($booking) {
+        if ($conventionBooking) {
             return response()->json([
-                'customerName' => $booking->customer_name,
-                'customerEmail' => $booking->customer_email,
-                'customerWhatsapp' => $booking->customer_whatsapp,
-                'customerNid' => $booking->customer_nid,
-                'customerAddress' => $booking->customer_address,
-                'organizationName' => $booking->organization_name,
+                'customerName' => $conventionBooking->customer_name,
+                'customerEmail' => $conventionBooking->customer_email,
+                'customerWhatsapp' => $conventionBooking->customer_whatsapp,
+                'customerNid' => $conventionBooking->customer_nid,
+                'customerAddress' => $conventionBooking->customer_address,
+                'organizationName' => $conventionBooking->organization_name,
+                'source' => 'convention'
+            ]);
+        }
+        
+        // Then check room bookings (resort)
+        $roomBooking = Booking::where('guest_phone', $phone)
+            ->latest()
+            ->first();
+        
+        if ($roomBooking) {
+            return response()->json([
+                'customerName' => $roomBooking->guest_name,
+                'customerEmail' => $roomBooking->guest_email,
+                'customerWhatsapp' => $roomBooking->whatsapp_number,
+                'customerNid' => $roomBooking->nid_number,
+                'customerAddress' => $roomBooking->address,
+                'organizationName' => $roomBooking->company_name ?? '',
+                'source' => 'resort'
             ]);
         }
         
@@ -187,17 +207,19 @@ class ConventionBookingController extends Controller
 
     private function calculateTotals($data)
     {
-        $hallRent = floatval($data['hall_rent'] ?? 0);
-        $foodCost = floatval($data['food_cost'] ?? 0);
-        $addonsCost = floatval($data['addons_cost'] ?? 0);
-        $discount = floatval($data['discount'] ?? 0);
-        $vatAmount = floatval($data['vat_amount'] ?? 0);
-        $advancePayment = floatval($data['advance_payment'] ?? 0);
+        $hallRent = round(floatval($data['hall_rent'] ?? 0));
+        $foodCost = round(floatval($data['food_cost'] ?? 0));
+        $addonsCost = round(floatval($data['addons_cost'] ?? 0));
+        $discount = round(floatval($data['discount'] ?? 0));
+        $vatAmount = round(floatval($data['vat_amount'] ?? 0)); // Round to nearest whole
+        $advancePayment = round(floatval($data['advance_payment'] ?? 0));
 
-        $totalAmount = max(0, $hallRent + $foodCost + $addonsCost - $discount + $vatAmount);
-        $remainingPayment = max(0, $totalAmount - $advancePayment);
+        $totalAmount = round($hallRent + $foodCost + $addonsCost - $discount + $vatAmount);
+        $remainingPayment = round($totalAmount - $advancePayment);
         
-        if ($remainingPayment <= 0) {
+        // If remaining is 5 or less due to rounding, consider it paid
+        if ($remainingPayment <= 5) {
+            $remainingPayment = 0;
             $paymentStatus = 'paid';
         } elseif ($advancePayment > 0) {
             $paymentStatus = 'partial';
@@ -290,10 +312,18 @@ class ConventionBookingController extends Controller
             ->with('success', 'Convention booking created successfully!');
     }
 
-    public function show(ConventionBooking $conventionBooking)
+    public function show(Request $request, ConventionBooking $conventionBooking)
     {
         $conventionBooking->load(['conventionHall', 'foodPackage', 'payments']);
         $booking = $conventionBooking;
+        
+        // Return JSON for AJAX requests
+        if ($request->has('ajax') || $request->ajax()) {
+            return response()->json([
+                'booking' => $booking
+            ]);
+        }
+        
         return view('admin.convention-bookings.show', compact('booking'));
     }
 
@@ -394,6 +424,56 @@ class ConventionBookingController extends Controller
             'message' => 'Status updated successfully',
             'booking' => $conventionBooking,
         ]);
+    }
+
+    public function updateAddons(Request $request, ConventionBooking $conventionBooking)
+    {
+        $selectedAddons = $request->input('selected_addons', []);
+        $addonQuantities = $request->input('addon_quantities', []);
+        
+        // Calculate new addons cost
+        $addonsCost = 0;
+        if (!empty($selectedAddons)) {
+            foreach ($selectedAddons as $addonId) {
+                $addon = AddonService::find($addonId);
+                if ($addon) {
+                    $qty = isset($addonQuantities[$addonId]) ? intval($addonQuantities[$addonId]) : 1;
+                    $addonsCost += $addon->price * $qty;
+                }
+            }
+        }
+        
+        // Recalculate totals
+        $hallRent = $conventionBooking->hall_rent;
+        $foodCost = $conventionBooking->food_cost;
+        $discount = $conventionBooking->discount;
+        $vatPercentage = $conventionBooking->vat_percentage ?? 0;
+        
+        $subtotal = $hallRent + $foodCost + $addonsCost - $discount;
+        $vatAmount = $subtotal * ($vatPercentage / 100);
+        $totalAmount = $subtotal + $vatAmount;
+        $remainingPayment = max(0, $totalAmount - $conventionBooking->advance_payment);
+        
+        if ($remainingPayment <= 0) {
+            $paymentStatus = 'paid';
+        } elseif ($conventionBooking->advance_payment > 0) {
+            $paymentStatus = 'partial';
+        } else {
+            $paymentStatus = 'pending';
+        }
+        
+        $conventionBooking->update([
+            'selected_addons' => $selectedAddons,
+            'addon_quantities' => $addonQuantities,
+            'addons_cost' => $addonsCost,
+            'vat_amount' => $vatAmount,
+            'total_amount' => $totalAmount,
+            'remaining_payment' => $remainingPayment,
+            'payment_status' => $paymentStatus,
+        ]);
+        
+        return redirect()->route('admin.convention-bookings.show', $conventionBooking)
+            ->with('success', 'Addon services updated successfully!');
     }
 
     public function destroy(ConventionBooking $conventionBooking)

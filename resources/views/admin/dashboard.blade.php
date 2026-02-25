@@ -271,6 +271,158 @@
                 @endforelse
             </div>
         </div>
+
+        <!-- Hall Availability Status - Premium Grid -->
+        <div class="bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 rounded-2xl overflow-hidden shadow-2xl">
+            <div class="px-4 sm:px-6 py-4 border-b border-violet-700/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center mr-3 shadow-lg">
+                        <i class="fas fa-building-columns text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-lg">হল এভেইলেবিলিটি</h3>
+                        <p class="text-violet-300 text-xs">পরবর্তী ৭ দিনের স্লট • ক্লিক করে বুক করুন</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-xs flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span class="text-violet-200">সকাল/রাত খালি</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                        <span class="text-violet-200">সারাদিন খালি</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                        <span class="text-violet-200">সারাদিন নেই</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                        <span class="text-violet-200">বুকড</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 sm:p-6">
+                <!-- Halls Table -->
+                @if(count($hallsWithStatus) > 0)
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-left text-violet-300 text-xs font-semibold pb-3 sticky left-0 bg-gradient-to-r from-violet-900 to-transparent">হল</th>
+                                @foreach($hallsWithStatus[0]['days'] as $day)
+                                <th class="text-center px-2 pb-3">
+                                    <div class="text-violet-400 text-xs font-medium">{{ $day['day_name'] }}</div>
+                                    <div class="text-white text-sm font-bold">{{ $day['day_num'] }}</div>
+                                </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($hallsWithStatus as $hallData)
+                            <tr class="border-t border-violet-700/30">
+                                <td class="py-3 pr-4 sticky left-0 bg-gradient-to-r from-violet-900/90 to-transparent">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-gradient-to-br from-violet-600 to-purple-700 rounded-lg flex items-center justify-center mr-2 shadow">
+                                            <i class="fas fa-door-open text-white text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-white text-sm font-semibold">{{ $hallData['hall']->name }}</div>
+                                            <div class="text-violet-400 text-xs">{{ $hallData['hall']->max_capacity ?? 0 }} জন</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                @foreach($hallData['days'] as $day)
+                                <td class="py-2 px-1 text-center">
+                                    <div class="flex flex-col gap-1">
+                                        <!-- Morning Slot -->
+                                        @if($day['morning'] == 'available')
+                                        <a href="{{ route('admin.premium-convention.index') }}?hall={{ $hallData['hall']->id }}&date={{ $day['date_str'] }}&slot=morning" 
+                                           class="slot-btn flex items-center justify-center w-full py-1 px-1.5 rounded-md transition-all duration-200 bg-emerald-500/20 hover:bg-emerald-500/40 cursor-pointer">
+                                            <i class="fas fa-sun text-[10px] text-emerald-400"></i>
+                                            <span class="ml-1 text-[10px] text-emerald-300">সকাল</span>
+                                        </a>
+                                        @else
+                                        <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+                                            <i class="fas fa-sun text-[10px] text-rose-400"></i>
+                                            <span class="ml-1 text-[10px] text-rose-300">সকাল</span>
+                                        </span>
+                                        @endif
+                                        <!-- Full Day Slot -->
+                                        @if(($day['full_day'] ?? 'booked') == 'available')
+                                        <a href="{{ route('admin.premium-convention.index') }}?hall={{ $hallData['hall']->id }}&date={{ $day['date_str'] }}&slot=full_day"
+                                           class="slot-btn flex items-center justify-center w-full py-1 px-1.5 rounded-md transition-all duration-200 bg-amber-500/20 hover:bg-amber-500/40 cursor-pointer">
+                                            <i class="fas fa-calendar-day text-[10px] text-amber-400"></i>
+                                            <span class="ml-1 text-[10px] text-amber-300">সারাদিন</span>
+                                        </a>
+                                        @elseif(($day['full_day'] ?? 'booked') == 'unavailable')
+                                        <!-- Unavailable: morning/night booked separately -->
+                                        <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500">
+                                            <i class="fas fa-calendar-day text-[10px] text-gray-400"></i>
+                                            <span class="ml-1 text-[10px] text-gray-400">সারাদিন</span>
+                                        </span>
+                                        @else
+                                        <!-- Actually booked as full_day -->
+                                        <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+                                            <i class="fas fa-calendar-day text-[10px] text-rose-400"></i>
+                                            <span class="ml-1 text-[10px] text-rose-300">সারাদিন</span>
+                                        </span>
+                                        @endif
+                                        <!-- Night Slot -->
+                                        @if($day['night'] == 'available')
+                                        <a href="{{ route('admin.premium-convention.index') }}?hall={{ $hallData['hall']->id }}&date={{ $day['date_str'] }}&slot=night"
+                                           class="slot-btn flex items-center justify-center w-full py-1 px-1.5 rounded-md transition-all duration-200 bg-emerald-500/20 hover:bg-emerald-500/40 cursor-pointer">
+                                            <i class="fas fa-moon text-[10px] text-emerald-400"></i>
+                                            <span class="ml-1 text-[10px] text-emerald-300">রাত</span>
+                                        </a>
+                                        @else
+                                        <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+                                            <i class="fas fa-moon text-[10px] text-rose-400"></i>
+                                            <span class="ml-1 text-[10px] text-rose-300">রাত</span>
+                                        </span>
+                                        @endif
+                                    </div>
+                                </td>
+                                @endforeach
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <div class="text-center py-8 text-violet-300">
+                    <i class="fas fa-building-columns text-4xl mb-3 opacity-50"></i>
+                    <p>কোনো হল যোগ করা হয়নি</p>
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Convention Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <!-- Convention Booking Trend Chart -->
+            <div class="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-semibold text-violet-900"><i class="fas fa-chart-line mr-2 text-violet-600"></i>বুকিং ট্রেন্ড</h3>
+                    <span class="text-xs text-violet-500 bg-violet-100 px-2 py-1 rounded-full">গত ৭ দিন</span>
+                </div>
+                <div class="h-64">
+                    <canvas id="conventionBookingTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Convention Revenue Chart -->
+            <div class="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl border border-purple-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-semibold text-purple-900"><i class="fas fa-chart-bar mr-2 text-purple-600"></i>রেভেনিউ ওভারভিউ</h3>
+                    <span class="text-xs text-purple-500 bg-purple-100 px-2 py-1 rounded-full">গত ৪ সপ্তাহ</span>
+                </div>
+                <div class="h-64">
+                    <canvas id="conventionRevenueChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
     <!-- End Convention Dashboard -->
 
@@ -634,6 +786,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 plugins: { legend: { display: false } },
                 scales: { 
                     y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { callback: v => '৳' + v.toLocaleString() } }, 
+                    x: { grid: { display: false } } 
+                }
+            }
+        });
+    }
+
+    // Convention Booking Trend Chart
+    const conventionBookingCanvas = document.getElementById('conventionBookingTrendChart');
+    if (conventionBookingCanvas) {
+        const convCtx = conventionBookingCanvas.getContext('2d');
+        const convGradient = convCtx.createLinearGradient(0, 0, 0, 250);
+        convGradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+        convGradient.addColorStop(1, 'rgba(139, 92, 246, 0.02)');
+        new Chart(convCtx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode($chartData['labels'] ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) !!},
+                datasets: [{
+                    label: 'কনভেনশন বুকিং',
+                    data: {!! json_encode($chartData['conventionBookings'] ?? [0, 1, 0, 2, 1, 3, 2]) !!},
+                    borderColor: '#8b5cf6',
+                    backgroundColor: convGradient,
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: '#ede9fe' }, ticks: { stepSize: 1 } }, 
+                    x: { grid: { display: false } } 
+                }
+            }
+        });
+    }
+
+    // Convention Revenue Chart
+    const conventionRevenueCanvas = document.getElementById('conventionRevenueChart');
+    if (conventionRevenueCanvas) {
+        new Chart(conventionRevenueCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {!! json_encode($chartData['revenueLabels'] ?? ['Week 1', 'Week 2', 'Week 3', 'Week 4']) !!},
+                datasets: [{
+                    label: 'কনভেনশন রেভেনিউ',
+                    data: {!! json_encode($chartData['conventionRevenue'] ?? [15000, 25000, 18000, 32000]) !!},
+                    backgroundColor: ['#8b5cf6', '#a855f7', '#c084fc', '#d946ef'],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: '#fae8ff' }, ticks: { callback: v => '৳' + v.toLocaleString() } }, 
                     x: { grid: { display: false } } 
                 }
             }

@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\PremiumBookingController;
 use App\Http\Controllers\Admin\PremiumConventionController;
 use App\Http\Controllers\Admin\ExtraChargeCategoryController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\NotificationController;
 
 // Public Website Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -39,6 +40,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/dashboard/toggle-mode', [DashboardController::class, 'toggleMode'])->name('dashboard.toggle-mode');
     Route::get('/dashboard/search-rooms', [DashboardController::class, 'searchRoomAvailability']);
     Route::get('/dashboard/search-halls', [DashboardController::class, 'searchHallAvailability']);
+    
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
     
     // Rooms
     Route::resource('rooms', RoomController::class);
@@ -65,14 +70,16 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Convention Halls
     Route::resource('convention-halls', ConventionHallController::class);
     
-    // Convention Bookings
-    Route::resource('convention-bookings', ConventionBookingController::class);
+    // Convention Bookings - Custom routes BEFORE resource
     Route::get('/convention-bookings/customer/{phone}', [ConventionBookingController::class, 'searchCustomer'])->name('convention-bookings.search-customer');
     Route::get('/convention-bookings/find-by-phone', [ConventionBookingController::class, 'findByPhone'])->name('convention-bookings.find-by-phone');
     Route::post('/convention-bookings/check-availability', [ConventionBookingController::class, 'checkAvailability'])->name('convention-bookings.check-availability');
     Route::get('/convention-bookings/available-halls', [ConventionBookingController::class, 'getAvailableHalls'])->name('convention-bookings.available-halls');
+    // Resource route AFTER custom routes
+    Route::resource('convention-bookings', ConventionBookingController::class);
     Route::post('/convention-bookings/{conventionBooking}/add-payment', [ConventionBookingController::class, 'addPayment'])->name('convention-bookings.add-payment');
     Route::post('/convention-bookings/{conventionBooking}/update-status', [ConventionBookingController::class, 'updateStatus'])->name('convention-bookings.update-status');
+    Route::post('/convention-bookings/{conventionBooking}/update-addons', [ConventionBookingController::class, 'updateAddons'])->name('convention-bookings.update-addons');
     
     // Premium Convention (Advanced Hall Booking)
     Route::get('/premium-convention', [PremiumConventionController::class, 'index'])->name('premium-convention.index');

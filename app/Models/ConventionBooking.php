@@ -25,6 +25,12 @@ class ConventionBooking extends Model
         ];
     }
 
+    // Accessor to handle rounding issues - treat small amounts as 0
+    public function getRemainingPaymentAttribute($value)
+    {
+        return ($value !== null && $value <= 5) ? 0 : round($value);
+    }
+
     public function hall()
     {
         return $this->belongsTo(ConventionHall::class, 'hall_id');

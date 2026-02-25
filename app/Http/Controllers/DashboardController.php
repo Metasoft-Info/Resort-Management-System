@@ -148,6 +148,59 @@ class DashboardController extends Controller
             ];
         }
 
+        // Hall availability status for today and next 6 days
+        $hallsWithStatus = [];
+        foreach ($allHalls as $hall) {
+            $hallDays = [];
+            for ($i = 0; $i < 7; $i++) {
+                $date = Carbon::today()->addDays($i);
+                $dateStr = $date->format('Y-m-d');
+                
+                // Check full_day booking first
+                $fullDayBooked = ConventionBooking::where('hall_id', $hall->id)
+                    ->whereDate('event_date', $dateStr)
+                    ->where('time_slot', 'full_day')
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->exists();
+                
+                // Check morning slot booking
+                $morningBooked = ConventionBooking::where('hall_id', $hall->id)
+                    ->whereDate('event_date', $dateStr)
+                    ->whereIn('time_slot', ['morning', 'full_day'])
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->exists();
+                
+                // Check night slot booking  
+                $nightBooked = ConventionBooking::where('hall_id', $hall->id)
+                    ->whereDate('event_date', $dateStr)
+                    ->whereIn('time_slot', ['night', 'full_day'])
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->exists();
+                
+                // full_day status: available, booked, or unavailable (when morning/night booked separately)
+                $fullDayStatus = 'available';
+                if ($fullDayBooked) {
+                    $fullDayStatus = 'booked'; // Actually booked as full_day
+                } elseif ($morningBooked || $nightBooked) {
+                    $fullDayStatus = 'unavailable'; // Can't book full_day because morning or night is taken
+                }
+                
+                $hallDays[] = [
+                    'date' => $date,
+                    'date_str' => $dateStr,
+                    'day_name' => $date->format('D'),
+                    'day_num' => $date->format('d'),
+                    'morning' => $morningBooked ? 'booked' : 'available',
+                    'night' => $nightBooked ? 'booked' : 'available',
+                    'full_day' => $fullDayStatus,
+                ];
+            }
+            $hallsWithStatus[] = [
+                'hall' => $hall,
+                'days' => $hallDays,
+            ];
+        }
+
         // Chart data for last 7 days
         $chartLabels = [];
         $chartBookings = [];
@@ -201,7 +254,8 @@ class DashboardController extends Controller
             'recentConventionBookings',
             'allRooms', 
             'allHalls', 
-            'roomsWithStatus', 
+            'roomsWithStatus',
+            'hallsWithStatus',
             'chartData',
             'hasResortAccess',
             'hasConventionAccess',
