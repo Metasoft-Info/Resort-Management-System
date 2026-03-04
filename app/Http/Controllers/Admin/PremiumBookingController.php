@@ -146,6 +146,12 @@ class PremiumBookingController extends Controller
     public function book(Request $request)
     {
         try {
+            // DEBUG: Log all incoming request data
+            \Log::info('=== BOOKING REQUEST START ===');
+            \Log::info('All request data:', $request->all());
+            \Log::info('rooms_data raw:', ['raw' => $request->input('rooms_data')]);
+            \Log::info('room_id raw:', ['raw' => $request->input('room_id')]);
+            
             // Parse additional_guests if it's a JSON string
             $additionalGuestsRaw = $request->input('additional_guests');
             if (is_string($additionalGuestsRaw) && !empty($additionalGuestsRaw)) {
@@ -158,19 +164,27 @@ class PremiumBookingController extends Controller
             if (is_string($roomsDataRaw) && !empty($roomsDataRaw)) {
                 $roomsData = json_decode($roomsDataRaw, true);
                 
-                // IMPORTANT: Deduplicate rooms by roomId to prevent duplicates
+                // IMPORTANT: Strictly deduplicate rooms by roomId to prevent duplicates
                 if (!empty($roomsData)) {
                     $uniqueRooms = [];
                     $seenRoomIds = [];
                     foreach ($roomsData as $room) {
-                        $roomId = $room['roomId'] ?? null;
-                        if ($roomId && !in_array($roomId, $seenRoomIds)) {
+                        $roomId = isset($room['roomId']) ? (int)$room['roomId'] : null;
+                        if ($roomId && !in_array($roomId, $seenRoomIds, true)) {
                             $seenRoomIds[] = $roomId;
+                            $room['roomId'] = $roomId; // Ensure it's integer
                             $uniqueRooms[] = $room;
+                        } else {
+                            \Log::warning('Duplicate room filtered on backend', ['room_id' => $roomId]);
                         }
                     }
+                    $originalCount = count(json_decode($roomsDataRaw, true));
                     $roomsData = $uniqueRooms;
-                    \Log::info('Deduplicated rooms for booking', ['original_count' => count(json_decode($roomsDataRaw, true)), 'final_count' => count($roomsData)]);
+                    \Log::info('Room deduplication complete', [
+                        'original_count' => $originalCount, 
+                        'final_count' => count($roomsData),
+                        'room_ids' => $seenRoomIds
+                    ]);
                 }
             }
 
@@ -325,13 +339,30 @@ class PremiumBookingController extends Controller
 
             $booking = Booking::create($validated);
 
-            // Add rooms to booking_rooms table (use firstOrCreate to prevent duplicates)
+            // CRITICAL: Clear any orphaned booking_rooms that might exist for this booking ID
+            // This can happen if an old booking with this ID was deleted but its booking_rooms weren't
+            $orphanedCount = BookingRoom::where('booking_id', $booking->id)->count();
+            if ($orphanedCount > 0) {
+                \Log::warning('Found orphaned booking_rooms, deleting them', [
+                    'booking_id' => $booking->id,
+                    'orphaned_count' => $orphanedCount
+                ]);
+                BookingRoom::where('booking_id', $booking->id)->delete();
+            }
+
+            // Add rooms to booking_rooms table
             if (!empty($roomsData) && count($roomsData) > 0) {
+                \Log::info('Adding rooms to booking', [
+                    'booking_id' => $booking->id,
+                    'room_count' => count($roomsData),
+                    'room_ids' => collect($roomsData)->pluck('roomId')->toArray()
+                ]);
+                
                 $addedRooms = [];
                 foreach ($roomsData as $roomData) {
-                    $roomId = $roomData['roomId'];
+                    $roomId = (int)$roomData['roomId'];
                     // Skip if already added (extra safety)
-                    if (in_array($roomId, $addedRooms)) {
+                    if (in_array($roomId, $addedRooms, true)) {
                         \Log::warning('Skipping duplicate room in booking', ['booking_id' => $booking->id, 'room_id' => $roomId]);
                         continue;
                     }

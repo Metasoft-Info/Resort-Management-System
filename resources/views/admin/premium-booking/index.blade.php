@@ -88,26 +88,43 @@
         </form>
         <div id="roomResults" class="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
         
-        <!-- Selected Rooms Panel -->
-        <div id="selectedRoomsPanel" class="hidden mt-4 sm:mt-6 bg-green-50 border-2 border-green-300 rounded-xl p-3 sm:p-4">
-            <div class="flex items-center justify-between mb-2 sm:mb-3">
-                <h3 class="text-sm sm:text-lg font-bold text-green-800"><i class="fas fa-check-circle mr-1 sm:mr-2"></i>Selected Rooms</h3>
-                <button type="button" onclick="clearAllSelectedRooms()" class="text-red-600 hover:text-red-800 text-xs sm:text-sm"><i class="fas fa-trash mr-1"></i>Clear</button>
+        <!-- Selected Rooms Panel - Enhanced visibility -->
+        <div id="selectedRoomsPanel" class="hidden mt-4 sm:mt-6 bg-gradient-to-r from-green-100 to-emerald-100 border-4 border-green-500 rounded-xl p-4 sm:p-6 shadow-xl animate-pulse-once">
+            <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-green-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-lg sm:text-xl font-bold" id="selectedRoomCount">0</div>
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold text-green-800"><i class="fas fa-check-circle mr-2"></i>Rooms Selected for Booking</h3>
+                        <p class="text-xs sm:text-sm text-green-600">Only these rooms will be booked</p>
+                    </div>
+                </div>
+                <button type="button" onclick="clearAllSelectedRooms()" class="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm transition"><i class="fas fa-trash mr-1"></i>Clear All</button>
             </div>
-            <div id="selectedRoomsList" class="flex flex-wrap gap-1 sm:gap-2"></div>
-            <div class="mt-3 pt-3 border-t border-green-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <p class="text-green-800 font-semibold text-sm">Total: <span id="selectedRoomsTotal">৳0</span></p>
-                @if(isset($existingBooking) && $existingBooking)
-                <button type="button" onclick="submitAddRooms()" class="w-full sm:w-auto bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-purple-700 transition text-sm">
-                    <i class="fas fa-plus-circle mr-2"></i>Add Rooms
-                </button>
-                @else
-                <button type="button" onclick="proceedToBookingForm()" class="w-full sm:w-auto bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-green-700 transition text-sm">
-                    <i class="fas fa-arrow-right mr-2"></i>Proceed
-                </button>
-                @endif
+            <div id="selectedRoomsList" class="flex flex-wrap gap-2 sm:gap-3 mb-4"></div>
+            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-green-400">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="text-center sm:text-left">
+                        <p class="text-green-800 font-bold text-lg sm:text-xl">Total Amount: <span id="selectedRoomsTotal" class="text-green-600">৳0</span></p>
+                        <p class="text-xs text-gray-500" id="selectedRoomsSummary">No rooms selected</p>
+                    </div>
+                    @if(isset($existingBooking) && $existingBooking)
+                    <button type="button" onclick="submitAddRooms()" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-sm sm:text-base font-semibold">
+                        <i class="fas fa-plus-circle mr-2"></i>Add These Rooms
+                    </button>
+                    @else
+                    <button type="button" onclick="proceedToBookingForm()" class="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg text-sm sm:text-base font-semibold">
+                        <i class="fas fa-arrow-right mr-2"></i>Proceed to Book
+                    </button>
+                    @endif
+                </div>
             </div>
         </div>
+        <style>
+            @keyframes pulse-once { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+            .animate-pulse-once { animation: pulse-once 0.5s ease-in-out; }
+            .room-chip-selected { animation: pop-in 0.3s ease-out; }
+            @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        </style>
     </div>
 
     @if(!isset($existingBooking) || !$existingBooking)
@@ -424,6 +441,19 @@
 let additionalGuests = [];
 let selectedRooms = [];
 let currentSearchDates = {};
+let lastToggleTime = 0; // Debounce for toggle
+let lastSearchDates = ''; // Track date changes
+
+// Helper function - ALWAYS use this to compare room IDs
+function normalizeRoomId(id) {
+    return parseInt(id, 10);
+}
+
+// Helper function - check if room is in selection
+function isRoomSelected(roomId) {
+    const normalizedId = normalizeRoomId(roomId);
+    return selectedRooms.some(r => normalizeRoomId(r.roomId) === normalizedId);
+}
 
 // Customer Search
 async function searchCustomer() {
@@ -503,6 +533,15 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
         
         const nights = Math.max(1, Math.floor(data.nights || 1));
         
+        // Check if dates changed - if so, clear selection
+        const newSearchKey = `${checkIn}-${checkOut}`;
+        if (lastSearchDates && lastSearchDates !== newSearchKey) {
+            console.log('⚠️ Dates changed, clearing room selection');
+            selectedRooms = [];
+            updateSelectedRoomsPanel();
+        }
+        lastSearchDates = newSearchKey;
+        
         // Store search dates for later use
         currentSearchDates = { checkIn, checkOut, checkInTime, checkOutTime, nights };
 
@@ -513,7 +552,7 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
                 const pricePerNight = parseFloat(room.price_per_night) || parseFloat(room.room_type?.base_price) || 0;
                 const totalPrice = pricePerNight * nights;
                 const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
-                const isSelected = selectedRooms.some(r => r.roomId === room.id);
+                const isSelected = isRoomSelected(room.id); // Use helper function
                 
                 container.innerHTML += `
                     <div id="roomCard-${room.id}" class="border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'} rounded-lg overflow-hidden hover:border-primary-500 hover:shadow-lg transition cursor-pointer">
@@ -527,8 +566,8 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
                             <p class="text-xs sm:text-sm text-gray-600">${room.room_type?.name || 'Room'}</p>
                             <p class="text-primary-600 font-semibold mt-1 sm:mt-2 text-sm sm:text-base">৳${pricePerNight.toLocaleString()} /night</p>
                             <p class="text-xs sm:text-sm text-gray-500">${nights}N = ৳${totalPrice.toLocaleString()}</p>
-                            <button type="button" onclick="toggleRoomSelection(${room.id}, '${room.room_number}', '${(room.name || room.room_type?.name || 'Room').replace(/'/g, "\\'")}', ${nights}, ${pricePerNight})" 
-                                class="mt-2 sm:mt-3 w-full ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'} text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition text-xs sm:text-sm">
+                            <button type="button" onclick="toggleRoomSelection(${room.id}, '${room.room_number}', '${(room.name || room.room_type?.name || 'Room').replace(/'/g, "\\'")}', ${nights}, ${pricePerNight}, event)" 
+                                class="mt-2 sm:mt-3 w-full ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'} text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition text-xs sm:text-sm" data-room-id="${room.id}">
                                 <i class="fas ${isSelected ? 'fa-times' : 'fa-plus'} mr-1 sm:mr-2"></i>${isSelected ? 'Remove' : 'Add'}
                             </button>
                         </div>
@@ -542,17 +581,51 @@ document.getElementById('searchRoomsForm').addEventListener('submit', async func
     }
 });
 
-// Toggle room selection (add/remove from list)
-function toggleRoomSelection(roomId, roomNumber, roomName, nights, pricePerNight) {
-    const existingIndex = selectedRooms.findIndex(r => r.roomId === roomId);
+// Toggle room selection (add/remove from list) - with strict duplicate prevention and debounce
+function toggleRoomSelection(roomId, roomNumber, roomName, nights, pricePerNight, event) {
+    // Prevent event bubbling
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    
+    // Debounce - prevent double-clicks (500ms)
+    const now = Date.now();
+    if (now - lastToggleTime < 500) {
+        console.warn('⚡ Toggle debounced - too fast!');
+        return;
+    }
+    lastToggleTime = now;
+    
+    // Validate and normalize input
+    roomId = normalizeRoomId(roomId);
+    if (!roomId || isNaN(roomId)) {
+        console.error('❌ Invalid room ID:', roomId);
+        return;
+    }
+    
+    console.log('🔄 Toggle Room Selection:', { roomId, roomNumber, currentCount: selectedRooms.length });
+    console.log('📋 BEFORE:', JSON.stringify(selectedRooms.map(r => ({id: r.roomId, num: r.roomNumber}))));
+    
+    const existingIndex = selectedRooms.findIndex(r => normalizeRoomId(r.roomId) === roomId);
     
     if (existingIndex >= 0) {
         // Remove room
         selectedRooms.splice(existingIndex, 1);
+        console.log('➖ Room REMOVED:', roomNumber, 'Total now:', selectedRooms.length);
     } else {
+        // Triple-check not already added (safety)
+        if (isRoomSelected(roomId)) {
+            console.error('🚫 Room already in selection (triple-check failed), skipping:', roomNumber);
+            return;
+        }
         // Add room
-        selectedRooms.push({roomId, roomNumber, roomName, nights, pricePerNight});
+        selectedRooms.push({roomId: roomId, roomNumber: String(roomNumber), roomName, nights, pricePerNight});
+        console.log('➕ Room ADDED:', roomNumber, 'Total now:', selectedRooms.length);
     }
+    
+    // Log final state
+    console.log('📋 AFTER:', JSON.stringify(selectedRooms.map(r => ({id: r.roomId, num: r.roomNumber}))));
     
     updateSelectedRoomsPanel();
     refreshRoomCards();
@@ -563,6 +636,8 @@ function updateSelectedRoomsPanel() {
     const panel = document.getElementById('selectedRoomsPanel');
     const list = document.getElementById('selectedRoomsList');
     const totalSpan = document.getElementById('selectedRoomsTotal');
+    const countSpan = document.getElementById('selectedRoomCount');
+    const summarySpan = document.getElementById('selectedRoomsSummary');
     
     if (selectedRooms.length === 0) {
         panel.classList.add('hidden');
@@ -571,34 +646,70 @@ function updateSelectedRoomsPanel() {
     }
     
     panel.classList.remove('hidden');
+    // Trigger animation
+    panel.classList.remove('animate-pulse-once');
+    void panel.offsetWidth; // Force reflow
+    panel.classList.add('animate-pulse-once');
     
-    // Build chips for each selected room
+    // Update count badge
+    countSpan.textContent = selectedRooms.length;
+    
+    // Build chips for each selected room - more prominent styling
     let html = '';
     let total = 0;
+    let roomNumbers = [];
     selectedRooms.forEach(room => {
         const roomTotal = room.nights * room.pricePerNight;
         total += roomTotal;
+        roomNumbers.push(room.roomNumber);
         html += `
-            <div class="bg-white border border-green-400 rounded-lg px-3 py-2 flex items-center gap-2">
-                <span class="font-semibold text-green-800">Room ${room.roomNumber}</span>
-                <span class="text-sm text-gray-600">৳${roomTotal.toLocaleString()}</span>
-                <button type="button" onclick="toggleRoomSelection(${room.roomId}, '${room.roomNumber}', '${room.roomName.replace(/'/g, "\\'")}', ${room.nights}, ${room.pricePerNight})" 
-                    class="text-red-500 hover:text-red-700 ml-1"><i class="fas fa-times"></i></button>
+            <div class="room-chip-selected bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg">
+                <div class="bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">
+                    <i class="fas fa-bed"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg">Room ${room.roomNumber}</span>
+                    <p class="text-xs text-green-100">৳${room.pricePerNight.toLocaleString()}/night × ${room.nights}N = ৳${roomTotal.toLocaleString()}</p>
+                </div>
+                <button type="button" onclick="toggleRoomSelection(${room.roomId}, '${room.roomNumber}', '${room.roomName.replace(/'/g, "\\'")}', ${room.nights}, ${room.pricePerNight}, event)" 
+                    class="bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center ml-2 transition"><i class="fas fa-times text-sm"></i></button>
             </div>
         `;
     });
     
     list.innerHTML = html;
     totalSpan.textContent = '৳' + total.toLocaleString();
+    summarySpan.textContent = `Rooms: ${roomNumbers.join(', ')} | ${selectedRooms[0]?.nights || 0} night(s)`;
 }
 
-// Refresh room cards to show selected state
+// Refresh room cards to show selected state - now properly updates ALL cards
 function refreshRoomCards() {
-    selectedRooms.forEach(room => {
-        const card = document.getElementById('roomCard-' + room.roomId);
-        if (card) {
+    // Get all room cards in the results
+    document.querySelectorAll('[id^="roomCard-"]').forEach(card => {
+        const roomId = normalizeRoomId(card.id.replace('roomCard-', ''));
+        const isSelected = isRoomSelected(roomId);
+        
+        // Update card styling
+        if (isSelected) {
             card.classList.remove('border-gray-200', 'bg-white');
             card.classList.add('border-green-500', 'bg-green-50');
+        } else {
+            card.classList.remove('border-green-500', 'bg-green-50');
+            card.classList.add('border-gray-200', 'bg-white');
+        }
+        
+        // Update button text and style
+        const btn = card.querySelector('button[data-room-id]');
+        if (btn) {
+            if (isSelected) {
+                btn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+                btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                btn.innerHTML = '<i class="fas fa-times mr-1 sm:mr-2"></i>Remove';
+            } else {
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-primary-600', 'hover:bg-primary-700');
+                btn.innerHTML = '<i class="fas fa-plus mr-1 sm:mr-2"></i>Add';
+            }
         }
     });
 }
@@ -875,6 +986,14 @@ async function submitBooking(e) {
         return;
     }
     
+    // Show confirmation dialog with selected rooms
+    const roomList = selectedRooms.map(r => `Room ${r.roomNumber}`).join(', ');
+    const confirmMsg = `⚠️ আপনি কি নিশ্চিত?\n\nবুক করা হবে ${selectedRooms.length}টি রুম:\n${roomList}\n\nCheck-in: ${currentSearchDates.checkIn}\nCheck-out: ${currentSearchDates.checkOut}\n\nচালিয়ে যেতে OK চাপুন।`;
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
     // Show loading
     const submitBtn = document.querySelector('#bookingForm button[type="submit"]');
     const originalText = submitBtn.innerHTML;
@@ -899,20 +1018,34 @@ async function submitBooking(e) {
     try {
         const formData = new FormData();
         
-        // Prepare rooms data - DEDUPLICATE by roomId before sending
+        // Prepare rooms data - ULTRA STRICT DEDUPLICATE by roomId before sending
         const seenRoomIds = new Set();
         const uniqueRooms = [];
+        
+        console.log('🔍 Processing selectedRooms before submit:', JSON.stringify(selectedRooms));
+        
         selectedRooms.forEach(room => {
-            if (!seenRoomIds.has(room.roomId)) {
-                seenRoomIds.add(room.roomId);
+            const roomId = normalizeRoomId(room.roomId);
+            if (!isNaN(roomId) && roomId > 0 && !seenRoomIds.has(roomId)) {
+                seenRoomIds.add(roomId);
                 uniqueRooms.push({
-                    roomId: room.roomId,
-                    roomNumber: room.roomNumber,
-                    pricePerNight: room.pricePerNight
+                    roomId: roomId,
+                    roomNumber: String(room.roomNumber),
+                    pricePerNight: parseFloat(room.pricePerNight) || 0
                 });
+                console.log('✅ Room added to submit list:', room.roomNumber, '(ID:', roomId, ')');
+            } else {
+                console.error('🚫 DUPLICATE or INVALID room skipped:', room.roomNumber, 'ID:', room.roomId);
             }
         });
-        console.log('Sending rooms:', uniqueRooms);
+        
+        // Final validation
+        console.log('📤 FINAL rooms to submit (' + uniqueRooms.length + '):', uniqueRooms.map(r => `Room ${r.roomNumber}`).join(', '));
+        
+        if (uniqueRooms.length !== selectedRooms.length) {
+            console.warn('⚠️ Duplicates removed! Original:', selectedRooms.length, 'Final:', uniqueRooms.length);
+        }
+        
         formData.append('rooms_data', JSON.stringify(uniqueRooms));
         
         // Check if we're adding to existing booking
@@ -1095,25 +1228,17 @@ document.getElementById('discount_type').addEventListener('change', recalculateA
             const preselectedRoomId = {{ $preselectedRoom->id }};
             const roomCard = document.getElementById('roomCard-' + preselectedRoomId);
             if (roomCard) {
-                // Add room to selection
-                const room = {
-                    roomId: preselectedRoomId,
-                    roomNumber: '{{ $preselectedRoom->room_number }}',
-                    roomType: '{{ $preselectedRoom->roomType->name ?? "Room" }}',
-                    pricePerNight: {{ $preselectedRoom->roomType->base_price ?? 0 }}
-                };
-                
-                // Check if addRoom function exists
-                if (typeof addRoom === 'function') {
-                    addRoom(room);
-                } else {
-                    // Manually select the room
-                    selectedRooms.push(room);
-                    roomCard.classList.add('ring-4', 'ring-primary-500', 'ring-offset-2');
-                    roomCard.querySelector('.select-btn')?.classList.add('hidden');
-                    roomCard.querySelector('.selected-badge')?.classList.remove('hidden');
-                    updateSelectedRoomsUI();
+                // Check if room already in selection (prevent duplicates)
+                const alreadySelected = selectedRooms.some(r => parseInt(r.roomId) === preselectedRoomId);
+                if (alreadySelected) {
+                    console.log('Preselected room already in selection, skipping');
+                    return;
                 }
+                
+                // Use the proper toggle function to add room
+                const nights = currentSearchDates.nights || 1;
+                const pricePerNight = {{ $preselectedRoom->roomType->base_price ?? 0 }};
+                toggleRoomSelection(preselectedRoomId, '{{ $preselectedRoom->room_number }}', '{{ $preselectedRoom->roomType->name ?? "Room" }}', nights, pricePerNight, null);
                 
                 // Scroll to booking form
                 document.querySelector('[name="customer_name"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });

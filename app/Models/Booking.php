@@ -19,6 +19,22 @@ class Booking extends Model
         'bkash_number', 'bank_name', 'created_by_id',
     ];
 
+    /**
+     * Boot the model - handle cascade deletes
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // When a booking is deleted, also delete its booking_rooms, payments, and additional_guests
+        static::deleting(function ($booking) {
+            $booking->bookingRooms()->delete();
+            $booking->payments()->delete();
+            $booking->additionalGuests()->delete();
+            \Log::info('Cascade deleted related records for booking', ['booking_id' => $booking->id]);
+        });
+    }
+
     protected function casts(): array
     {
         return [
