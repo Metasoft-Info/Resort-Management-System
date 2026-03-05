@@ -1,6 +1,6 @@
 <!-- Print-only Invoice Template - BILL Format -->
 <div id="invoice-print-area" class="hidden print:block">
-    <div class="invoice-container bg-white" style="font-family: 'Times New Roman', Times, serif; font-size: 13px; padding: 8mm 12mm; width: 210mm; min-height: 287mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column;">
+    <div class="invoice-container bg-white" style="font-family: 'Times New Roman', Times, serif; font-size: 15px; padding: 8mm 12mm; width: 210mm; min-height: 287mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column;">
         
         <!-- Header with Logo - Centered -->
         <div style="text-align: center; margin-bottom: 10px;">
@@ -10,9 +10,9 @@
                 <div style="width: 75px; height: 75px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">Lake View</div>
             @endif
             <h1 style="font-size: 24px; font-weight: bold; margin: 4px 0; letter-spacing: 3px; text-transform: uppercase;">TUFAN RESORT</h1>
-            <p style="font-size: 12px; margin: 2px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
-            <p style="font-size: 12px; margin: 1px 0;">{{ $resortInfo->address ?? 'Kamalnagor, Satkhira' }}</p>
-            <p style="font-size: 12px; margin: 1px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }}, Mob. {{ $resortInfo->phone ?? '01958 216728' }}</p>
+            <p style="font-size: 13px; margin: 2px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
+            <p style="font-size: 13px; margin: 1px 0;">{{ $resortInfo->address ?? 'Kamalnagor, Satkhira' }}</p>
+            <p style="font-size: 13px; margin: 1px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }}, Mob. {{ $resortInfo->phone ?? '01958 216728' }}</p>
         </div>
 
         <!-- BILL Title -->
@@ -21,7 +21,7 @@
         </div>
 
         <!-- Guest Info Row - Table Layout for Print -->
-        <table style="width: 100%; margin-bottom: 8px; font-size: 13px; line-height: 1.5;">
+        <table style="width: 100%; margin-bottom: 8px; font-size: 15px; line-height: 1.5;">
             <tr>
                 <td style="width: 60%; vertical-align: top;">
                     <p style="margin: 2px 0;"><strong>Name:</strong> {{ $booking->customer_name }}</p>
@@ -46,7 +46,7 @@
 
         <!-- Additional Guests if any -->
         @if($booking->additionalGuests && $booking->additionalGuests->count() > 0)
-        <div style="margin-bottom: 6px; padding: 5px; border: 1px solid #ddd; font-size: 12px;">
+        <div style="margin-bottom: 6px; padding: 5px; border: 1px solid #ddd; font-size: 14px;">
             <strong>Additional Guests ({{ $booking->additionalGuests->count() }}):</strong>
             @foreach($booking->additionalGuests as $guest)
                 {{ $guest->name }}{{ $guest->nid ? ' (' . $guest->nid . ')' : '' }}{{ !$loop->last ? ', ' : '' }}
@@ -92,7 +92,7 @@
             $amountInWords = \App\Helpers\NumberToWords::convertTaka($invoiceGrandTotal);
         @endphp
 
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 12px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 14px;">
             <thead>
                 <tr style="background-color: #f5f5f5;">
                     <th style="border: 1px solid #000; padding: 5px; text-align: center; font-weight: bold;">Arrival Date</th>
@@ -139,29 +139,29 @@
         </table>
 
         <!-- Detailed Transaction Summary -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 12px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 14px;">
             <tr>
                 <td style="width: 60%; vertical-align: top; padding-right: 10px;">
                     <!-- In Word -->
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>In Word:</strong> {{ $amountInWords }}</p>
+                    <p style="margin: 2px 0; font-size: 14px;"><strong>In Word:</strong> {{ $amountInWords }}</p>
                     
                     <!-- Extra Charges Details -->
                     @if($invoiceExtraCharges > 0)
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>Extra Charges:</strong> 
+                    <p style="margin: 2px 0; font-size: 14px;"><strong>Extra Charges:</strong> 
                         @if($booking->extra_charges_description){{ $booking->extra_charges_description }} - @endif
                         ৳{{ number_format($invoiceExtraCharges, 0) }}
                     </p>
                     @endif
                     
                     <!-- Payment Method -->
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>Payment Method:</strong> 
+                    <p style="margin: 2px 0; font-size: 14px;"><strong>Payment Method:</strong> 
                         {{ ucfirst($booking->payment_method ?? 'Cash') }}
                         @if($booking->payment_method === 'bkash' && $booking->bkash_number) ({{ $booking->bkash_number }})@endif
                         @if($booking->payment_method === 'card' && $booking->bank_name) ({{ $booking->bank_name }})@endif
                     </p>
                 </td>
                 <td style="width: 40%; vertical-align: top;">
-                    <table style="width: 100%; font-size: 12px;">
+                    <table style="width: 100%; font-size: 14px;">
                         <tr>
                             <td style="padding: 2px 4px; text-align: right;"><strong>Room Total:</strong></td>
                             <td style="padding: 2px 4px; text-align: right; min-width: 75px;">{{ number_format($invoiceBaseAmount, 0) }}/-</td>
@@ -188,7 +188,7 @@
                             <td style="padding: 2px 4px; text-align: right;">-{{ number_format($invoiceDiscountAmount, 0) }}/-</td>
                         </tr>
                         @endif
-                        <tr style="font-weight: bold; font-size: 13px;">
+                        <tr style="font-weight: bold; font-size: 15px;">
                             <td style="padding: 3px 4px; text-align: right; border-top: 1px solid #000; border-bottom: 2px solid #000;"><strong>Grand Total:</strong></td>
                             <td style="padding: 3px 4px; text-align: right; border-top: 1px solid #000; border-bottom: 2px solid #000;">{{ number_format($invoiceGrandTotal, 0) }}/-</td>
                         </tr>
@@ -207,7 +207,7 @@
 
         <!-- Payment History if exists -->
         @if($booking->payments && $booking->payments->count() > 0)
-        <div style="margin-bottom: 6px; font-size: 10px;">
+        <div style="margin-bottom: 6px; font-size: 12px;">
             <strong>Payment History:</strong>
             <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
                 <tr style="background-color: #f5f5f5;">
@@ -232,18 +232,18 @@
         <div style="display: flex; justify-content: space-between; margin: 20px 0 12px;">
             <div style="text-align: center; width: 45%;">
                 <div style="border-top: 1px solid #000; padding-top: 4px; margin-top: 28px;">
-                    <span style="font-size: 11px;">Guest Signature</span>
+                    <span style="font-size: 13px;">Guest Signature</span>
                 </div>
             </div>
             <div style="text-align: center; width: 45%;">
                 <div style="border-top: 1px solid #000; padding-top: 4px; margin-top: 28px;">
-                    <span style="font-size: 11px;">Authorised Signature</span>
+                    <span style="font-size: 13px;">Authorised Signature</span>
                 </div>
             </div>
         </div>
 
         <!-- Amenities Section -->
-        <div style="margin-bottom: 8px; font-size: 10px; line-height: 1.3;">
+        <div style="margin-bottom: 8px; font-size: 12px; line-height: 1.3;">
             <p style="font-weight: bold; text-decoration: underline; margin-bottom: 4px;">The following amenities are included free of cost, as part of your stay:</p>
             <table style="width: 100%;">
                 <tr>
@@ -268,7 +268,7 @@
         </div>
 
         <!-- Policy Section -->
-        <div style="margin-bottom: 8px; font-size: 10px; line-height: 1.3;">
+        <div style="margin-bottom: 8px; font-size: 12px; line-height: 1.3;">
             <p style="font-weight: bold; text-decoration: underline; margin-bottom: 3px;">Our Policy:</p>
             <p style="margin: 1px 0;">Our check-in time 12:00 hours & check-out 12:00 hours.</p>
             <p style="margin: 1px 0;">Cancellation policy: Cancellation and Refund policy not applicable.</p>
@@ -276,16 +276,16 @@
         </div>
 
         <!-- Thank You Message -->
-        <div style="margin-top: 8px; font-size: 11px; line-height: 1.3;">
+        <div style="margin-top: 8px; font-size: 13px; line-height: 1.3;">
             <p style="margin: 2px 0;">We assure you of our best services and hospitality at all times. We hope you will enjoy memorable stay with us.</p>
             <p style="margin: 2px 0;">Please feel free to contact us for any further information/queries.</p>
         </div>
 
         <!-- Developer Credit -->
         <div style="text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end;">
-            <p style="font-size: 9px; color: #666; margin: 0 0 5px;">Developed By Mir Javed Jeetu | 01811480222</p>
-            <p style="font-size: 13px; font-weight: bold; color: #333; margin: 0;">Thank you for choosing TUFAN RESORT</p>
-            <p style="font-size: 12px; color: #555; margin: 3px 0 0;">For reservations call: {{ $resortInfo->phone ?? '01958 216728' }}</p>
+            <p style="font-size: 10px; color: #666; margin: 0 0 5px;">Developed By Mir Javed Jeetu | 01811480222</p>
+            <p style="font-size: 15px; font-weight: bold; color: #333; margin: 0;">Thank you for choosing TUFAN RESORT</p>
+            <p style="font-size: 14px; color: #555; margin: 3px 0 0;">For reservations call: {{ $resortInfo->phone ?? '01958 216728' }}</p>
         </div>
     </div>
 </div>

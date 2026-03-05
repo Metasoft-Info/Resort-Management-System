@@ -20,9 +20,15 @@ class BookingController extends Controller
     {
         $query = Booking::with('room.roomType', 'createdBy');
         
-        // Status filter
-        if ($request->filled('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
+        // Status filter - hide checked_out by default
+        if ($request->filled('status')) {
+            if ($request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+            // If 'all' is selected, show all statuses including checked_out
+        } else {
+            // By default, hide checked_out bookings
+            $query->where('status', '!=', 'checked_out');
         }
         
         // Payment status filter
