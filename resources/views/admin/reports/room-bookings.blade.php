@@ -91,7 +91,7 @@
     </div>
 
     <!-- Summary Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 print:grid-cols-5 print:gap-2 print:text-xs">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 print:grid-cols-6 print:gap-2 print:text-xs">
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">মোট বুকিং</p>
             <p class="text-xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
@@ -100,9 +100,13 @@
             <p class="text-gray-600 text-xs">মোট বিল</p>
             <p class="text-xl font-bold text-primary-700 print:text-base">৳{{ number_format($totalRevenue, 0) }}</p>
         </div>
-        <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
-            <p class="text-gray-600 text-xs">বিল জমা</p>
-            <p class="text-xl font-bold text-primary-700 print:text-base">৳{{ number_format($totalAdvance, 0) }}</p>
+        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200 print:p-2">
+            <p class="text-gray-600 text-xs">ডিসকাউন্ট</p>
+            <p class="text-xl font-bold text-orange-600 print:text-base">৳{{ number_format($bookings->sum('discount_amount'), 0) }}</p>
+        </div>
+        <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200 print:p-2">
+            <p class="text-gray-600 text-xs">অগ্রিম জমা</p>
+            <p class="text-xl font-bold text-green-600 print:text-base">৳{{ number_format($totalAdvance, 0) }}</p>
         </div>
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">অতিরিক্ত চার্জ</p>
@@ -127,20 +131,21 @@
             <table class="w-full text-sm border-collapse border border-gray-400 table-fixed">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">তারিখ</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[9%]">মোবাইল নম্বর</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[10%]">নাম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">পেশা/কোম্পানী</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[5%]">রুম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বিল</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বিল জমা</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">অতিরিক্ত</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বাকি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">চেক ইন</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">চেক আউট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center w-[4%]">রাত্রি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[10%]">মন্তব্য</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden w-[6%]">অ্যাকশন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">তারিখ</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">মোবাইল নম্বর</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[9%]">নাম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">পেশা/কোম্পানী</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[4%]">রুম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">বিল</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[5%]">ডিসকাউন্ট</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">অগ্রিম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[5%]">অতিরিক্ত</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">বাকি</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">চেক ইন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">চেক আউট</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center w-[3%]">রাত্রি</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">মন্তব্য</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden w-[5%]">অ্যাকশন</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -159,7 +164,8 @@
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold">{{ number_format($calculatedTotal, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-primary-600">{{ number_format($booking->advance_payment, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600">{{ number_format($booking->advance_payment, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right">{{ number_format($booking->extra_charges ?? 0, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold">{{ number_format($calculatedRemaining, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>
@@ -173,14 +179,15 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="14" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="15" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
                     <tr class="bg-gray-200 font-bold">
                         <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">মোট:</td>
                         <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($totalRevenue, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-primary-700">{{ number_format($totalAdvance, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-orange-600">{{ number_format($bookings->sum('discount_amount'), 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-green-600">{{ number_format($totalAdvance, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($bookings->sum('extra_charges'), 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-red-600">{{ number_format($totalRemaining, 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
