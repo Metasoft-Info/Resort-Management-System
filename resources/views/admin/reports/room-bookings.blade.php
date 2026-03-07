@@ -91,26 +91,35 @@
     </div>
 
     <!-- Summary Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 print:grid-cols-6 print:gap-2 print:text-xs">
+    @php
+        $summaryRoomRent = $bookings->sum(fn($b) => $b->getCalculatedTotal());
+        $summaryExtra = $bookings->sum('extra_charges');
+        $summaryDiscount = $bookings->sum('discount_amount');
+    @endphp
+    <div class="grid grid-cols-2 md:grid-cols-7 gap-4 mb-6 print:grid-cols-7 print:gap-2 print:text-xs">
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">মোট বুকিং</p>
             <p class="text-xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
+        </div>
+        <div class="bg-blue-50 rounded-lg p-4 text-center border border-blue-200 print:p-2">
+            <p class="text-gray-600 text-xs">রুম ভাড়া</p>
+            <p class="text-xl font-bold text-blue-700 print:text-base">৳{{ number_format($summaryRoomRent, 0) }}</p>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200 print:p-2">
+            <p class="text-gray-600 text-xs">অতিরিক্ত চার্জ</p>
+            <p class="text-xl font-bold text-purple-700 print:text-base">৳{{ number_format($summaryExtra, 0) }}</p>
+        </div>
+        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200 print:p-2">
+            <p class="text-gray-600 text-xs">ডিসকাউন্ট</p>
+            <p class="text-xl font-bold text-orange-600 print:text-base">৳{{ number_format($summaryDiscount, 0) }}</p>
         </div>
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">মোট বিল</p>
             <p class="text-xl font-bold text-primary-700 print:text-base">৳{{ number_format($totalRevenue, 0) }}</p>
         </div>
-        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200 print:p-2">
-            <p class="text-gray-600 text-xs">ডিসকাউন্ট</p>
-            <p class="text-xl font-bold text-orange-600 print:text-base">৳{{ number_format($bookings->sum('discount_amount'), 0) }}</p>
-        </div>
         <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200 print:p-2">
             <p class="text-gray-600 text-xs">অগ্রিম জমা</p>
             <p class="text-xl font-bold text-green-600 print:text-base">৳{{ number_format($totalAdvance, 0) }}</p>
-        </div>
-        <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
-            <p class="text-gray-600 text-xs">অতিরিক্ত চার্জ</p>
-            <p class="text-xl font-bold text-primary-700 print:text-base">৳{{ number_format($bookings->sum('extra_charges'), 0) }}</p>
         </div>
         <div class="bg-red-50 rounded-lg p-4 text-center border border-red-200 print:p-2">
             <p class="text-gray-600 text-xs">বাকি</p>
@@ -126,53 +135,55 @@
     </div>
 
     <!-- Bookings Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden print:shadow-none print:rounded-none">
-        <div class="w-full">
-            <table class="w-full text-sm border-collapse border border-gray-400 table-fixed">
+    <div class="bg-white rounded-lg shadow overflow-hidden print:shadow-none print:rounded-none print:overflow-visible">
+        <div class="w-full overflow-x-auto print:overflow-visible">
+            <table class="w-full text-sm border-collapse border border-gray-400">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">তারিখ</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">মোবাইল নম্বর</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[9%]">নাম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">পেশা/কোম্পানী</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[4%]">রুম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">বিল</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[5%]">ডিসকাউন্ট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">অগ্রিম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[5%]">অতিরিক্ত</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">বাকি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">চেক ইন</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">চেক আউট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center w-[3%]">রাত্রি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">মন্তব্য</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden w-[5%]">অ্যাকশন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">তারিখ</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">মোবাইল</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">নাম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">কোম্পানী</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">রুম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ভাড়া</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অতিরিক্ত</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ছাড়</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অগ্রিম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বাকি</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ইন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">আউট</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">রাত</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden whitespace-nowrap">অ্যাকশন</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php $totalNights = 0; @endphp
+                    @php $totalNights = 0; $sumGrandTotal = 0; @endphp
                     @forelse($bookings as $booking)
                     @php 
                         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
                         $totalNights += $nights;
-                        $calculatedTotal = $booking->getCalculatedTotal();
+                        $roomRent = $booking->getCalculatedTotal();
+                        $grandTotal = $booking->getGrandTotal();
+                        $sumGrandTotal += $grandTotal;
                         $calculatedRemaining = $booking->getCalculatedRemaining();
                     @endphp
                     <tr class="hover:bg-gray-50">
-                        <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>
-                        <td class="border border-gray-400 px-2 py-1">{{ $booking->customer_phone }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ $booking->customer_phone }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right font-semibold">{{ number_format($calculatedTotal, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600">{{ number_format($booking->advance_payment, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right">{{ number_format($booking->extra_charges ?? 0, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold">{{ number_format($calculatedRemaining, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>
-                        <td class="border border-gray-400 px-2 py-1">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m-Y') }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-center">{{ $nights }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-xs">{{ $booking->notes ?? '' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-center print:hidden">
+                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right font-semibold whitespace-nowrap">{{ number_format($grandTotal, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($booking->advance_payment, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold whitespace-nowrap">{{ number_format($calculatedRemaining, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">{{ $nights }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-center print:hidden whitespace-nowrap">
                             <button onclick="showGuestInfo({{ $booking->id }})" class="bg-primary-600 text-white px-2 py-1 rounded text-xs hover:bg-primary-700">
                                 <i class="fas fa-eye"></i> View
                             </button>
@@ -183,16 +194,22 @@
                     @endforelse
                 </tbody>
                 <tfoot>
+                    @php
+                        $sumRoomRent = $bookings->sum(fn($b) => $b->getCalculatedTotal());
+                        $sumExtra = $bookings->sum('extra_charges');
+                        $sumDiscount = $bookings->sum('discount_amount');
+                        $sumAdvance = $bookings->sum('advance_payment');
+                    @endphp
                     <tr class="bg-gray-200 font-bold">
                         <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">মোট:</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($totalRevenue, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-orange-600">{{ number_format($bookings->sum('discount_amount'), 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-green-600">{{ number_format($totalAdvance, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($bookings->sum('extra_charges'), 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600">{{ number_format($totalRemaining, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-blue-600 whitespace-nowrap">{{ number_format($sumRoomRent, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-purple-600 whitespace-nowrap">{{ number_format($sumExtra, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-orange-600 whitespace-nowrap">{{ number_format($sumDiscount, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">{{ number_format($sumGrandTotal, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($sumAdvance, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($totalRemaining, 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-center">{{ $totalNights }}</td>
-                        <td class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 print:hidden"></td>
                     </tr>
                 </tfoot>
@@ -241,30 +258,122 @@
 @media print {
     @page {
         size: A4 landscape;
-        margin: 8mm;
+        margin: 5mm;
     }
-    body {
-        font-size: 9px !important;
+    
+    * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
+    
+    body {
+        font-size: 10px !important;
+        margin: 0;
+        padding: 0;
+    }
+    
     .print\:hidden {
         display: none !important;
     }
+    
     .print\:block {
         display: block !important;
     }
-    nav, header, aside, footer, .lg\:ml-64 > header, .lg\:ml-64 > footer {
+    
+    /* Hide sidebar, navbar, etc */
+    nav, header, aside, footer, 
+    .lg\:ml-64 > header, 
+    .lg\:ml-64 > footer,
+    #guestInfoModal,
+    .pagination {
         display: none !important;
     }
-    .p-6 {
-        padding: 0 !important;
+    
+    /* Reset main content area */
+    .lg\:ml-64 {
+        margin-left: 0 !important;
     }
-    table {
+    
+    .p-6 {
+        padding: 2mm !important;
+    }
+    
+    /* Summary stats - make smaller for print */
+    .grid.grid-cols-2.md\:grid-cols-7 {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        gap: 2mm !important;
+        margin-bottom: 3mm !important;
+    }
+    
+    .grid.grid-cols-2.md\:grid-cols-7 > div {
+        padding: 2mm !important;
+        border-radius: 2px !important;
+    }
+    
+    .grid.grid-cols-2.md\:grid-cols-7 .text-xl {
+        font-size: 11px !important;
+        font-weight: bold;
+    }
+    
+    .grid.grid-cols-2.md\:grid-cols-7 .text-xs {
         font-size: 8px !important;
     }
+    
+    /* Table styling */
+    table {
+        width: 100% !important;
+        font-size: 9px !important;
+        border-collapse: collapse !important;
+        table-layout: auto !important;
+    }
+    
     th, td {
         padding: 2px 4px !important;
+        border: 1px solid #666 !important;
+        white-space: nowrap !important;
+    }
+    
+    th {
+        background-color: #e5e7eb !important;
+        font-weight: bold !important;
+        font-size: 8px !important;
+    }
+    
+    /* Allow name and company columns to wrap */
+    td:nth-child(3), td:nth-child(4) {
+        white-space: normal !important;
+        max-width: 100px !important;
+    }
+    
+    /* Prevent table rows from breaking across pages */
+    tr {
+        page-break-inside: avoid !important;
+    }
+    
+    thead {
+        display: table-header-group !important;
+    }
+    
+    tfoot {
+        display: table-footer-group !important;
+    }
+    
+    /* Print header styling */
+    .hidden.print\:block {
+        display: block !important;
+    }
+    
+    /* Hide screen elements */
+    .bg-white.rounded-lg.shadow {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    
+    /* Action column hide */
+    th:last-child.print\:hidden,
+    td:last-child.print\:hidden {
+        display: none !important;
     }
 }
 

@@ -28,7 +28,7 @@ class ReportController extends Controller {
         
         // Get all bookings for calculating correct totals
         $allBookingsForTotals = (clone $query)->get();
-        $totalRevenue = $allBookingsForTotals->sum(fn($b) => $b->getCalculatedTotal());
+        $totalRevenue = $allBookingsForTotals->sum(fn($b) => $b->getGrandTotal());
         $totalAdvance = $allBookingsForTotals->sum('advance_payment');
         $totalRemaining = $allBookingsForTotals->sum(fn($b) => $b->getCalculatedRemaining());
         

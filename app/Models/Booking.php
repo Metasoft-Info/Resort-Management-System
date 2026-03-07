@@ -126,6 +126,25 @@ class Booking extends Model
         return $grandTotal - $this->advance_payment;
     }
 
+    // Get grand total (Room Rent + Extra - Discount + VAT)
+    public function getGrandTotal()
+    {
+        $baseAmount = $this->getCalculatedTotal();
+        
+        $discountAmount = 0;
+        if($this->discount_type === 'percentage' && $this->discount_percentage > 0) {
+            $discountAmount = ($baseAmount * $this->discount_percentage) / 100;
+        } elseif($this->discount_type === 'flat' && $this->discount_amount > 0) {
+            $discountAmount = $this->discount_amount;
+        }
+        
+        $afterDiscount = $baseAmount - $discountAmount;
+        $extraCharges = $this->extra_charges ?? 0;
+        $vatAmount = $this->vat_enabled ? ($afterDiscount * 0.15) : 0;
+        
+        return $afterDiscount + $extraCharges + $vatAmount;
+    }
+
     // Check if booking has multiple rooms
     public function hasMultipleRooms()
     {
