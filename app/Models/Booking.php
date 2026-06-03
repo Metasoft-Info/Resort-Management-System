@@ -10,7 +10,7 @@ class Booking extends Model
         'room_id', 'customer_name', 'customer_nid', 'customer_photo', 'customer_nid_document',
         'passport_number', 'passport_document', 'visiting_card', 'customer_phone', 'reference_name',
         'reference_phone', 'customer_whatsapp', 'customer_email', 'customer_address', 'company_name',
-        'check_in_date', 'check_in_time', 'check_out_date', 'check_out_time', 'number_of_guests', 
+        'booking_purpose', 'check_in_date', 'check_in_time', 'check_out_date', 'check_out_time', 'number_of_guests', 
         'total_amount', 'advance_payment', 'remaining_payment', 'payment_method', 'payment_status', 
         'status', 'extra_charges', 'extra_charges_description', 'extra_charges_data',
         'discount_amount', 'discount_percentage', 'discount_type', 'discount_reference',

@@ -108,6 +108,7 @@ class BookingController extends Controller
             'total_amount' => 'required|numeric',
             'advance_payment' => 'required|numeric',
             'payment_method' => 'required|in:cash,card,mfs',
+            'booking_purpose' => 'nullable|string|max:50',
         ]);
 
         $validated['created_by_id'] = Auth::id();
@@ -230,6 +231,12 @@ class BookingController extends Controller
 
         $paymentAmount = floatval($validated['amount'] ?? 0);
 
+        // Recalculate current balances from rooms + discount + extra + VAT.
+        $baseAmount = $booking->getCalculatedTotal();
+        $currentGrandTotal = $booking->getGrandTotal();
+        $currentAdvance = floatval($booking->advance_payment ?? 0);
+        $currentRemaining = max(0, $currentGrandTotal - $currentAdvance);
+
         // Handle payment-level discount if provided
         $paymentDiscountAmount = 0;
         if (isset($validated['discount_type']) && $validated['discount_type'] !== 'none') {
@@ -237,7 +244,7 @@ class BookingController extends Controller
                 $paymentDiscountAmount = floatval($validated['discount_amount'] ?? 0);
             } elseif ($validated['discount_type'] === 'percentage') {
                 // Percentage discount on remaining amount
-                $paymentDiscountAmount = ($booking->remaining_payment * floatval($validated['discount_percentage'] ?? 0)) / 100;
+                $paymentDiscountAmount = ($currentRemaining * floatval($validated['discount_percentage'] ?? 0)) / 100;
             }
         }
 
@@ -248,12 +255,11 @@ class BookingController extends Controller
 
         // Validate: payment + discount cannot exceed remaining balance
         $totalDeduction = $paymentAmount + $paymentDiscountAmount;
-        if ($totalDeduction > $booking->remaining_payment) {
-            return response()->json(['message' => 'পেমেন্ট ও ডিসকাউন্টের মোট বাকি টাকার চেয়ে বেশি হতে পারে না। বাকি আছে: ৳' . number_format($booking->remaining_payment, 2)], 422);
+        if ($totalDeduction > $currentRemaining) {
+            return response()->json(['message' => 'পেমেন্ট ও ডিসকাউন্টের মোট বাকি টাকার চেয়ে বেশি হতে পারে না। বাকি আছে: ৳' . number_format($currentRemaining, 2)], 422);
         }
 
         // Calculate grand total (including VAT, existing discount, extra charges)
-        $baseAmount = $booking->total_amount;
         $existingDiscountAmount = 0;
         
         if ($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
@@ -264,9 +270,9 @@ class BookingController extends Controller
 
         // Calculate with NEW discount added
         $totalDiscountAmount = $existingDiscountAmount + $paymentDiscountAmount;
-        $afterDiscount = $baseAmount - $totalDiscountAmount;
+        $afterDiscount = max(0, $baseAmount - $totalDiscountAmount);
         $extraCharges = $booking->extra_charges ?? 0;
-        $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
+        $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
         $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
 
         // Update booking data
@@ -291,9 +297,10 @@ class BookingController extends Controller
         }
 
         // Update booking payments
-        $newAdvancePayment = $booking->advance_payment + $paymentAmount;
+        $newAdvancePayment = $currentAdvance + $paymentAmount;
         $newRemainingPayment = max(0, $grandTotal - $newAdvancePayment);
         
+        $updateData['total_amount'] = $baseAmount;
         $updateData['advance_payment'] = $newAdvancePayment;
         $updateData['remaining_payment'] = $newRemainingPayment;
         $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : ($newAdvancePayment > 0 || $paymentDiscountAmount > 0 ? 'partial' : 'pending');
@@ -459,6 +466,7 @@ class BookingController extends Controller
             'customer_nid' => 'nullable|string|max:50',
             'customer_address' => 'nullable|string',
             'company_name' => 'nullable|string|max:255',
+            'booking_purpose' => 'nullable|string|max:50',
             'number_of_guests' => 'nullable|integer|min:1',
             'reference_name' => 'nullable|string|max:255',
             'reference_phone' => 'nullable|string|max:20',
@@ -470,7 +478,18 @@ class BookingController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Calculate remaining payment
+        $roomChanged = $validated['room_id'] != $booking->room_id;
+        $datesChanged = $validated['check_in_date'] != $booking->check_in_date || $validated['check_out_date'] != $booking->check_out_date;
+        
+        if ($roomChanged || $datesChanged || empty($validated['total_amount'])) {
+            $room = \App\Models\Room::findOrFail($validated['room_id']);
+            $checkIn = \Carbon\Carbon::parse($validated['check_in_date']);
+            $checkOut = \Carbon\Carbon::parse($validated['check_out_date']);
+            $nights = max(1, $checkIn->diffInDays($checkOut));
+            $roomPrice = $room->roomType->price_per_night ?? $room->price_per_night ?? 0;
+            $validated['total_amount'] = $roomPrice * $nights;
+        }
+
         $validated['remaining_payment'] = ($validated['total_amount'] ?? 0) - ($validated['advance_payment'] ?? 0);
         
         $booking->update($validated);
