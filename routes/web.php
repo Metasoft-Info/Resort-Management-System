@@ -134,6 +134,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Reports
     Route::get('/reports/room-bookings', [ReportController::class, 'roomBookings'])->name('reports.room-bookings');
     Route::get('/reports/room-bookings/export', [ReportController::class, 'exportRoomBookings'])->name('reports.room-bookings.export');
+    Route::get('/reports/advance-bookings', [ReportController::class, 'advanceBookings'])->name('reports.advance-bookings');
+    Route::get('/reports/advance-bookings/export', [ReportController::class, 'exportAdvanceBookings'])->name('reports.advance-bookings.export');
+    Route::get('/reports/unpaid-checked-in', [ReportController::class, 'unpaidCheckedIn'])->name('reports.unpaid-checked-in');
+    Route::get('/reports/unpaid-checked-in/export', [ReportController::class, 'exportUnpaidCheckedIn'])->name('reports.unpaid-checked-in.export');
+    Route::get('/reports/combined', [ReportController::class, 'combined'])->name('reports.combined');
+    Route::get('/reports/combined/export', [ReportController::class, 'exportCombined'])->name('reports.combined.export');
     Route::get('/reports/convention-bookings', [ReportController::class, 'conventionBookings'])->name('reports.convention-bookings');
     Route::get('/reports/convention-bookings/export', [ReportController::class, 'exportConventionBookings'])->name('reports.convention-bookings.export');
     

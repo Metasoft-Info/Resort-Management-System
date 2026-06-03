@@ -1,200 +1,200 @@
 @extends('layouts.admin')
 @section('content')
 <div class="p-6">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">রুম সম্পাদনা করুন</h1>
-        <p class="text-gray-600 mt-2">Edit Room Details & Upload Images</p>
-    </div>
+ <div class="mb-8">
+ <h1 class="text-3xl font-bold text-gray-800">Room Edit </h1>
+ <p class="text-gray-600 mt-2">Edit Room Details & Upload Images</p>
+ </div>
 
-    <div class="bg-white rounded-xl shadow-lg p-8 max-w-6xl">
-        <form action="{{ route('admin.rooms.update', $room) }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            @method('PUT')
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-hashtag mr-2"></i>রুম নম্বর *
-                    </label>
-                    <input type="text" name="room_number" value="{{ old('room_number', $room->room_number) }}" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('room_number') border-red-500 @enderror">
-                    @error('room_number')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+ <div class="bg-white rounded-xl shadow-lg p-8 max-w-6xl">
+ <form action="{{ route('admin.rooms.update', $room) }}" method="POST" enctype="multipart/form-data">
+ @csrf
+ @method('PUT')
+ 
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-hashtag mr-2"></i>Room Number *
+ </label>
+ <input type="text" name="room_number" value="{{ old('room_number', $room->room_number) }}" required 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('room_number') border-red-500 @enderror">
+ @error('room_number')
+ <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+ @enderror
+ </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-door-open mr-2"></i>রুমের নাম *
-                    </label>
-                    <input type="text" name="name" value="{{ old('name', $room->name) }}" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('name') border-red-500 @enderror">
-                    @error('name')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-door-open mr-2"></i>Room Name *
+ </label>
+ <input type="text" name="name" value="{{ old('name', $room->name) }}" required 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('name') border-red-500 @enderror">
+ @error('name')
+ <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+ @enderror
+ </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-tag mr-2"></i>রুম টাইপ *
-                    </label>
-                    <select name="room_type_id" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('room_type_id') border-red-500 @enderror">
-                        <option value="">নির্বাচন করুন</option>
-                        @foreach($roomTypes as $type)
-                            <option value="{{ $type->id }}" {{ old('room_type_id', $room->room_type_id) == $type->id ? 'selected' : '' }}>
-                                {{ $type->name }} (৳{{ number_format($type->base_price) }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('room_type_id')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-tag mr-2"></i>Room Type *
+ </label>
+ <select name="room_type_id" required 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 @error('room_type_id') border-red-500 @enderror">
+ <option value="">Select</option>
+ @foreach($roomTypes as $type)
+ <option value="{{ $type->id }}" {{ old('room_type_id', $room->room_type_id) == $type->id ? 'selected' : '' }}>
+ {{ $type->name }} ({{ number_format($type->base_price) }})
+ </option>
+ @endforeach
+ </select>
+ @error('room_type_id')
+ <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+ @enderror
+ </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-bangladeshi-taka-sign mr-2"></i>প্রতি রাতের মূল্য (৳) *
-                    </label>
-                    <input type="number" name="price_per_night" value="{{ old('price_per_night', $room->price_per_night) }}" step="0.01" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-bangladeshi-taka-sign mr-2"></i>Price per Night () *
+ </label>
+ <input type="number" name="price_per_night" value="{{ old('price_per_night', $room->price_per_night) }}" step="0.01" required 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-users mr-2"></i>সর্বোচ্চ অতিথি
-                    </label>
-                    <input type="number" name="max_guests" value="{{ old('max_guests', $room->max_guests) }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-users mr-2"></i>Max Guests
+ </label>
+ <input type="number" name="max_guests" value="{{ old('max_guests', $room->max_guests) }}" 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-bed mr-2"></i>বিছানার সংখ্যা
-                    </label>
-                    <input type="number" name="number_of_beds" value="{{ old('number_of_beds', $room->number_of_beds) }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-bed mr-2"></i>Bed Count
+ </label>
+ <input type="number" name="number_of_beds" value="{{ old('number_of_beds', $room->number_of_beds) }}" 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
 
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-align-left mr-2"></i>বিবরণ
-                    </label>
-                    <textarea name="description" rows="3" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ old('description', $room->description) }}</textarea>
-                </div>
+ <div class="md:col-span-2">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-align-left mr-2"></i>Description
+ </label>
+ <textarea name="description" rows="3" 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ old('description', $room->description) }}</textarea>
+ </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-info-circle mr-2"></i>স্ট্যাটাস *
-                    </label>
-                    <select name="status" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        <option value="available" {{ old('status', $room->status) == 'available' ? 'selected' : '' }}>Available</option>
-                        <option value="booked" {{ old('status', $room->status) == 'booked' ? 'selected' : '' }}>Booked</option>
-                        <option value="maintenance" {{ old('status', $room->status) == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                    </select>
-                </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">
+ <i class="fas fa-info-circle mr-2"></i>Status *
+ </label>
+ <select name="status" required 
+ class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <option value="available" {{ old('status', $room->status) == 'available' ? 'selected' : '' }}>Available</option>
+ <option value="booked" {{ old('status', $room->status) == 'booked' ? 'selected' : '' }}>Booked</option>
+ <option value="maintenance" {{ old('status', $room->status) == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+ </select>
+ </div>
 
-                <div>
-                    <label class="flex items-center mt-8">
-                        <input type="checkbox" name="has_ac" value="1" {{ old('has_ac', $room->has_ac) ? 'checked' : '' }} 
-                            class="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500">
-                        <span class="ml-2 text-sm font-semibold text-gray-700">
-                            <i class="fas fa-snowflake mr-2"></i>এসি আছে
-                        </span>
-                    </label>
-                </div>
-            </div>
+ <div>
+ <label class="flex items-center mt-8">
+ <input type="checkbox" name="has_ac" value="1" {{ old('has_ac', $room->has_ac) ? 'checked' : '' }} 
+ class="w-5 h-5 text-primary-600 rounded focus:ring-2 focus:ring-primary-500">
+ <span class="ml-2 text-sm font-semibold text-gray-700">
+ <i class="fas fa-snowflake mr-2"></i>AC Available
+ </span>
+ </label>
+ </div>
+ </div>
 
-            <!-- Image Upload Section -->
-            <div class="mt-8 border-t pt-8">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">
-                    <i class="fas fa-images mr-2 text-primary-600"></i>Room Images
-                </h3>
-                
-                <!-- Current Images -->
-                @if($room->images && count($room->images) > 0)
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">Current Images</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        @foreach($room->images as $index => $image)
-                        <div class="relative group">
-                            <img src="{{ asset('storage/' . $image) }}" alt="Room Image" 
-                                class="w-full h-32 object-cover rounded-lg border-2 border-gray-200">
-                            <button type="button" onclick="removeImage({{ $index }})" 
-                                class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                <i class="fas fa-times text-xs"></i>
-                            </button>
-                            <input type="hidden" name="existing_images[]" value="{{ $image }}" id="existing_image_{{ $index }}">
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
+ <!-- Image Upload Section -->
+ <div class="mt-8 border-t pt-8">
+ <h3 class="text-xl font-bold text-gray-800 mb-4">
+ <i class="fas fa-images mr-2 text-primary-600"></i>Room Images
+ </h3>
+ 
+ <!-- Current Images -->
+ @if($room->images && count($room->images) > 0)
+ <div class="mb-6">
+ <label class="block text-sm font-semibold text-gray-700 mb-3">Current Images</label>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+ @foreach($room->images as $index => $image)
+ <div class="relative group">
+ <img src="{{ asset('storage/' . $image) }}" alt="Room Image" 
+ class="w-full h-32 object-cover rounded-lg border-2 border-gray-200">
+ <button type="button" onclick="removeImage({{ $index }})" 
+ class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+ <i class="fas fa-times text-xs"></i>
+ </button>
+ <input type="hidden" name="existing_images[]" value="{{ $image }}" id="existing_image_{{ $index }}">
+ </div>
+ @endforeach
+ </div>
+ </div>
+ @endif
 
-                <!-- New Images Upload -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-3">
-                        <i class="fas fa-cloud-upload-alt mr-2"></i>Upload New Images (Multiple)
-                    </label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer"
-                        onclick="document.getElementById('images').click()">
-                        <i class="fas fa-images text-4xl text-gray-400 mb-3"></i>
-                        <p class="text-gray-600">Click to select room images or drag and drop</p>
-                        <p class="text-sm text-gray-500 mt-2">Supports: JPG, PNG, WEBP (Max 5MB each)</p>
-                    </div>
-                    <input type="file" name="images[]" id="images" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
-                </div>
+ <!-- New Images Upload -->
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-3">
+ <i class="fas fa-cloud-upload-alt mr-2"></i>Upload New Images (Multiple)
+ </label>
+ <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer"
+ onclick="document.getElementById('images').click()">
+ <i class="fas fa-images text-4xl text-gray-400 mb-3"></i>
+ <p class="text-gray-600">Click to select room images or drag and drop</p>
+ <p class="text-sm text-gray-500 mt-2">Supports: JPG, PNG, WEBP (Max 5MB each)</p>
+ </div>
+ <input type="file" name="images[]" id="images" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
+ </div>
 
-                <!-- Image Previews -->
-                <div id="imagePreview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 hidden"></div>
-            </div>
+ <!-- Image Previews -->
+ <div id="imagePreview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 hidden"></div>
+ </div>
 
-            <div class="flex gap-4 mt-8">
-                <button type="submit" 
-                    class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
-                    <i class="fas fa-save mr-2"></i>আপডেট করুন
-                </button>
-                <a href="{{ route('admin.rooms.index') }}" 
-                    class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">
-                    <i class="fas fa-times mr-2"></i>বাতিল
-                </a>
-            </div>
-        </form>
-    </div>
+ <div class="flex gap-4 mt-8">
+ <button type="submit" 
+ class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg">
+ <i class="fas fa-save mr-2"></i>Update
+ </button>
+ <a href="{{ route('admin.rooms.index') }}" 
+ class="bg-gray-500 text-white px-8 py-3 rounded-lg hover:bg-gray-600 transition">
+ <i class="fas fa-times mr-2"></i>Cancelled
+ </a>
+ </div>
+ </form>
+ </div>
 </div>
 
 <script>
 function previewImages(input) {
-    const preview = document.getElementById('imagePreview');
-    preview.innerHTML = '';
-    
-    if (input.files && input.files.length > 0) {
-        preview.classList.remove('hidden');
-        Array.from(input.files).forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const div = document.createElement('div');
-                div.className = 'relative group';
-                div.innerHTML = `
-                    <img src="${e.target.result}" alt="Preview" class="w-full h-32 object-cover rounded-lg border-2 border-blue-300">
-                    <div class="absolute bottom-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded">New</div>
-                `;
-                preview.appendChild(div);
-            }
-            reader.readAsDataURL(file);
-        });
-    } else {
-        preview.classList.add('hidden');
-    }
+ const preview = document.getElementById('imagePreview');
+ preview.innerHTML = '';
+ 
+ if (input.files && input.files.length > 0) {
+ preview.classList.remove('hidden');
+ Array.from(input.files).forEach((file, index) => {
+ const reader = new FileReader();
+ reader.onload = function(e) {
+ const div = document.createElement('div');
+ div.className = 'relative group';
+ div.innerHTML = `
+ <img src="${e.target.result}" alt="Preview" class="w-full h-32 object-cover rounded-lg border-2 border-blue-300">
+ <div class="absolute bottom-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded">New</div>
+ `;
+ preview.appendChild(div);
+ }
+ reader.readAsDataURL(file);
+ });
+ } else {
+ preview.classList.add('hidden');
+ }
 }
 
 function removeImage(index) {
-    showConfirmModal('এই ছবিটি মুছে ফেলতে চান?', function() {
-        document.getElementById('existing_image_' + index).remove();
-        event.target.closest('.relative').remove();
-    });
+ showConfirmModal('Do you want to delete this image?', function() {
+ document.getElementById('existing_image_' + index).remove();
+ event.target.closest('.relative').remove();
+ });
 }
 </script>
 @endsection

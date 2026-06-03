@@ -1,10 +1,11 @@
 @extends('layouts.admin')
 @section('content')
 <div class="p-6">
-    <div class="mb-6 print:hidden">
-        <h1 class="text-3xl font-bold text-gray-800">রুম বুকিং রিপোর্ট</h1>
-        <p class="text-gray-600 mt-2">তারিখ: {{ date('d-m-Y') }}</p>
-    </div>
+    @include('admin.reports.partials.shared-header', [
+        'title' => 'রুম বুকিং রিপোর্ট',
+        'subtitle' => 'রুম ভাড়া, ডিসকাউন্ট, অতিরিক্ত, মোট, অগ্রিম ও বাকি'
+    ])
+    @include('admin.reports.partials.shared-styles')
 
     <!-- Filter Section -->
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 print:hidden">
@@ -53,43 +54,6 @@
         </form>
     </div>
 
-    <!-- Print Header - Invoice Style -->
-    <div class="hidden print:block mb-6">
-        <div class="text-center border-b-2 border-gray-700 pb-4 mb-4">
-            @if($resortInfo && $resortInfo->header_logo)
-                <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-16 mx-auto mb-2">
-            @else
-                <h1 class="text-2xl font-bold text-gray-800">{{ $resortInfo->resort_name ?? 'তুফান কনভেনশন রিসোর্ট' }}</h1>
-            @endif
-            @if($resortInfo && $resortInfo->address)
-                <p class="text-gray-600 text-sm">{{ $resortInfo->address }}</p>
-            @endif
-            <p class="text-gray-500 text-xs mt-1">
-                @if($resortInfo)
-                    @if($resortInfo->phone)Phone: {{ $resortInfo->phone }}@endif
-                    @if($resortInfo->phone && $resortInfo->email) | @endif
-                    @if($resortInfo->email)Email: {{ $resortInfo->email }}@endif
-                @endif
-            </p>
-        </div>
-        
-        <!-- Report Title -->
-        <div class="text-center mb-4">
-            <h2 class="text-xl font-bold text-gray-800 tracking-wider">রুম বুকিং রিপোর্ট</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                @if(request('start_date') || request('end_date'))
-                    তারিখ: {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'শুরু' }} 
-                    থেকে {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'শেষ' }}
-                @else
-                    তারিখ: {{ date('d-m-Y') }}
-                @endif
-                @if(request('status'))
-                    | স্ট্যাটাস: {{ request('status') }}
-                @endif
-            </p>
-        </div>
-    </div>
-
     <!-- Summary Stats -->
     @php
         $summaryRoomRent = $bookings->sum(fn($b) => $b->getCalculatedTotal());
@@ -105,13 +69,13 @@
             <p class="text-gray-600 text-xs">রুম ভাড়া</p>
             <p class="text-xl font-bold text-blue-700 print:text-base">৳{{ number_format($summaryRoomRent, 0) }}</p>
         </div>
-        <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200 print:p-2">
-            <p class="text-gray-600 text-xs">অতিরিক্ত চার্জ</p>
-            <p class="text-xl font-bold text-purple-700 print:text-base">৳{{ number_format($summaryExtra, 0) }}</p>
-        </div>
         <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200 print:p-2">
             <p class="text-gray-600 text-xs">ডিসকাউন্ট</p>
             <p class="text-xl font-bold text-orange-600 print:text-base">৳{{ number_format($summaryDiscount, 0) }}</p>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200 print:p-2">
+            <p class="text-gray-600 text-xs">অতিরিক্ত চার্জ</p>
+            <p class="text-xl font-bold text-purple-700 print:text-base">৳{{ number_format($summaryExtra, 0) }}</p>
         </div>
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">মোট বিল</p>
@@ -136,8 +100,8 @@
 
     <!-- Bookings Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden print:shadow-none print:rounded-none print:overflow-visible">
-        <div class="w-full overflow-x-auto print:overflow-visible">
-            <table class="w-full text-sm border-collapse border border-gray-400">
+        <div class="report-table-container print:overflow-visible">
+            <table class="report-table text-sm border border-gray-400">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">তারিখ</th>
@@ -146,8 +110,8 @@
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">কোম্পানী</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">রুম</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ভাড়া</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অতিরিক্ত</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ছাড়</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অতিরিক্ত</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অগ্রিম</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বাকি</th>
@@ -175,8 +139,8 @@
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold whitespace-nowrap">{{ number_format($grandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($booking->advance_payment, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold whitespace-nowrap">{{ number_format($calculatedRemaining, 0) }}</td>
@@ -203,8 +167,8 @@
                     <tr class="bg-gray-200 font-bold">
                         <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">মোট:</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-blue-600 whitespace-nowrap">{{ number_format($sumRoomRent, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-purple-600 whitespace-nowrap">{{ number_format($sumExtra, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-orange-600 whitespace-nowrap">{{ number_format($sumDiscount, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-purple-600 whitespace-nowrap">{{ number_format($sumExtra, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">{{ number_format($sumGrandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($sumAdvance, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($totalRemaining, 0) }}</td>
@@ -219,13 +183,7 @@
 
     <div class="mt-6 print:hidden">{{ $bookings->links() }}</div>
 
-    <!-- Print Footer -->
-    <div class="hidden print:block mt-6 pt-3 border-t border-gray-400 text-xs text-gray-600">
-        <div class="flex justify-between">
-            <div>প্রিন্ট তারিখ: {{ now()->format('d-m-Y H:i') }}</div>
-            <div>Developed by Mir Javed Jeetu | 01811480222</div>
-        </div>
-    </div>
+    @include('admin.reports.partials.shared-footer')
 </div>
 
 <!-- Guest Info Modal -->

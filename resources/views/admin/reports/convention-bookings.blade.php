@@ -1,10 +1,11 @@
 @extends('layouts.admin')
 @section('content')
 <div class="p-6">
-    <div class="mb-6 print:hidden">
-        <h1 class="text-3xl font-bold text-gray-800">কনভেনশন বুকিং রিপোর্ট</h1>
-        <p class="text-gray-600 mt-2">তারিখ: {{ date('d-m-Y') }}</p>
-    </div>
+    @include('admin.reports.partials.shared-header', [
+        'title' => 'কনভেনশন বুকিং রিপোর্ট',
+        'subtitle' => 'হল বুকিং, পেমেন্ট ও বকেয়ার সারাংশ'
+    ])
+    @include('admin.reports.partials.shared-styles')
 
     <!-- Filter Section -->
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 print:hidden">
@@ -73,43 +74,6 @@
         </form>
     </div>
 
-    <!-- Print Header - Invoice Style -->
-    <div class="hidden print:block mb-6">
-        <div class="text-center border-b-2 border-gray-700 pb-4 mb-4">
-            @if($resortInfo && $resortInfo->header_logo)
-                <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-16 mx-auto mb-2">
-            @else
-                <h1 class="text-2xl font-bold text-gray-800">{{ $resortInfo->resort_name ?? 'তুফান কনভেনশন রিসোর্ট' }}</h1>
-            @endif
-            @if($resortInfo && $resortInfo->address)
-                <p class="text-gray-600 text-sm">{{ $resortInfo->address }}</p>
-            @endif
-            <p class="text-gray-500 text-xs mt-1">
-                @if($resortInfo)
-                    @if($resortInfo->phone)Phone: {{ $resortInfo->phone }}@endif
-                    @if($resortInfo->phone && $resortInfo->email) | @endif
-                    @if($resortInfo->email)Email: {{ $resortInfo->email }}@endif
-                @endif
-            </p>
-        </div>
-        
-        <!-- Report Title -->
-        <div class="text-center mb-4">
-            <h2 class="text-xl font-bold text-gray-800 tracking-wider">কনভেনশন বুকিং রিপোর্ট</h2>
-            <p class="text-sm text-gray-600 mt-1">
-                @if(request('start_date') || request('end_date'))
-                    তারিখ: {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'শুরু' }} 
-                    থেকে {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'শেষ' }}
-                @else
-                    তারিখ: {{ date('d-m-Y') }}
-                @endif
-                @if(request('status'))
-                    | স্ট্যাটাস: {{ request('status') }}
-                @endif
-            </p>
-        </div>
-    </div>
-
     <!-- Summary Stats -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 print:grid-cols-5 print:gap-2 print:text-xs">
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
@@ -143,23 +107,23 @@
 
     <!-- Bookings Table -->
     <div class="bg-white rounded-lg shadow overflow-hidden print:shadow-none print:rounded-none">
-        <div class="w-full">
-            <table class="w-full text-sm border-collapse border border-gray-400 table-fixed">
+        <div class="report-table-container">
+            <table class="report-table-wide text-sm border border-gray-400">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">তারিখ</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[9%]">মোবাইল নম্বর</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[10%]">নাম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[10%]">প্রতিষ্ঠান</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[7%]">হল</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">সময়</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বিল</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বিল জমা</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[6%]">VAT</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right w-[7%]">বাকি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[6%]">পেমেন্ট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 w-[8%]">মন্তব্য</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden w-[6%]">অ্যাকশন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">তারিখ</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">মোবাইল নম্বর</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">নাম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">প্রতিষ্ঠান</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">হল</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">সময়</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বিল</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বিল জমা</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">VAT</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বাকি</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">পেমেন্ট</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">মন্তব্য</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden whitespace-nowrap">অ্যাকশন</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -218,13 +182,7 @@
 
     <div class="mt-6 print:hidden">{{ $bookings->links() }}</div>
 
-    <!-- Print Footer -->
-    <div class="hidden print:block mt-6 pt-3 border-t border-gray-400 text-xs text-gray-600">
-        <div class="flex justify-between">
-            <div>প্রিন্ট তারিখ: {{ now()->format('d-m-Y H:i') }}</div>
-            <div>Developed by Mir Javed Jeetu | 01811480222</div>
-        </div>
-    </div>
+    @include('admin.reports.partials.shared-footer')
 </div>
 
 <!-- Convention Info Modal -->

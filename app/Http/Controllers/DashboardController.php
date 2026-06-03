@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\BookingRoom;
 use App\Models\ConventionBooking;
 use App\Models\ConventionHall;
 use App\Models\Room;
@@ -32,16 +31,7 @@ class DashboardController extends Controller
             ->pluck('room_id')
             ->toArray();
         
-        // Check booking_rooms table for multi-room bookings
-        $occupiedRoomIdsMulti = BookingRoom::whereHas('booking', function($q) use ($today) {
-                $q->whereIn('status', ['confirmed', 'checked_in'])
-                  ->where('check_in_date', '<=', $today)
-                  ->where('check_out_date', '>', $today);
-            })
-            ->pluck('room_id')
-            ->toArray();
-        
-        $occupiedRoomIds = array_unique(array_merge($occupiedRoomIdsLegacy, $occupiedRoomIdsMulti));
+        $occupiedRoomIds = $occupiedRoomIdsLegacy;
         
         $totalRooms = Room::count();
         $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
@@ -103,20 +93,7 @@ class DashboardController extends Controller
                 ->where('check_out_date', '>', $today)
                 ->first();
             
-            // If not found in legacy, check booking_rooms table
-            if (!$currentBooking) {
-                $bookingRoom = BookingRoom::where('room_id', $room->id)
-                    ->whereHas('booking', function($q) use ($today) {
-                        $q->whereIn('status', ['confirmed', 'checked_in'])
-                          ->where('check_in_date', '<=', $today)
-                          ->where('check_out_date', '>', $today);
-                    })
-                    ->with('booking')
-                    ->first();
-                if ($bookingRoom) {
-                    $currentBooking = $bookingRoom->booking;
-                }
-            }
+            $status = 'available';
             
             // Check upcoming bookings - legacy
             $upcomingBooking = Booking::where('room_id', $room->id)
@@ -124,20 +101,6 @@ class DashboardController extends Controller
                 ->where('check_in_date', '>', $today)
                 ->orderBy('check_in_date')
                 ->first();
-            
-            // If not found, check booking_rooms
-            if (!$upcomingBooking) {
-                $upcomingBookingRoom = BookingRoom::where('room_id', $room->id)
-                    ->whereHas('booking', function($q) use ($today) {
-                        $q->whereIn('status', ['confirmed', 'pending'])
-                          ->where('check_in_date', '>', $today);
-                    })
-                    ->with('booking')
-                    ->first();
-                if ($upcomingBookingRoom) {
-                    $upcomingBooking = $upcomingBookingRoom->booking;
-                }
-            }
             
             $roomsWithStatus[] = [
                 'room' => $room,

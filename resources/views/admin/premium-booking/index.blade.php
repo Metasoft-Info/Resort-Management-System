@@ -2,439 +2,451 @@
 
 @section('content')
 <div class="p-3 sm:p-4 lg:p-6">
-    <div class="mb-4 sm:mb-6">
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Room Booking</h1>
-        <p class="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">Comprehensive booking system with guest search, room availability</p>
-    </div>
+ <div class="mb-4 sm:mb-6">
+ <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Room Booking</h1>
+ <p class="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">Comprehensive booking system with guest search, room availability</p>
+ </div>
 
-    @if(isset($existingBooking) && $existingBooking)
-    <!-- Existing Booking Info - Adding Room Mode -->
-    <div class="bg-blue-50 border-2 border-blue-400 rounded-xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
-            <div class="flex items-start sm:items-center">
-                <i class="fas fa-info-circle text-xl sm:text-2xl lg:text-3xl text-blue-600 mr-3 sm:mr-4"></i>
-                <div>
-                    <h2 class="text-base sm:text-lg lg:text-xl font-bold text-blue-800">Adding Room to Booking #{{ $existingBooking->id }}</h2>
-                    <p class="text-xs sm:text-sm text-blue-600">Select additional rooms to add</p>
-                </div>
-            </div>
-            <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
-                <i class="fas fa-arrow-left mr-1"></i>Back to Booking
-            </a>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
-            <div>
-                <span class="font-semibold text-blue-800">Customer:</span>
-                <span class="text-gray-700">{{ $existingBooking->customer_name }}</span>
-            </div>
-            <div>
-                <span class="font-semibold text-blue-800">Dates:</span>
-                <span class="text-gray-700">{{ \Carbon\Carbon::parse($existingBooking->check_in_date)->format('d M') }} - {{ \Carbon\Carbon::parse($existingBooking->check_out_date)->format('d M Y') }}</span>
-            </div>
-            <div>
-                <span class="font-semibold text-blue-800">Total:</span>
-                <span class="text-gray-700">৳{{ number_format($existingBooking->getCalculatedTotal(), 0) }}</span>
-            </div>
-        </div>
-        <div class="mt-3 sm:mt-4">
-            <span class="font-semibold text-blue-800 text-sm">Already Booked:</span>
-            <div class="flex flex-wrap gap-1 sm:gap-2 mt-2">
-                @php $existingRooms = $existingBooking->getAllRooms(); @endphp
-                @foreach($existingRooms as $room)
-                    <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-blue-200 text-blue-800">
-                        <i class="fas fa-bed mr-1"></i>{{ $room->room_number }}
-                    </span>
-                @endforeach
-            </div>
-        </div>
-    </div>
-    @endif
+ @if(isset($existingBooking) && $existingBooking)
+ <!-- Existing Booking Info - Adding Room Mode -->
+ <div class="bg-blue-50 border-2 border-blue-400 rounded-xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
+ <div class="flex items-start sm:items-center">
+ <i class="fas fa-info-circle text-xl sm:text-2xl lg:text-3xl text-blue-600 mr-3 sm:mr-4"></i>
+ <div>
+ <h2 class="text-base sm:text-lg lg:text-xl font-bold text-blue-800">Adding Room to Booking #{{ $existingBooking->id }}</h2>
+ <p class="text-xs sm:text-sm text-blue-600">Select additional rooms to add</p>
+ </div>
+ </div>
+ <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="text-blue-600 hover:text-blue-800 text-sm">
+ <i class="fas fa-arrow-left mr-1"></i>Back to Booking
+ </a>
+ </div>
+ <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
+ <div>
+ <span class="font-semibold text-blue-800">Customer:</span>
+ <span class="text-gray-700">{{ $existingBooking->customer_name }}</span>
+ </div>
+ <div>
+ <span class="font-semibold text-blue-800">Dates:</span>
+ <span class="text-gray-700">{{ \Carbon\Carbon::parse($existingBooking->check_in_date)->format('d M') }} - {{ \Carbon\Carbon::parse($existingBooking->check_out_date)->format('d M Y') }}</span>
+ </div>
+ <div>
+ <span class="font-semibold text-blue-800">Total:</span>
+ <span class="text-gray-700">{{ number_format($existingBooking->getCalculatedTotal(), 0) }}</span>
+ </div>
+ </div>
+ <div class="mt-3 sm:mt-4">
+ <span class="font-semibold text-blue-800 text-sm">Already Booked:</span>
+ <div class="flex flex-wrap gap-1 sm:gap-2 mt-2">
+ @php $existingRooms = $existingBooking->getAllRooms(); @endphp
+ @foreach($existingRooms as $room)
+ <span class="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-blue-200 text-blue-800">
+ <i class="fas fa-bed mr-1"></i>{{ $room->room_number }}
+ </span>
+ @endforeach
+ </div>
+ </div>
+ </div>
+ @endif
 
-    <!-- Step 1: Room Availability -->
-    <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-        <div class="flex items-center mb-3 sm:mb-4">
-            <i class="fas fa-bed text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
-            <div>
-                <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 1: Check Availability</h2>
-                <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Select dates and find available rooms</p>
-            </div>
-        </div>
-        <form id="searchRoomsForm">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Check-in *</label>
-                    <input type="date" id="checkInDate" required
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Check-out *</label>
-                    <input type="date" id="checkOutDate" required
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">In Time</label>
-                    <input type="time" id="checkInTime" value="12:00"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Out Time</label>
-                    <input type="time" id="checkOutTime" value="12:00"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-            </div>
-            <button type="submit" class="mt-3 sm:mt-4 w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm sm:text-base">
-                <i class="fas fa-search mr-2"></i>Search Rooms
-            </button>
-        </form>
-        <div id="roomResults" class="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
-        
-        <!-- Selected Rooms Panel - Enhanced visibility -->
-        <div id="selectedRoomsPanel" class="hidden mt-4 sm:mt-6 bg-gradient-to-r from-green-100 to-emerald-100 border-4 border-green-500 rounded-xl p-4 sm:p-6 shadow-xl animate-pulse-once">
-            <div class="flex items-center justify-between mb-3 sm:mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="bg-green-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-lg sm:text-xl font-bold" id="selectedRoomCount">0</div>
-                    <div>
-                        <h3 class="text-lg sm:text-xl font-bold text-green-800"><i class="fas fa-check-circle mr-2"></i>Rooms Selected for Booking</h3>
-                        <p class="text-xs sm:text-sm text-green-600">Only these rooms will be booked</p>
-                    </div>
-                </div>
-                <button type="button" onclick="clearAllSelectedRooms()" class="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm transition"><i class="fas fa-trash mr-1"></i>Clear All</button>
-            </div>
-            <div id="selectedRoomsList" class="flex flex-wrap gap-2 sm:gap-3 mb-4"></div>
-            <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-green-400">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div class="text-center sm:text-left">
-                        <p class="text-green-800 font-bold text-lg sm:text-xl">Total Amount: <span id="selectedRoomsTotal" class="text-green-600">৳0</span></p>
-                        <p class="text-xs text-gray-500" id="selectedRoomsSummary">No rooms selected</p>
-                    </div>
-                    @if(isset($existingBooking) && $existingBooking)
-                    <button type="button" onclick="submitAddRooms()" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-sm sm:text-base font-semibold">
-                        <i class="fas fa-plus-circle mr-2"></i>Add These Rooms
-                    </button>
-                    @else
-                    <button type="button" onclick="proceedToBookingForm()" class="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg text-sm sm:text-base font-semibold">
-                        <i class="fas fa-arrow-right mr-2"></i>Proceed to Book
-                    </button>
-                    @endif
-                </div>
-            </div>
-        </div>
-        <style>
-            @keyframes pulse-once { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
-            .animate-pulse-once { animation: pulse-once 0.5s ease-in-out; }
-            .room-chip-selected { animation: pop-in 0.3s ease-out; }
-            @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        </style>
-    </div>
+ <!-- Step 1: Room Availability -->
+ <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <div class="flex items-center mb-3 sm:mb-4">
+ <i class="fas fa-bed text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
+ <div>
+ <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 1: Check Availability</h2>
+ <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Select dates and find available rooms</p>
+ </div>
+ </div>
+ <form id="searchRoomsForm">
+ <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Check-in *</label>
+ <input type="date" id="checkInDate" required
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Check-out *</label>
+ <input type="date" id="checkOutDate" required
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">In Time</label>
+ <input type="time" id="checkInTime" value="12:00"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Out Time</label>
+ <input type="time" id="checkOutTime" value="12:00"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ </div>
+ <button type="submit" class="mt-3 sm:mt-4 w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm sm:text-base">
+ <i class="fas fa-search mr-2"></i>Search Rooms
+ </button>
+ </form>
+ <div id="roomResults" class="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
+ 
+ <!-- Selected Rooms Panel - Enhanced visibility -->
+ <div id="selectedRoomsPanel" class="hidden mt-4 sm:mt-6 bg-gradient-to-r from-green-100 to-emerald-100 border-4 border-green-500 rounded-xl p-4 sm:p-6 shadow-xl animate-pulse-once">
+ <div class="flex items-center justify-between mb-3 sm:mb-4">
+ <div class="flex items-center gap-3">
+ <div class="bg-green-500 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-lg sm:text-xl font-bold" id="selectedRoomCount">0</div>
+ <div>
+ <h3 class="text-lg sm:text-xl font-bold text-green-800"><i class="fas fa-check-circle mr-2"></i>Rooms Selected for Booking</h3>
+ <p class="text-xs sm:text-sm text-green-600">Only these rooms will be booked</p>
+ </div>
+ </div>
+ <button type="button" onclick="clearAllSelectedRooms()" class="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm transition"><i class="fas fa-trash mr-1"></i>Clear All</button>
+ </div>
+ <div id="selectedRoomsList" class="flex flex-wrap gap-2 sm:gap-3 mb-4"></div>
+ <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-green-400">
+ <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div class="text-center sm:text-left">
+ <p class="text-green-800 font-bold text-lg sm:text-xl">Total Amount: <span id="selectedRoomsTotal" class="text-green-600">0</span></p>
+ <p class="text-xs text-gray-500" id="selectedRoomsSummary">No rooms selected</p>
+ </div>
+ @if(isset($existingBooking) && $existingBooking)
+ <button type="button" onclick="submitAddRooms()" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-sm sm:text-base font-semibold">
+ <i class="fas fa-plus-circle mr-2"></i>Add These Rooms
+ </button>
+ @else
+ <button type="button" onclick="proceedToBookingForm()" class="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-6 sm:px-8 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition shadow-lg text-sm sm:text-base font-semibold">
+ <i class="fas fa-arrow-right mr-2"></i>Proceed to Book
+ </button>
+ @endif
+ </div>
+ </div>
+ </div>
+ <style>
+ @keyframes pulse-once { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+ .animate-pulse-once { animation: pulse-once 0.5s ease-in-out; }
+ .room-chip-selected { animation: pop-in 0.3s ease-out; }
+ @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+ </style>
+ </div>
 
-    @if(!isset($existingBooking) || !$existingBooking)
-    <!-- Step 2: Customer Search (Optional) - Hidden when adding room to existing booking -->
-    <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-        <div class="flex items-center mb-3 sm:mb-4">
-            <i class="fas fa-user-search text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
-            <div>
-                <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 2: Customer Search</h2>
-                <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Search by Phone, NID, or Passport to auto-fill</p>
-            </div>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <input type="text" id="searchPhone" placeholder="Enter Phone / NID / Passport..." 
-                class="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-            <button onclick="searchCustomer()" class="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm">
-                <i class="fas fa-search mr-2"></i>Search
-            </button>
-        </div>
-        <div id="customerSearchResults" class="mt-3 sm:mt-4"></div>
-    </div>
-    @endif
+ @if(!isset($existingBooking) || !$existingBooking)
+ <!-- Step 2: Customer Search (Optional) - Hidden when adding room to existing booking -->
+ <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <div class="flex items-center mb-3 sm:mb-4">
+ <i class="fas fa-user-search text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
+ <div>
+ <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 2: Customer Search</h2>
+ <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Search by Phone, NID, or Passport to auto-fill</p>
+ </div>
+ </div>
+ <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+ <input type="text" id="searchPhone" placeholder="Enter Phone / NID / Passport..." 
+ class="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <button onclick="searchCustomer()" class="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm">
+ <i class="fas fa-search mr-2"></i>Search
+ </button>
+ </div>
+ <div id="customerSearchResults" class="mt-3 sm:mt-4"></div>
+ </div>
+ @endif
 
-    <!-- Step 3: Booking Form -->
-    <form id="bookingForm" class="hidden" onsubmit="submitBooking(event)">
-        <!-- Hidden field for existing booking ID when adding rooms -->
-        <input type="hidden" id="existing_booking_id" value="{{ $existingBooking->id ?? '' }}">
-        
-        <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg text-sm"></div>
+ <!-- Step 3: Booking Form -->
+ <form id="bookingForm" class="hidden" onsubmit="submitBooking(event)">
+ <!-- Hidden field for existing booking ID when adding rooms -->
+ <input type="hidden" id="existing_booking_id" value="{{ $existingBooking->id ?? '' }}">
+ 
+ <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg text-sm"></div>
 
-        @if(!isset($existingBooking) || !$existingBooking)
-        <!-- Customer Information - Hidden when adding room to existing booking -->
-        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-            <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
-                <i class="fas fa-user text-primary-600 mr-2 sm:mr-3"></i>
-                Customer Information
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Full Name *</label>
-                    <input type="text" id="customer_name" required
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID Number</label>
-                    <input type="text" id="customer_nid"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone *</label>
-                    <input type="tel" id="customer_phone" required
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">WhatsApp</label>
-                    <input type="tel" id="customer_whatsapp"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Email</label>
-                    <input type="email" id="customer_email"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
-                    <input type="text" id="passport_number"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Company</label>
-                    <input type="text" id="company_name"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Address</label>
-                    <textarea id="customer_address" rows="2"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
-                </div>
-            </div>
+ @if(!isset($existingBooking) || !$existingBooking)
+ <!-- Customer Information - Hidden when adding room to existing booking -->
+ <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+ <i class="fas fa-user text-primary-600 mr-2 sm:mr-3"></i>
+ Customer Information
+ </h2>
+ <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Full Name *</label>
+ <input type="text" id="customer_name" required
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID Number</label>
+ <input type="text" id="customer_nid"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone *</label>
+ <input type="tel" id="customer_phone" required
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">WhatsApp</label>
+ <input type="tel" id="customer_whatsapp"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Email</label>
+ <input type="email" id="customer_email"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
+ <input type="text" id="passport_number"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Company</label>
+ <input type="text" id="company_name"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Address</label>
+ <textarea id="customer_address" rows="2"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"></textarea>
+ </div>
+ </div>
 
-            <!-- Document Uploads -->
-            <div class="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
-                <h3 class="text-sm sm:text-lg font-bold text-gray-700 mb-3 sm:mb-4">Documents (Optional)</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Photo</label>
-                        <input type="file" id="customer_photo" accept="image/*"
-                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID</label>
-                        <input type="file" id="customer_nid_document" accept="image/*,application/pdf"
-                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
-                        <input type="file" id="passport_document" accept="image/*,application/pdf"
-                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">V. Card</label>
-                        <input type="file" id="visiting_card" accept="image/*"
-                            class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
-                    </div>
-                </div>
-            </div>
+ <!-- Document Uploads -->
+ <div class="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
+ <h3 class="text-sm sm:text-lg font-bold text-gray-700 mb-3 sm:mb-4">Documents (Optional)</h3>
+ <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Photo</label>
+ <input type="file" id="customer_photo" accept="image/*"
+ class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID</label>
+ <input type="file" id="customer_nid_document" accept="image/*,application/pdf"
+ class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
+ <input type="file" id="passport_document" accept="image/*,application/pdf"
+ class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">V. Card</label>
+ <input type="file" id="visiting_card" accept="image/*"
+ class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ </div>
+ </div>
+ </div>
 
-            <!-- Reference Person -->
-            <div class="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
-                <h3 class="text-sm sm:text-lg font-bold text-gray-700 mb-3 sm:mb-4">Reference (Optional)</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Name</label>
-                        <input type="text" id="reference_name"
-                            class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone</label>
-                        <input type="tel" id="reference_phone"
-                            class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
+ <!-- Reference Person -->
+ <div class="mt-4 sm:mt-6 border-t pt-4 sm:pt-6">
+ <h3 class="text-sm sm:text-lg font-bold text-gray-700 mb-3 sm:mb-4">Reference (Optional)</h3>
+ <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Name</label>
+ <input type="text" id="reference_name"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone</label>
+ <input type="tel" id="reference_phone"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500">
+ </div>
+ </div>
+ </div>
+ </div>
+ @endif
 
-        @if(!isset($existingBooking) || !$existingBooking)
-        <!-- Additional Guests -->
-        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-            <div class="flex justify-between items-center mb-3 sm:mb-4">
-                <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-users text-primary-600 mr-2 sm:mr-3"></i>
-                    <span class="hidden sm:inline">Additional </span>Guests
-                </h2>
-                <button type="button" onclick="addAdditionalGuest()" class="bg-primary-600 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-primary-700 transition text-xs sm:text-sm">
-                    <i class="fas fa-plus mr-1 sm:mr-2"></i>Add
-                </button>
-            </div>
-            <div id="additionalGuestsList"></div>
-        </div>
-        @endif
+ @if(!isset($existingBooking) || !$existingBooking)
+ <!-- Additional Guests -->
+ <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <div class="flex justify-between items-center mb-3 sm:mb-4">
+ <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 flex items-center">
+ <i class="fas fa-users text-primary-600 mr-2 sm:mr-3"></i>
+ <span class="hidden sm:inline">Additional </span>Guests
+ </h2>
+ <button type="button" onclick="addAdditionalGuest()" class="bg-primary-600 text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg hover:bg-primary-700 transition text-xs sm:text-sm">
+ <i class="fas fa-plus mr-1 sm:mr-2"></i>Add
+ </button>
+ </div>
+ <div id="additionalGuestsList"></div>
+ </div>
+ @endif
 
-        @if(!isset($existingBooking) || !$existingBooking)
-        <!-- Booking Details -->
-        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-            <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
-                <i class="fas fa-calendar-check text-primary-600 mr-2 sm:mr-3"></i>
-                Booking Details
-            </h2>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Guests *</label>
-                    <input type="number" id="number_of_guests" min="1" value="1" required
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">AC *</label>
-                    <select id="ac_preference" required onchange="recalculateAmount()"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        <option value="ac">AC</option>
-                        <option value="non-ac">Non-AC</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Status *</label>
-                    <select id="status" required
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
-                        <option value="confirmed">Confirmed</option>
-                        <option value="pending">Pending</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Nights</label>
-                    <input type="text" id="totalNights" readonly
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
-                </div>
-                <div class="col-span-2 lg:col-span-4">
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Notes</label>
-                    <textarea id="notes" rows="2"
-                        class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
-                </div>
-            </div>
-        </div>
+ @if(!isset($existingBooking) || !$existingBooking)
+ <!-- Booking Details -->
+ <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+ <i class="fas fa-calendar-check text-primary-600 mr-2 sm:mr-3"></i>
+ Booking Details
+ </h2>
+ <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Guests *</label>
+ <input type="number" id="number_of_guests" min="1" value="1" required
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">AC *</label>
+ <select id="ac_preference" required onchange="recalculateAmount()"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+ <option value="ac">AC</option>
+ <option value="non-ac">Non-AC</option>
+ </select>
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Status *</label>
+ <select id="status" required
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+ <option value="confirmed">Confirmed</option>
+ <option value="pending">Pending</option>
+ </select>
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Booking Purpose</label>
+ <select id="booking_purpose"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+ <option value="">Select Purpose</option>
+ <option value="company">Company</option>
+ <option value="family">Family</option>
+ <option value="wedding">Wedding</option>
+ <option value="single">Single</option>
+ <option value="others">Others</option>
+ </select>
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Nights</label>
+ <input type="text" id="totalNights" readonly
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
+ </div>
+ <div class="col-span-2 lg:col-span-4">
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Notes</label>
+ <textarea id="notes" rows="2"
+ class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
+ </div>
+ </div>
+ </div>
 
-        <!-- Payment & Pricing - Hidden when adding to existing booking -->
-        @endif
-        @if(!isset($existingBooking) || !$existingBooking)
-        <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-            <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
-                <i class="fas fa-money-bill-wave text-yellow-600 mr-2 sm:mr-3"></i>
-                Payment & Pricing
-            </h2>
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Base (৳)</label>
-                    <input type="number" id="baseAmount" step="0.01" readonly
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
-                        <input type="checkbox" id="vat_enabled" onchange="recalculateAmount()"> VAT 15%
-                    </label>
-                    <input type="number" id="vat_amount" step="0.01" readonly
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount</label>
-                    <select id="discount_type" onchange="recalculateAmount()"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                        <option value="none">None</option>
-                        <option value="percentage">%</option>
-                        <option value="flat">Flat</option>
-                    </select>
-                </div>
-                <div id="discount_percentage_div" class="hidden">
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount %</label>
-                    <input type="number" id="discount_percentage" min="0" max="100" step="0.01" value="0" onchange="recalculateAmount()"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                </div>
-                <div id="discount_amount_div" class="hidden">
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount ৳</label>
-                    <input type="number" id="discount_amount" step="0.01" value="0" onchange="recalculateAmount()"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                </div>
-                <div>
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra (৳)</label>
-                    <input type="number" id="extra_charges" step="0.01" value="0" onchange="recalculateAmount()"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra Description</label>
-                    <input type="text" id="extra_charges_description"
-                        class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                </div>
-                <div class="col-span-2 lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-3 sm:p-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                        <div>
-                            <label class="block text-xs sm:text-sm font-semibold text-primary-700 mb-1 sm:mb-2">Total *</label>
-                            <input type="number" id="total_amount" step="0.01" required readonly
-                                class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border-2 border-green-600 rounded-lg bg-white font-bold text-primary-600">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Advance</label>
-                            <input type="number" id="advance_payment" step="0.01" value="0" oninput="calculateRemaining()"
-                                class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Remaining</label>
-                            <input type="number" id="remaining_payment" step="0.01" readonly
-                                class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-yellow-50 font-bold text-yellow-600">
-                        </div>
-                    </div>
-                </div>
-                <div class="col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-                    <div>
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Payment Method *</label>
-                        <select id="payment_method" required onchange="togglePaymentFields()"
-                            class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-                            <option value="cash">Cash</option>
-                            <option value="bkash">bKash</option>
-                            <option value="card">Card</option>
-                        </select>
-                    </div>
-                    <div id="bkash_field" class="hidden">
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">bKash Number</label>
-                        <input type="text" id="bkash_number" placeholder="01XXXXXXXXX"
-                            class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                    </div>
-                    <div id="bank_field" class="hidden">
-                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Bank</label>
-                        <select id="bank_name"
-                            class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                            <option value="">Select Bank</option>
-                            <option value="Pubali Bank">Pubali Bank</option>
-                            <option value="City Bank">City Bank</option>
-                            <option value="Dutch Bangla Bank">DBBL</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
+ <!-- Payment & Pricing - Hidden when adding to existing booking -->
+ @endif
+ @if(!isset($existingBooking) || !$existingBooking)
+ <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+ <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+ <i class="fas fa-money-bill-wave text-yellow-600 mr-2 sm:mr-3"></i>
+ Payment & Pricing
+ </h2>
+ <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Base ()</label>
+ <input type="number" id="baseAmount" step="0.01" readonly
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
+ <input type="checkbox" id="vat_enabled" onchange="recalculateAmount()"> VAT 15%
+ </label>
+ <input type="number" id="vat_amount" step="0.01" readonly
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-gray-100">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount</label>
+ <select id="discount_type" onchange="recalculateAmount()"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <option value="none">None</option>
+ <option value="percentage">%</option>
+ <option value="flat">Flat</option>
+ </select>
+ </div>
+ <div id="discount_percentage_div" class="hidden">
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount %</label>
+ <input type="number" id="discount_percentage" min="0" max="100" step="0.01" value="0" onchange="recalculateAmount()"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ </div>
+ <div id="discount_amount_div" class="hidden">
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount </label>
+ <input type="number" id="discount_amount" step="0.01" value="0" onchange="recalculateAmount()"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra ()</label>
+ <input type="number" id="extra_charges" step="0.01" value="0" onchange="recalculateAmount()"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ </div>
+ <div class="col-span-2">
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra Description</label>
+ <input type="text" id="extra_charges_description"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ </div>
+ <div class="col-span-2 lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-3 sm:p-4">
+ <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-primary-700 mb-1 sm:mb-2">Total *</label>
+ <input type="number" id="total_amount" step="0.01" required readonly
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border-2 border-green-600 rounded-lg bg-white font-bold text-primary-600">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Advance</label>
+ <input type="number" id="advance_payment" step="0.01" value="0" oninput="calculateRemaining()"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Remaining</label>
+ <input type="number" id="remaining_payment" step="0.01" readonly
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg bg-yellow-50 font-bold text-yellow-600">
+ </div>
+ </div>
+ </div>
+ <div class="col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Payment Method *</label>
+ <select id="payment_method" required onchange="togglePaymentFields()"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <option value="cash">Cash</option>
+ <option value="bkash">bKash</option>
+ <option value="card">Card</option>
+ </select>
+ </div>
+ <div id="bkash_field" class="hidden">
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">bKash Number</label>
+ <input type="text" id="bkash_number" placeholder="01XXXXXXXXX"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div id="bank_field" class="hidden">
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Bank</label>
+ <select id="bank_name"
+ class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <option value="">Select Bank</option>
+ <option value="Pubali Bank">Pubali Bank</option>
+ <option value="City Bank">City Bank</option>
+ <option value="Dutch Bangla Bank">DBBL</option>
+ </select>
+ </div>
+ </div>
+ </div>
+ </div>
+ @endif
 
-        <!-- Hidden Fields -->
-        <input type="hidden" id="room_id">
-        <input type="hidden" id="check_in_date">
-        <input type="hidden" id="check_out_date">
-        <input type="hidden" id="check_in_time_hidden">
-        <input type="hidden" id="check_out_time_hidden">
-        <input type="hidden" id="price_per_night">
+ <!-- Hidden Fields -->
+ <input type="hidden" id="room_id">
+ <input type="hidden" id="check_in_date">
+ <input type="hidden" id="check_out_date">
+ <input type="hidden" id="check_in_time_hidden">
+ <input type="hidden" id="check_out_time_hidden">
+ <input type="hidden" id="price_per_night">
 
-        <!-- Submit Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            @if(isset($existingBooking) && $existingBooking)
-            <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-sm sm:text-lg font-bold">
-                <i class="fas fa-plus-circle mr-2"></i>Add Rooms to Booking #{{ $existingBooking->id }}
-            </button>
-            <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="bg-gray-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-gray-600 transition flex items-center justify-center text-sm">
-                <i class="fas fa-arrow-left mr-2"></i>Back
-            </a>
-            @else
-            <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm sm:text-lg font-bold">
-                <i class="fas fa-check-circle mr-2"></i>Confirm Booking
-            </button>
-            <button type="button" onclick="resetAll()" class="bg-gray-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-gray-600 transition text-sm">
-                <i class="fas fa-times mr-2"></i>Cancel
-            </button>
-            @endif
-        </div>
-    </form>
+ <!-- Submit Buttons -->
+ <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
+ @if(isset($existingBooking) && $existingBooking)
+ <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition shadow-lg text-sm sm:text-lg font-bold">
+ <i class="fas fa-plus-circle mr-2"></i>Add Rooms to Booking #{{ $existingBooking->id }}
+ </button>
+ <a href="{{ route('admin.bookings.show', $existingBooking->id) }}" class="bg-gray-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-gray-600 transition flex items-center justify-center text-sm">
+ <i class="fas fa-arrow-left mr-2"></i>Back
+ </a>
+ @else
+ <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm sm:text-lg font-bold">
+ <i class="fas fa-check-circle mr-2"></i>Confirm Booking
+ </button>
+ <button type="button" onclick="resetAll()" class="bg-gray-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-lg hover:bg-gray-600 transition text-sm">
+ <i class="fas fa-times mr-2"></i>Cancel
+ </button>
+ @endif
+ </div>
+ </form>
 </div>
 
 <script>
@@ -446,510 +458,510 @@ let lastSearchDates = ''; // Track date changes
 
 // Helper function - ALWAYS use this to compare room IDs
 function normalizeRoomId(id) {
-    return parseInt(id, 10);
+ return parseInt(id, 10);
 }
 
 // Helper function - check if room is in selection
 function isRoomSelected(roomId) {
-    const normalizedId = normalizeRoomId(roomId);
-    return selectedRooms.some(r => normalizeRoomId(r.roomId) === normalizedId);
+ const normalizedId = normalizeRoomId(roomId);
+ return selectedRooms.some(r => normalizeRoomId(r.roomId) === normalizedId);
 }
 
 // Customer Search
 async function searchCustomer() {
-    const searchQuery = document.getElementById('searchPhone').value.trim();
-    const resultsDiv = document.getElementById('customerSearchResults');
-    
-    if (!searchQuery) {
-        resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700">Please enter Phone, NID, or Passport number</p></div>';
-        return;
-    }
+ const searchQuery = document.getElementById('searchPhone').value.trim();
+ const resultsDiv = document.getElementById('customerSearchResults');
+ 
+ if (!searchQuery) {
+ resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700">Please enter Phone, NID, or Passport number</p></div>';
+ return;
+ }
 
-    resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i><p class="text-gray-600 mt-2">Searching...</p></div>';
+ resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i><p class="text-gray-600 mt-2">Searching...</p></div>';
 
-    try {
-        // Use dedicated endpoint that returns latest customer data
-        const response = await fetch(`{{ route('admin.premium-booking.search-customer') }}?query=${encodeURIComponent(searchQuery)}`, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        
-        const data = await response.json();
+ try {
+ // Use dedicated endpoint that returns latest customer data
+ const response = await fetch(`{{ route('admin.premium-booking.search-customer') }}?query=${encodeURIComponent(searchQuery)}`, {
+ headers: {
+ 'Accept': 'application/json',
+ 'X-Requested-With': 'XMLHttpRequest'
+ }
+ });
+ 
+ const data = await response.json();
 
-        if (data.success && data.customer) {
-            fillCustomerInfo(data.customer);
-            resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4"><p class="text-primary-700"><i class="fas fa-check-circle mr-2"></i>Customer found! Latest information auto-filled below.</p></div>';
-        } else {
-            resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700"><i class="fas fa-info-circle mr-2"></i>No previous bookings found</p></div>';
-        }
-    } catch (error) {
-        console.error('Search error:', error);
-        resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-4"><p class="text-red-600">Error searching customer</p></div>';
-    }
+ if (data.success && data.customer) {
+ fillCustomerInfo(data.customer);
+ resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4"><p class="text-primary-700"><i class="fas fa-check-circle mr-2"></i>Customer found! Latest information auto-filled below.</p></div>';
+ } else {
+ resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700"><i class="fas fa-info-circle mr-2"></i>No previous bookings found</p></div>';
+ }
+ } catch (error) {
+ console.error('Search error:', error);
+ resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-4"><p class="text-red-600">Error searching customer</p></div>';
+ }
 }
 
 function fillCustomerInfo(customer) {
-    document.getElementById('customer_name').value = customer.customer_name || '';
-    document.getElementById('customer_nid').value = customer.customer_nid || '';
-    document.getElementById('customer_phone').value = customer.customer_phone || '';
-    document.getElementById('customer_whatsapp').value = customer.customer_whatsapp || '';
-    document.getElementById('customer_email').value = customer.customer_email || '';
-    document.getElementById('passport_number').value = customer.passport_number || '';
-    document.getElementById('customer_address').value = customer.customer_address || '';
-    document.getElementById('company_name').value = customer.company_name || '';
-    document.getElementById('reference_name').value = customer.reference_name || '';
-    document.getElementById('reference_phone').value = customer.reference_phone || '';
+ document.getElementById('customer_name').value = customer.customer_name || '';
+ document.getElementById('customer_nid').value = customer.customer_nid || '';
+ document.getElementById('customer_phone').value = customer.customer_phone || '';
+ document.getElementById('customer_whatsapp').value = customer.customer_whatsapp || '';
+ document.getElementById('customer_email').value = customer.customer_email || '';
+ document.getElementById('passport_number').value = customer.passport_number || '';
+ document.getElementById('customer_address').value = customer.customer_address || '';
+ document.getElementById('company_name').value = customer.company_name || '';
+ document.getElementById('reference_name').value = customer.reference_name || '';
+ document.getElementById('reference_phone').value = customer.reference_phone || '';
 }
 
 // Room Search
 document.getElementById('searchRoomsForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const checkIn = document.getElementById('checkInDate').value;
-    const checkOut = document.getElementById('checkOutDate').value;
-    const checkInTime = document.getElementById('checkInTime').value;
-    const checkOutTime = document.getElementById('checkOutTime').value;
+ e.preventDefault();
+ 
+ const checkIn = document.getElementById('checkInDate').value;
+ const checkOut = document.getElementById('checkOutDate').value;
+ const checkInTime = document.getElementById('checkInTime').value;
+ const checkOutTime = document.getElementById('checkOutTime').value;
 
-    try {
-        const response = await fetch('{{ route("admin.premium-booking.search") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                checkIn,
-                checkOut,
-                roomTypeId: null,
-                excludeBookingId: '{{ $existingBooking->id ?? "" }}'
-            })
-        });
+ try {
+ const response = await fetch('{{ route("admin.premium-booking.search") }}', {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ 'X-CSRF-TOKEN': '{{ csrf_token() }}'
+ },
+ body: JSON.stringify({
+ checkIn,
+ checkOut,
+ roomTypeId: null,
+ excludeBookingId: '{{ $existingBooking->id ?? "" }}'
+ })
+ });
 
-        const data = await response.json();
-        const container = document.getElementById('roomResults');
-        container.innerHTML = '';
-        
-        const nights = Math.max(1, Math.floor(data.nights || 1));
-        
-        // Check if dates changed - if so, clear selection
-        const newSearchKey = `${checkIn}-${checkOut}`;
-        if (lastSearchDates && lastSearchDates !== newSearchKey) {
-            console.log('⚠️ Dates changed, clearing room selection');
-            selectedRooms = [];
-            updateSelectedRoomsPanel();
-        }
-        lastSearchDates = newSearchKey;
-        
-        // Store search dates for later use
-        currentSearchDates = { checkIn, checkOut, checkInTime, checkOutTime, nights };
+ const data = await response.json();
+ const container = document.getElementById('roomResults');
+ container.innerHTML = '';
+ 
+ const nights = Math.max(1, Math.floor(data.nights || 1));
+ 
+ // Check if dates changed - if so, clear selection
+ const newSearchKey = `${checkIn}-${checkOut}`;
+ if (lastSearchDates && lastSearchDates !== newSearchKey) {
+ console.log('⚠️ Dates changed, clearing room selection');
+ selectedRooms = [];
+ updateSelectedRoomsPanel();
+ }
+ lastSearchDates = newSearchKey;
+ 
+ // Store search dates for later use
+ currentSearchDates = { checkIn, checkOut, checkInTime, checkOutTime, nights };
 
-        if (data.availableRooms.length === 0) {
-            container.innerHTML = '<p class="text-gray-500 col-span-full text-center py-6 sm:py-8 text-sm">No rooms available for selected dates</p>';
-        } else {
-            data.availableRooms.forEach(room => {
-                const pricePerNight = parseFloat(room.price_per_night) || parseFloat(room.room_type?.base_price) || 0;
-                const totalPrice = pricePerNight * nights;
-                const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
-                const isSelected = isRoomSelected(room.id); // Use helper function
-                
-                container.innerHTML += `
-                    <div id="roomCard-${room.id}" class="border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'} rounded-lg overflow-hidden hover:border-primary-500 hover:shadow-lg transition cursor-pointer">
-                        <div class="h-24 sm:h-32 bg-gradient-to-br from-blue-400 to-primary-500 relative">
-                            ${roomImage ? `<img src="/storage/${roomImage}" alt="${room.name || room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-2xl sm:text-4xl text-white/50"></i></div>`}
-                            <div class="absolute top-1 sm:top-2 right-1 sm:right-2 bg-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold text-primary-700">${room.room_type?.name || room.type || 'N/A'}</div>
-                            ${isSelected ? '<div class="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold"><i class="fas fa-check"></i></div>' : ''}
-                        </div>
-                        <div class="p-2 sm:p-4">
-                            <h3 class="font-bold text-sm sm:text-lg text-gray-800">Room ${room.room_number}</h3>
-                            <p class="text-xs sm:text-sm text-gray-600">${room.room_type?.name || 'Room'}</p>
-                            <p class="text-primary-600 font-semibold mt-1 sm:mt-2 text-sm sm:text-base">৳${pricePerNight.toLocaleString()} /night</p>
-                            <p class="text-xs sm:text-sm text-gray-500">${nights}N = ৳${totalPrice.toLocaleString()}</p>
-                            <button type="button" onclick="toggleRoomSelection(${room.id}, '${room.room_number}', '${(room.name || room.room_type?.name || 'Room').replace(/'/g, "\\'")}', ${nights}, ${pricePerNight}, event)" 
-                                class="mt-2 sm:mt-3 w-full ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'} text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition text-xs sm:text-sm" data-room-id="${room.id}">
-                                <i class="fas ${isSelected ? 'fa-times' : 'fa-plus'} mr-1 sm:mr-2"></i>${isSelected ? 'Remove' : 'Add'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-    } catch (error) {
-        console.error('Search error:', error);
-        showGlobalModal('error', 'Error searching rooms');
-    }
+ if (data.availableRooms.length === 0) {
+ container.innerHTML = '<p class="text-gray-500 col-span-full text-center py-6 sm:py-8 text-sm">No rooms available for selected dates</p>';
+ } else {
+ data.availableRooms.forEach(room => {
+ const pricePerNight = parseFloat(room.price_per_night) || parseFloat(room.room_type?.base_price) || 0;
+ const totalPrice = pricePerNight * nights;
+ const roomImage = room.images && room.images.length > 0 ? room.images[0] : null;
+ const isSelected = isRoomSelected(room.id); // Use helper function
+ 
+ container.innerHTML += `
+ <div id="roomCard-${room.id}" class="border-2 ${isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-white'} rounded-lg overflow-hidden hover:border-primary-500 hover:shadow-lg transition cursor-pointer">
+ <div class="h-24 sm:h-32 bg-gradient-to-br from-blue-400 to-primary-500 relative">
+ ${roomImage ? `<img src="/storage/${roomImage}" alt="${room.name || room.room_number}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-bed text-2xl sm:text-4xl text-white/50"></i></div>`}
+ <div class="absolute top-1 sm:top-2 right-1 sm:right-2 bg-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold text-primary-700">${room.room_type?.name || room.type || 'N/A'}</div>
+ ${isSelected ? '<div class="absolute top-1 sm:top-2 left-1 sm:left-2 bg-green-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-bold"><i class="fas fa-check"></i></div>' : ''}
+ </div>
+ <div class="p-2 sm:p-4">
+ <h3 class="font-bold text-sm sm:text-lg text-gray-800">Room ${room.room_number}</h3>
+ <p class="text-xs sm:text-sm text-gray-600">${room.room_type?.name || 'Room'}</p>
+ <p class="text-primary-600 font-semibold mt-1 sm:mt-2 text-sm sm:text-base">${pricePerNight.toLocaleString()} /night</p>
+ <p class="text-xs sm:text-sm text-gray-500">${nights}N = ${totalPrice.toLocaleString()}</p>
+ <button type="button" onclick="toggleRoomSelection(${room.id}, '${room.room_number}', '${(room.name || room.room_type?.name || 'Room').replace(/'/g, "\\'")}', ${nights}, ${pricePerNight}, event)" 
+ class="mt-2 sm:mt-3 w-full ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'} text-white px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg transition text-xs sm:text-sm" data-room-id="${room.id}">
+ <i class="fas ${isSelected ? 'fa-times' : 'fa-plus'} mr-1 sm:mr-2"></i>${isSelected ? 'Remove' : 'Add'}
+ </button>
+ </div>
+ </div>
+ `;
+ });
+ }
+ } catch (error) {
+ console.error('Search error:', error);
+ showGlobalModal('error', 'Error searching rooms');
+ }
 });
 
 // Toggle room selection (add/remove from list) - with strict duplicate prevention and debounce
 function toggleRoomSelection(roomId, roomNumber, roomName, nights, pricePerNight, event) {
-    // Prevent event bubbling
-    if (event) {
-        event.stopPropagation();
-        event.preventDefault();
-    }
-    
-    // Debounce - prevent double-clicks (500ms)
-    const now = Date.now();
-    if (now - lastToggleTime < 500) {
-        console.warn('⚡ Toggle debounced - too fast!');
-        return;
-    }
-    lastToggleTime = now;
-    
-    // Validate and normalize input
-    roomId = normalizeRoomId(roomId);
-    if (!roomId || isNaN(roomId)) {
-        console.error('❌ Invalid room ID:', roomId);
-        return;
-    }
-    
-    console.log('🔄 Toggle Room Selection:', { roomId, roomNumber, currentCount: selectedRooms.length });
-    console.log('📋 BEFORE:', JSON.stringify(selectedRooms.map(r => ({id: r.roomId, num: r.roomNumber}))));
-    
-    const existingIndex = selectedRooms.findIndex(r => normalizeRoomId(r.roomId) === roomId);
-    
-    if (existingIndex >= 0) {
-        // Remove room
-        selectedRooms.splice(existingIndex, 1);
-        console.log('➖ Room REMOVED:', roomNumber, 'Total now:', selectedRooms.length);
-    } else {
-        // Triple-check not already added (safety)
-        if (isRoomSelected(roomId)) {
-            console.error('🚫 Room already in selection (triple-check failed), skipping:', roomNumber);
-            return;
-        }
-        // Add room
-        selectedRooms.push({roomId: roomId, roomNumber: String(roomNumber), roomName, nights, pricePerNight});
-        console.log('➕ Room ADDED:', roomNumber, 'Total now:', selectedRooms.length);
-    }
-    
-    // Log final state
-    console.log('📋 AFTER:', JSON.stringify(selectedRooms.map(r => ({id: r.roomId, num: r.roomNumber}))));
-    
-    updateSelectedRoomsPanel();
-    refreshRoomCards();
+ // Prevent event bubbling
+ if (event) {
+ event.stopPropagation();
+ event.preventDefault();
+ }
+ 
+ // Debounce - prevent double-clicks (500ms)
+ const now = Date.now();
+ if (now - lastToggleTime < 500) {
+ console.warn('⚡ Toggle debounced - too fast!');
+ return;
+ }
+ lastToggleTime = now;
+ 
+ // Validate and normalize input
+ roomId = normalizeRoomId(roomId);
+ if (!roomId || isNaN(roomId)) {
+ console.error('❌ Invalid room ID:', roomId);
+ return;
+ }
+ 
+ console.log('🔄 Toggle Room Selection:', { roomId, roomNumber, currentCount: selectedRooms.length });
+ console.log('📋 BEFORE:', JSON.stringify(selectedRooms.map(r => ({id: r.roomId, num: r.roomNumber}))));
+ 
+ const existingIndex = selectedRooms.findIndex(r => normalizeRoomId(r.roomId) === roomId);
+ 
+ if (existingIndex >= 0) {
+ // Remove room
+ selectedRooms.splice(existingIndex, 1);
+ console.log('➖ Room REMOVED:', roomNumber, 'Total now:', selectedRooms.length);
+ } else {
+ // Triple-check not already added (safety)
+ if (isRoomSelected(roomId)) {
+ console.error('🚫 Room already in selection (triple-check failed), skipping:', roomNumber);
+ return;
+ }
+ // Add room
+ selectedRooms.push({roomId: roomId, roomNumber: String(roomNumber), roomName, nights, pricePerNight});
+ console.log('➕ Room ADDED:', roomNumber, 'Total now:', selectedRooms.length);
+ }
+ 
+ // Log final state
+ console.log('📋 AFTER:', JSON.stringify(selectedRooms.map(r => ({id: r.roomId, num: r.roomNumber}))));
+ 
+ updateSelectedRoomsPanel();
+ refreshRoomCards();
 }
 
 // Update selected rooms panel
 function updateSelectedRoomsPanel() {
-    const panel = document.getElementById('selectedRoomsPanel');
-    const list = document.getElementById('selectedRoomsList');
-    const totalSpan = document.getElementById('selectedRoomsTotal');
-    const countSpan = document.getElementById('selectedRoomCount');
-    const summarySpan = document.getElementById('selectedRoomsSummary');
-    
-    if (selectedRooms.length === 0) {
-        panel.classList.add('hidden');
-        document.getElementById('bookingForm').classList.add('hidden');
-        return;
-    }
-    
-    panel.classList.remove('hidden');
-    // Trigger animation
-    panel.classList.remove('animate-pulse-once');
-    void panel.offsetWidth; // Force reflow
-    panel.classList.add('animate-pulse-once');
-    
-    // Update count badge
-    countSpan.textContent = selectedRooms.length;
-    
-    // Build chips for each selected room - more prominent styling
-    let html = '';
-    let total = 0;
-    let roomNumbers = [];
-    selectedRooms.forEach(room => {
-        const roomTotal = room.nights * room.pricePerNight;
-        total += roomTotal;
-        roomNumbers.push(room.roomNumber);
-        html += `
-            <div class="room-chip-selected bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg">
-                <div class="bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">
-                    <i class="fas fa-bed"></i>
-                </div>
-                <div>
-                    <span class="font-bold text-lg">Room ${room.roomNumber}</span>
-                    <p class="text-xs text-green-100">৳${room.pricePerNight.toLocaleString()}/night × ${room.nights}N = ৳${roomTotal.toLocaleString()}</p>
-                </div>
-                <button type="button" onclick="toggleRoomSelection(${room.roomId}, '${room.roomNumber}', '${room.roomName.replace(/'/g, "\\'")}', ${room.nights}, ${room.pricePerNight}, event)" 
-                    class="bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center ml-2 transition"><i class="fas fa-times text-sm"></i></button>
-            </div>
-        `;
-    });
-    
-    list.innerHTML = html;
-    totalSpan.textContent = '৳' + total.toLocaleString();
-    summarySpan.textContent = `Rooms: ${roomNumbers.join(', ')} | ${selectedRooms[0]?.nights || 0} night(s)`;
+ const panel = document.getElementById('selectedRoomsPanel');
+ const list = document.getElementById('selectedRoomsList');
+ const totalSpan = document.getElementById('selectedRoomsTotal');
+ const countSpan = document.getElementById('selectedRoomCount');
+ const summarySpan = document.getElementById('selectedRoomsSummary');
+ 
+ if (selectedRooms.length === 0) {
+ panel.classList.add('hidden');
+ document.getElementById('bookingForm').classList.add('hidden');
+ return;
+ }
+ 
+ panel.classList.remove('hidden');
+ // Trigger animation
+ panel.classList.remove('animate-pulse-once');
+ void panel.offsetWidth; // Force reflow
+ panel.classList.add('animate-pulse-once');
+ 
+ // Update count badge
+ countSpan.textContent = selectedRooms.length;
+ 
+ // Build chips for each selected room - more prominent styling
+ let html = '';
+ let total = 0;
+ let roomNumbers = [];
+ selectedRooms.forEach(room => {
+ const roomTotal = room.nights * room.pricePerNight;
+ total += roomTotal;
+ roomNumbers.push(room.roomNumber);
+ html += `
+ <div class="room-chip-selected bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg">
+ <div class="bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">
+ <i class="fas fa-bed"></i>
+ </div>
+ <div>
+ <span class="font-bold text-lg">Room ${room.roomNumber}</span>
+ <p class="text-xs text-green-100">${room.pricePerNight.toLocaleString()}/night × ${room.nights}N = ${roomTotal.toLocaleString()}</p>
+ </div>
+ <button type="button" onclick="toggleRoomSelection(${room.roomId}, '${room.roomNumber}', '${room.roomName.replace(/'/g, "\\'")}', ${room.nights}, ${room.pricePerNight}, event)" 
+ class="bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center ml-2 transition"><i class="fas fa-times text-sm"></i></button>
+ </div>
+ `;
+ });
+ 
+ list.innerHTML = html;
+ totalSpan.textContent = '' + total.toLocaleString();
+ summarySpan.textContent = `Rooms: ${roomNumbers.join(', ')} | ${selectedRooms[0]?.nights || 0} night(s)`;
 }
 
 // Refresh room cards to show selected state - now properly updates ALL cards
 function refreshRoomCards() {
-    // Get all room cards in the results
-    document.querySelectorAll('[id^="roomCard-"]').forEach(card => {
-        const roomId = normalizeRoomId(card.id.replace('roomCard-', ''));
-        const isSelected = isRoomSelected(roomId);
-        
-        // Update card styling
-        if (isSelected) {
-            card.classList.remove('border-gray-200', 'bg-white');
-            card.classList.add('border-green-500', 'bg-green-50');
-        } else {
-            card.classList.remove('border-green-500', 'bg-green-50');
-            card.classList.add('border-gray-200', 'bg-white');
-        }
-        
-        // Update button text and style
-        const btn = card.querySelector('button[data-room-id]');
-        if (btn) {
-            if (isSelected) {
-                btn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
-                btn.classList.add('bg-red-500', 'hover:bg-red-600');
-                btn.innerHTML = '<i class="fas fa-times mr-1 sm:mr-2"></i>Remove';
-            } else {
-                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
-                btn.classList.add('bg-primary-600', 'hover:bg-primary-700');
-                btn.innerHTML = '<i class="fas fa-plus mr-1 sm:mr-2"></i>Add';
-            }
-        }
-    });
+ // Get all room cards in the results
+ document.querySelectorAll('[id^="roomCard-"]').forEach(card => {
+ const roomId = normalizeRoomId(card.id.replace('roomCard-', ''));
+ const isSelected = isRoomSelected(roomId);
+ 
+ // Update card styling
+ if (isSelected) {
+ card.classList.remove('border-gray-200', 'bg-white');
+ card.classList.add('border-green-500', 'bg-green-50');
+ } else {
+ card.classList.remove('border-green-500', 'bg-green-50');
+ card.classList.add('border-gray-200', 'bg-white');
+ }
+ 
+ // Update button text and style
+ const btn = card.querySelector('button[data-room-id]');
+ if (btn) {
+ if (isSelected) {
+ btn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+ btn.classList.add('bg-red-500', 'hover:bg-red-600');
+ btn.innerHTML = '<i class="fas fa-times mr-1 sm:mr-2"></i>Remove';
+ } else {
+ btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+ btn.classList.add('bg-primary-600', 'hover:bg-primary-700');
+ btn.innerHTML = '<i class="fas fa-plus mr-1 sm:mr-2"></i>Add';
+ }
+ }
+ });
 }
 
 // Clear all selected rooms
 function clearAllSelectedRooms() {
-    selectedRooms = [];
-    updateSelectedRoomsPanel();
-    // Re-trigger search to refresh cards
-    document.getElementById('searchRoomsForm').dispatchEvent(new Event('submit'));
+ selectedRooms = [];
+ updateSelectedRoomsPanel();
+ // Re-trigger search to refresh cards
+ document.getElementById('searchRoomsForm').dispatchEvent(new Event('submit'));
 }
 
 // Submit add rooms to existing booking (simplified flow)
 async function submitAddRooms() {
-    if (selectedRooms.length === 0) {
-        showGlobalModal('error', 'Please select at least one room');
-        return;
-    }
-    
-    const existingBookingId = '{{ $existingBooking->id ?? '' }}';
-    if (!existingBookingId) {
-        showGlobalModal('error', 'No existing booking found');
-        return;
-    }
-    
-    try {
-        const formData = new FormData();
-        formData.append('existing_booking_id', existingBookingId);
-        formData.append('rooms_data', JSON.stringify(selectedRooms.map(room => ({
-            roomId: room.roomId,
-            roomNumber: room.roomNumber,
-            pricePerNight: room.pricePerNight
-        }))));
-        
-        const response = await fetch('{{ route("admin.premium-booking.book") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: formData
-        });
+ if (selectedRooms.length === 0) {
+ showGlobalModal('error', 'Please select at least one room');
+ return;
+ }
+ 
+ const existingBookingId = '{{ $existingBooking->id ?? '' }}';
+ if (!existingBookingId) {
+ showGlobalModal('error', 'No existing booking found');
+ return;
+ }
+ 
+ try {
+ const formData = new FormData();
+ formData.append('existing_booking_id', existingBookingId);
+ formData.append('rooms_data', JSON.stringify(selectedRooms.map(room => ({
+ roomId: room.roomId,
+ roomNumber: room.roomNumber,
+ pricePerNight: room.pricePerNight
+ }))));
+ 
+ const response = await fetch('{{ route("admin.premium-booking.book") }}', {
+ method: 'POST',
+ headers: {
+ 'X-CSRF-TOKEN': '{{ csrf_token() }}'
+ },
+ body: formData
+ });
 
-        const data = await response.json();
-        
-        if (data.success) {
-            showGlobalModal('success', data.message);
-            setTimeout(() => { 
-                window.location.href = '{{ route("admin.bookings.show", ["booking" => $existingBooking->id ?? 0]) }}'; 
-            }, 1500);
-        } else {
-            showGlobalModal('error', data.message || 'Failed to add rooms!');
-        }
-    } catch (error) {
-        console.error('Add rooms error:', error);
-        showGlobalModal('error', 'Error adding rooms');
-    }
+ const data = await response.json();
+ 
+ if (data.success) {
+ showGlobalModal('success', data.message);
+ setTimeout(() => { 
+ window.location.href = '{{ route("admin.bookings.show", ["booking" => $existingBooking->id ?? 0]) }}'; 
+ }, 1500);
+ } else {
+ showGlobalModal('error', data.message || 'Failed to add rooms!');
+ }
+ } catch (error) {
+ console.error('Add rooms error:', error);
+ showGlobalModal('error', 'Error adding rooms');
+ }
 }
 
 // Proceed to booking form
 function proceedToBookingForm() {
-    if (selectedRooms.length === 0) {
-        showGlobalModal('error', 'Please select at least one room');
-        return;
-    }
-    
-    // Use first room's data for form (all rooms share same dates)
-    const firstRoom = selectedRooms[0];
-    document.getElementById('room_id').value = selectedRooms.map(r => r.roomId).join(',');
-    document.getElementById('check_in_date').value = currentSearchDates.checkIn;
-    document.getElementById('check_out_date').value = currentSearchDates.checkOut;
-    document.getElementById('check_in_time_hidden').value = currentSearchDates.checkInTime;
-    document.getElementById('check_out_time_hidden').value = currentSearchDates.checkOutTime;
-    document.getElementById('price_per_night').value = selectedRooms.reduce((sum, r) => sum + r.pricePerNight, 0);
-    document.getElementById('totalNights').value = currentSearchDates.nights;
-    
-    // Build selected rooms info display
-    let roomsHtml = '<div class="space-y-2">';
-    roomsHtml += '<div class="flex items-center justify-between"><div>';
-    roomsHtml += `<p class="font-bold text-blue-900 text-lg"><i class="fas fa-bed mr-2"></i>${selectedRooms.length} Room${selectedRooms.length > 1 ? 's' : ''} Selected</p>`;
-    roomsHtml += '<div class="flex flex-wrap gap-2 mt-2">';
-    selectedRooms.forEach(room => {
-        roomsHtml += `<span class="bg-white border border-primary-300 rounded px-2 py-1 text-sm font-semibold text-primary-800">Room ${room.roomNumber} - ৳${room.pricePerNight.toLocaleString()}/night</span>`;
-    });
-    roomsHtml += '</div>';
-    roomsHtml += `<p class="text-primary-700 mt-2">Check-in: ${currentSearchDates.checkIn} at ${currentSearchDates.checkInTime} | Check-out: ${currentSearchDates.checkOut} at ${currentSearchDates.checkOutTime}</p>`;
-    roomsHtml += `<p class="text-primary-700">${currentSearchDates.nights} night${currentSearchDates.nights > 1 ? 's' : ''}</p>`;
-    roomsHtml += '</div>';
-    roomsHtml += '<button type="button" onclick="resetRoomSelection()" class="text-red-600 hover:text-red-800"><i class="fas fa-times-circle text-2xl"></i></button>';
-    roomsHtml += '</div></div>';
-    
-    document.getElementById('selectedRoomInfo').innerHTML = roomsHtml;
-    
-    recalculateAmount();
-    document.getElementById('bookingForm').classList.remove('hidden');
-    document.getElementById('bookingForm').scrollIntoView({behavior: 'smooth'});
+ if (selectedRooms.length === 0) {
+ showGlobalModal('error', 'Please select at least one room');
+ return;
+ }
+ 
+ // Use first room's data for form (all rooms share same dates)
+ const firstRoom = selectedRooms[0];
+ document.getElementById('room_id').value = selectedRooms.map(r => r.roomId).join(',');
+ document.getElementById('check_in_date').value = currentSearchDates.checkIn;
+ document.getElementById('check_out_date').value = currentSearchDates.checkOut;
+ document.getElementById('check_in_time_hidden').value = currentSearchDates.checkInTime;
+ document.getElementById('check_out_time_hidden').value = currentSearchDates.checkOutTime;
+ document.getElementById('price_per_night').value = selectedRooms.reduce((sum, r) => sum + r.pricePerNight, 0);
+ document.getElementById('totalNights').value = currentSearchDates.nights;
+ 
+ // Build selected rooms info display
+ let roomsHtml = '<div class="space-y-2">';
+ roomsHtml += '<div class="flex items-center justify-between"><div>';
+ roomsHtml += `<p class="font-bold text-blue-900 text-lg"><i class="fas fa-bed mr-2"></i>${selectedRooms.length} Room${selectedRooms.length > 1 ? 's' : ''} Selected</p>`;
+ roomsHtml += '<div class="flex flex-wrap gap-2 mt-2">';
+ selectedRooms.forEach(room => {
+ roomsHtml += `<span class="bg-white border border-primary-300 rounded px-2 py-1 text-sm font-semibold text-primary-800">Room ${room.roomNumber} - ${room.pricePerNight.toLocaleString()}/night</span>`;
+ });
+ roomsHtml += '</div>';
+ roomsHtml += `<p class="text-primary-700 mt-2">Check-In: ${currentSearchDates.checkIn} at ${currentSearchDates.checkInTime} | Check-out: ${currentSearchDates.checkOut} at ${currentSearchDates.checkOutTime}</p>`;
+ roomsHtml += `<p class="text-primary-700">${currentSearchDates.nights} night${currentSearchDates.nights > 1 ? 's' : ''}</p>`;
+ roomsHtml += '</div>';
+ roomsHtml += '<button type="button" onclick="resetRoomSelection()" class="text-red-600 hover:text-red-800"><i class="fas fa-times-circle text-2xl"></i></button>';
+ roomsHtml += '</div></div>';
+ 
+ document.getElementById('selectedRoomInfo').innerHTML = roomsHtml;
+ 
+ recalculateAmount();
+ document.getElementById('bookingForm').classList.remove('hidden');
+ document.getElementById('bookingForm').scrollIntoView({behavior: 'smooth'});
 }
 
 function resetRoomSelection() {
-    selectedRooms = [];
-    updateSelectedRoomsPanel();
-    document.getElementById('bookingForm').classList.add('hidden');
-    document.getElementById('roomResults').innerHTML = '';
+ selectedRooms = [];
+ updateSelectedRoomsPanel();
+ document.getElementById('bookingForm').classList.add('hidden');
+ document.getElementById('roomResults').innerHTML = '';
 }
 
 // Additional Guests
 function addAdditionalGuest() {
-    const index = additionalGuests.length;
-    additionalGuests.push({name: '', nid: '', phone: '', company_name: ''});
-    
-    const guestHtml = `
-        <div class="border-2 border-primary-200 rounded-lg p-4 mb-3 bg-primary-50" id="guest-${index}">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-primary-900">Guest #${index + 2}</h3>
-                <button type="button" onclick="removeAdditionalGuest(${index})" class="text-red-600 hover:text-red-800 font-semibold">
-                    <i class="fas fa-trash mr-1"></i>Remove
-                </button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Name</label>
-                    <input type="text" id="guest_name_${index}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">NID</label>
-                    <input type="text" id="guest_nid_${index}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
-                    <input type="tel" id="guest_phone_${index}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Company</label>
-                    <input type="text" id="guest_company_${index}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('additionalGuestsList').insertAdjacentHTML('beforeend', guestHtml);
-    
-    // Auto-increment number of guests
-    updateGuestCount();
+ const index = additionalGuests.length;
+ additionalGuests.push({name: '', nid: '', phone: '', company_name: ''});
+ 
+ const guestHtml = `
+ <div class="border-2 border-primary-200 rounded-lg p-4 mb-3 bg-primary-50" id="guest-${index}">
+ <div class="flex justify-between items-center mb-3">
+ <h3 class="font-bold text-primary-900">Guest #${index + 2}</h3>
+ <button type="button" onclick="removeAdditionalGuest(${index})" class="text-red-600 hover:text-red-800 font-semibold">
+ <i class="fas fa-trash mr-1"></i>Remove
+ </button>
+ </div>
+ <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+ <input type="text" id="guest_name_${index}"
+ class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">NID</label>
+ <input type="text" id="guest_nid_${index}"
+ class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
+ <input type="tel" id="guest_phone_${index}"
+ class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Company</label>
+ <input type="text" id="guest_company_${index}"
+ class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ </div>
+ </div>
+ `;
+ 
+ document.getElementById('additionalGuestsList').insertAdjacentHTML('beforeend', guestHtml);
+ 
+ // Auto-increment number of guests
+ updateGuestCount();
 }
 
 function removeAdditionalGuest(index) {
-    document.getElementById(`guest-${index}`).remove();
-    additionalGuests[index] = null;
-    
-    // Update guest count after removal
-    updateGuestCount();
+ document.getElementById(`guest-${index}`).remove();
+ additionalGuests[index] = null;
+ 
+ // Update guest count after removal
+ updateGuestCount();
 }
 
 function updateGuestCount() {
-    const activeGuests = additionalGuests.filter(g => g !== null).length;
-    document.getElementById('number_of_guests').value = 1 + activeGuests;
+ const activeGuests = additionalGuests.filter(g => g !== null).length;
+ document.getElementById('number_of_guests').value = 1 + activeGuests;
 }
 
 function togglePaymentFields() {
-    const method = document.getElementById('payment_method').value;
-    const bkashField = document.getElementById('bkash_field');
-    const bankField = document.getElementById('bank_field');
-    
-    bkashField.classList.add('hidden');
-    bankField.classList.add('hidden');
-    
-    if (method === 'bkash') {
-        bkashField.classList.remove('hidden');
-    } else if (method === 'card') {
-        bankField.classList.remove('hidden');
-    }
+ const method = document.getElementById('payment_method').value;
+ const bkashField = document.getElementById('bkash_field');
+ const bankField = document.getElementById('bank_field');
+ 
+ bkashField.classList.add('hidden');
+ bankField.classList.add('hidden');
+ 
+ if (method === 'bkash') {
+ bkashField.classList.remove('hidden');
+ } else if (method === 'card') {
+ bankField.classList.remove('hidden');
+ }
 }
 
 // Calculations
 function recalculateAmount() {
-    if (selectedRooms.length === 0) return;
-    
-    const discountType = document.getElementById('discount_type').value;
-    document.getElementById('discount_percentage_div').classList.toggle('hidden', discountType !== 'percentage');
-    document.getElementById('discount_amount_div').classList.toggle('hidden', discountType !== 'flat');
-    
-    // Calculate base amount for all selected rooms
-    const baseAmount = selectedRooms.reduce((sum, room) => sum + (room.nights * room.pricePerNight), 0);
-    document.getElementById('baseAmount').value = baseAmount.toFixed(2);
-    
-    // total_amount stores only the base room rent (VAT is calculated dynamically in display)
-    document.getElementById('total_amount').value = baseAmount.toFixed(2);
-    
-    // VAT (stored separately, calculated dynamically in display)
-    const vatEnabled = document.getElementById('vat_enabled').checked;
-    const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
-    document.getElementById('vat_amount').value = vatAmount.toFixed(2);
-    
-    // Calculate display grand total for UI only
-    let displayTotal = baseAmount;
-    if (vatEnabled) displayTotal += vatAmount;
-    
-    // Discount
-    if (discountType === 'percentage') {
-        const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
-        const discountAmount = (displayTotal * discountPercentage) / 100;
-        displayTotal -= discountAmount;
-    } else if (discountType === 'flat') {
-        const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
-        displayTotal -= discountAmount;
-    }
-    
-    // Extra charges
-    const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
-    displayTotal += extraCharges;
-    
-    calculateRemaining();
+ if (selectedRooms.length === 0) return;
+ 
+ const discountType = document.getElementById('discount_type').value;
+ document.getElementById('discount_percentage_div').classList.toggle('hidden', discountType !== 'percentage');
+ document.getElementById('discount_amount_div').classList.toggle('hidden', discountType !== 'flat');
+ 
+ // Calculate base amount for all selected rooms
+ const baseAmount = selectedRooms.reduce((sum, room) => sum + (room.nights * room.pricePerNight), 0);
+ document.getElementById('baseAmount').value = baseAmount.toFixed(2);
+ 
+ // total_amount stores only the base room rent (VAT is calculated dynamically in display)
+ document.getElementById('total_amount').value = baseAmount.toFixed(2);
+ 
+ // VAT (stored separately, calculated dynamically in display)
+ const vatEnabled = document.getElementById('vat_enabled').checked;
+ const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
+ document.getElementById('vat_amount').value = vatAmount.toFixed(2);
+ 
+ // Calculate display grand total for UI only
+ let displayTotal = baseAmount;
+ if (vatEnabled) displayTotal += vatAmount;
+ 
+ // Discount
+ if (discountType === 'percentage') {
+ const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+ const discountAmount = (displayTotal * discountPercentage) / 100;
+ displayTotal -= discountAmount;
+ } else if (discountType === 'flat') {
+ const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+ displayTotal -= discountAmount;
+ }
+ 
+ // Extra charges
+ const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
+ displayTotal += extraCharges;
+ 
+ calculateRemaining();
 }
 
 function calculateRemaining() {
-    const baseAmount = parseFloat(document.getElementById('total_amount').value) || 0;
-    const vatEnabled = document.getElementById('vat_enabled').checked;
-    const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
-    
-    let grandTotal = baseAmount + vatAmount;
-    
-    // Apply discount
-    const discountType = document.getElementById('discount_type').value;
-    if (discountType === 'percentage') {
-        const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
-        grandTotal -= (grandTotal * discountPercentage) / 100;
-    } else if (discountType === 'flat') {
-        const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
-        grandTotal -= discountAmount;
-    }
-    
-    // Add extra charges
-    const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
-    grandTotal += extraCharges;
-    
-    const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
-    document.getElementById('remaining_payment').value = (grandTotal - advance).toFixed(2);
+ const baseAmount = parseFloat(document.getElementById('total_amount').value) || 0;
+ const vatEnabled = document.getElementById('vat_enabled').checked;
+ const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
+ 
+ let grandTotal = baseAmount + vatAmount;
+ 
+ // Apply discount
+ const discountType = document.getElementById('discount_type').value;
+ if (discountType === 'percentage') {
+ const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+ grandTotal -= (grandTotal * discountPercentage) / 100;
+ } else if (discountType === 'flat') {
+ const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+ grandTotal -= discountAmount;
+ }
+ 
+ // Add extra charges
+ const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
+ grandTotal += extraCharges;
+ 
+ const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
+ document.getElementById('remaining_payment').value = (grandTotal - advance).toFixed(2);
 }
 
 // Prevent double submission
@@ -957,213 +969,214 @@ let isSubmitting = false;
 
 // Form Submission - Single booking with multiple rooms
 async function submitBooking(e) {
-    e.preventDefault();
-    
-    // Prevent double submission
-    if (isSubmitting) {
-        console.warn('Submission already in progress');
-        return;
-    }
-    
-    // Check if we're adding to existing booking
-    const existingBookingId = document.getElementById('existing_booking_id')?.value;
-    
-    // Validate required fields before submission
-    const customerName = document.getElementById('customer_name').value;
-    const customerPhone = document.getElementById('customer_phone').value;
-    
-    if (selectedRooms.length === 0) {
-        showGlobalModal('error', 'Please select at least one room!');
-        return;
-    }
-    if (!currentSearchDates.checkIn || !currentSearchDates.checkOut) {
-        showGlobalModal('error', 'Please select check-in and check-out dates!');
-        return;
-    }
-    // Only validate customer info for new bookings
-    if (!existingBookingId && (!customerName || !customerPhone)) {
-        showGlobalModal('error', 'Please enter customer name and phone!');
-        return;
-    }
-    
-    // Show confirmation dialog with selected rooms
-    const roomList = selectedRooms.map(r => `Room ${r.roomNumber}`).join(', ');
-    const confirmMsg = `⚠️ আপনি কি নিশ্চিত?\n\nবুক করা হবে ${selectedRooms.length}টি রুম:\n${roomList}\n\nCheck-in: ${currentSearchDates.checkIn}\nCheck-out: ${currentSearchDates.checkOut}\n\nচালিয়ে যেতে OK চাপুন।`;
-    
-    if (!confirm(confirmMsg)) {
-        return;
-    }
-    
-    // Show loading
-    const submitBtn = document.querySelector('#bookingForm button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + (existingBookingId ? 'Adding Rooms...' : 'Creating Booking...');
-    submitBtn.disabled = true;
-    isSubmitting = true;
-    
-    // Get additional guests
-    const guestList = [];
-    additionalGuests.forEach((guest, index) => {
-        if (guest !== null) {
-            const name = document.getElementById(`guest_name_${index}`)?.value;
-            const nid = document.getElementById(`guest_nid_${index}`)?.value;
-            const phone = document.getElementById(`guest_phone_${index}`)?.value;
-            const company = document.getElementById(`guest_company_${index}`)?.value || '';
-            if (name || phone) {
-                guestList.push({name, nid, phone, company_name: company});
-            }
-        }
-    });
-    
-    try {
-        const formData = new FormData();
-        
-        // Prepare rooms data - ULTRA STRICT DEDUPLICATE by roomId before sending
-        const seenRoomIds = new Set();
-        const uniqueRooms = [];
-        
-        console.log('🔍 Processing selectedRooms before submit:', JSON.stringify(selectedRooms));
-        
-        selectedRooms.forEach(room => {
-            const roomId = normalizeRoomId(room.roomId);
-            if (!isNaN(roomId) && roomId > 0 && !seenRoomIds.has(roomId)) {
-                seenRoomIds.add(roomId);
-                uniqueRooms.push({
-                    roomId: roomId,
-                    roomNumber: String(room.roomNumber),
-                    pricePerNight: parseFloat(room.pricePerNight) || 0
-                });
-                console.log('✅ Room added to submit list:', room.roomNumber, '(ID:', roomId, ')');
-            } else {
-                console.error('🚫 DUPLICATE or INVALID room skipped:', room.roomNumber, 'ID:', room.roomId);
-            }
-        });
-        
-        // Final validation
-        console.log('📤 FINAL rooms to submit (' + uniqueRooms.length + '):', uniqueRooms.map(r => `Room ${r.roomNumber}`).join(', '));
-        
-        if (uniqueRooms.length !== selectedRooms.length) {
-            console.warn('⚠️ Duplicates removed! Original:', selectedRooms.length, 'Final:', uniqueRooms.length);
-        }
-        
-        formData.append('rooms_data', JSON.stringify(uniqueRooms));
-        
-        // Check if we're adding to existing booking
-        if (existingBookingId) {
-            formData.append('existing_booking_id', existingBookingId);
-            
-            // For existing booking, only send rooms data
-            const response = await fetch('{{ route("admin.premium-booking.book") }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: formData
-            });
+ e.preventDefault();
+ 
+ // Prevent double submission
+ if (isSubmitting) {
+ console.warn('Submission already in progress');
+ return;
+ }
+ 
+ // Check if we're adding to existing booking
+ const existingBookingId = document.getElementById('existing_booking_id')?.value;
+ 
+ // Validate required fields before submission
+ const customerName = document.getElementById('customer_name').value;
+ const customerPhone = document.getElementById('customer_phone').value;
+ 
+ if (selectedRooms.length === 0) {
+ showGlobalModal('error', 'Please select at least one room!');
+ return;
+ }
+ if (!currentSearchDates.checkIn || !currentSearchDates.checkOut) {
+ showGlobalModal('error', 'Please select check-in and check-out dates!');
+ return;
+ }
+ // Only validate customer info for new bookings
+ if (!existingBookingId && (!customerName || !customerPhone)) {
+ showGlobalModal('error', 'Please enter customer name and phone!');
+ return;
+ }
+ 
+ // Show confirmation dialog with selected rooms
+ const roomList = selectedRooms.map(r => `Room ${r.roomNumber}`).join(', ');
+ const confirmMsg = `⚠️ Are you sure?\n\nBooking will be created for ${selectedRooms.length}Rooms:\n${roomList}\n\nCheck-In: ${currentSearchDates.checkIn}\nCheck-out: ${currentSearchDates.checkOut}\n\nPress OK to continue।`;
+ 
+ if (!confirm(confirmMsg)) {
+ return;
+ }
+ 
+ // Show loading
+ const submitBtn = document.querySelector('#bookingForm button[type="submit"]');
+ const originalText = submitBtn.innerHTML;
+ submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + (existingBookingId ? 'Adding Rooms...' : 'Creating Booking...');
+ submitBtn.disabled = true;
+ isSubmitting = true;
+ 
+ // Get additional guests
+ const guestList = [];
+ additionalGuests.forEach((guest, index) => {
+ if (guest !== null) {
+ const name = document.getElementById(`guest_name_${index}`)?.value;
+ const nid = document.getElementById(`guest_nid_${index}`)?.value;
+ const phone = document.getElementById(`guest_phone_${index}`)?.value;
+ const company = document.getElementById(`guest_company_${index}`)?.value || '';
+ if (name || phone) {
+ guestList.push({name, nid, phone, company_name: company});
+ }
+ }
+ });
+ 
+ try {
+ const formData = new FormData();
+ 
+ // Prepare rooms data - ULTRA STRICT DEDUPLICATE by roomId before sending
+ const seenRoomIds = new Set();
+ const uniqueRooms = [];
+ 
+ console.log('🔍 Processing selectedRooms before submit:', JSON.stringify(selectedRooms));
+ 
+ selectedRooms.forEach(room => {
+ const roomId = normalizeRoomId(room.roomId);
+ if (!isNaN(roomId) && roomId > 0 && !seenRoomIds.has(roomId)) {
+ seenRoomIds.add(roomId);
+ uniqueRooms.push({
+ roomId: roomId,
+ roomNumber: String(room.roomNumber),
+ pricePerNight: parseFloat(room.pricePerNight) || 0
+ });
+ console.log('✅ Room added to submit list:', room.roomNumber, '(ID:', roomId, ')');
+ } else {
+ console.error('🚫 DUPLICATE or INVALID room skipped:', room.roomNumber, 'ID:', room.roomId);
+ }
+ });
+ 
+ // Final validation
+ console.log('📤 FINAL rooms to submit (' + uniqueRooms.length + '):', uniqueRooms.map(r => `Room ${r.roomNumber}`).join(', '));
+ 
+ if (uniqueRooms.length !== selectedRooms.length) {
+ console.warn('⚠️ Duplicates removed! Original:', selectedRooms.length, 'Final:', uniqueRooms.length);
+ }
+ 
+ formData.append('rooms_data', JSON.stringify(uniqueRooms));
+ 
+ // Check if we're adding to existing booking
+ if (existingBookingId) {
+ formData.append('existing_booking_id', existingBookingId);
+ 
+ // For existing booking, only send rooms data
+ const response = await fetch('{{ route("admin.premium-booking.book") }}', {
+ method: 'POST',
+ headers: {
+ 'X-CSRF-TOKEN': '{{ csrf_token() }}'
+ },
+ body: formData
+ });
 
-            const data = await response.json();
-            
-            if (data.success) {
-                showGlobalModal('success', data.message);
-                setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}/' + existingBookingId; }, 1500);
-            } else {
-                showGlobalModal('error', data.message || 'Failed to add rooms!');
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-            return;
-        }
-        
-        // Date/time fields
-        formData.append('check_in_date', currentSearchDates.checkIn);
-        formData.append('check_out_date', currentSearchDates.checkOut);
-        formData.append('check_in_time', currentSearchDates.checkInTime);
-        formData.append('check_out_time', currentSearchDates.checkOutTime);
-        
-        // Customer info
-        formData.append('customer_name', customerName);
-        formData.append('customer_nid', document.getElementById('customer_nid').value);
-        formData.append('customer_phone', customerPhone);
-        formData.append('customer_whatsapp', document.getElementById('customer_whatsapp').value);
-        formData.append('customer_email', document.getElementById('customer_email').value);
-        formData.append('passport_number', document.getElementById('passport_number').value);
-        formData.append('customer_address', document.getElementById('customer_address').value);
-        formData.append('company_name', document.getElementById('company_name').value);
-        formData.append('reference_name', document.getElementById('reference_name').value);
-        formData.append('reference_phone', document.getElementById('reference_phone').value);
-        
-        // Documents
-        const customerPhoto = document.getElementById('customer_photo').files[0];
-        if (customerPhoto) formData.append('customer_photo', customerPhoto);
-        
-        const customerNidDoc = document.getElementById('customer_nid_document').files[0];
-        if (customerNidDoc) formData.append('customer_nid_document', customerNidDoc);
-        
-        const passportDoc = document.getElementById('passport_document').files[0];
-        if (passportDoc) formData.append('passport_document', passportDoc);
-        
-        const visitingCard = document.getElementById('visiting_card').files[0];
-        if (visitingCard) formData.append('visiting_card', visitingCard);
-        
-        // Booking details
-        formData.append('number_of_guests', document.getElementById('number_of_guests').value);
-        formData.append('ac_preference', document.getElementById('ac_preference').value);
-        formData.append('status', document.getElementById('status').value);
-        formData.append('notes', document.getElementById('notes').value);
-        
-        // Payment - full amounts for single booking
-        formData.append('total_amount', document.getElementById('total_amount').value);
-        formData.append('vat_enabled', document.getElementById('vat_enabled').checked ? '1' : '0');
-        formData.append('vat_amount', document.getElementById('vat_amount').value);
-        formData.append('discount_type', document.getElementById('discount_type').value);
-        formData.append('discount_percentage', document.getElementById('discount_percentage').value || '0');
-        formData.append('discount_amount', document.getElementById('discount_amount').value || '0');
-        formData.append('extra_charges', document.getElementById('extra_charges').value || '0');
-        formData.append('extra_charges_description', document.getElementById('extra_charges_description').value);
-        formData.append('advance_payment', document.getElementById('advance_payment').value);
-        formData.append('remaining_payment', document.getElementById('remaining_payment').value);
-        formData.append('payment_method', document.getElementById('payment_method').value);
-        formData.append('bkash_number', document.getElementById('bkash_number').value || '');
-        formData.append('bank_name', document.getElementById('bank_name').value || '');
-        
-        // Additional guests
-        if (guestList.length > 0) {
-            formData.append('additional_guests', JSON.stringify(guestList));
-        }
-        
-        const response = await fetch('{{ route("admin.premium-booking.book") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: formData
-        });
+ const data = await response.json();
+ 
+ if (data.success) {
+ showGlobalModal('success', data.message);
+ setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}/' + existingBookingId; }, 1500);
+ } else {
+ showGlobalModal('error', data.message || 'Failed to add rooms!');
+ submitBtn.innerHTML = originalText;
+ submitBtn.disabled = false;
+ }
+ return;
+ }
+ 
+ // Date/time fields
+ formData.append('check_in_date', currentSearchDates.checkIn);
+ formData.append('check_out_date', currentSearchDates.checkOut);
+ formData.append('check_in_time', currentSearchDates.checkInTime);
+ formData.append('check_out_time', currentSearchDates.checkOutTime);
+ 
+ // Customer info
+ formData.append('customer_name', customerName);
+ formData.append('customer_nid', document.getElementById('customer_nid').value);
+ formData.append('customer_phone', customerPhone);
+ formData.append('customer_whatsapp', document.getElementById('customer_whatsapp').value);
+ formData.append('customer_email', document.getElementById('customer_email').value);
+ formData.append('passport_number', document.getElementById('passport_number').value);
+ formData.append('customer_address', document.getElementById('customer_address').value);
+ formData.append('company_name', document.getElementById('company_name').value);
+ formData.append('booking_purpose', document.getElementById('booking_purpose').value);
+ formData.append('reference_name', document.getElementById('reference_name').value);
+ formData.append('reference_phone', document.getElementById('reference_phone').value);
+ 
+ // Documents
+ const customerPhoto = document.getElementById('customer_photo').files[0];
+ if (customerPhoto) formData.append('customer_photo', customerPhoto);
+ 
+ const customerNidDoc = document.getElementById('customer_nid_document').files[0];
+ if (customerNidDoc) formData.append('customer_nid_document', customerNidDoc);
+ 
+ const passportDoc = document.getElementById('passport_document').files[0];
+ if (passportDoc) formData.append('passport_document', passportDoc);
+ 
+ const visitingCard = document.getElementById('visiting_card').files[0];
+ if (visitingCard) formData.append('visiting_card', visitingCard);
+ 
+ // Booking details
+ formData.append('number_of_guests', document.getElementById('number_of_guests').value);
+ formData.append('ac_preference', document.getElementById('ac_preference').value);
+ formData.append('status', document.getElementById('status').value);
+ formData.append('notes', document.getElementById('notes').value);
+ 
+ // Payment - full amounts for single booking
+ formData.append('total_amount', document.getElementById('total_amount').value);
+ formData.append('vat_enabled', document.getElementById('vat_enabled').checked ? '1' : '0');
+ formData.append('vat_amount', document.getElementById('vat_amount').value);
+ formData.append('discount_type', document.getElementById('discount_type').value);
+ formData.append('discount_percentage', document.getElementById('discount_percentage').value || '0');
+ formData.append('discount_amount', document.getElementById('discount_amount').value || '0');
+ formData.append('extra_charges', document.getElementById('extra_charges').value || '0');
+ formData.append('extra_charges_description', document.getElementById('extra_charges_description').value);
+ formData.append('advance_payment', document.getElementById('advance_payment').value);
+ formData.append('remaining_payment', document.getElementById('remaining_payment').value);
+ formData.append('payment_method', document.getElementById('payment_method').value);
+ formData.append('bkash_number', document.getElementById('bkash_number').value || '');
+ formData.append('bank_name', document.getElementById('bank_name').value || '');
+ 
+ // Additional guests
+ if (guestList.length > 0) {
+ formData.append('additional_guests', JSON.stringify(guestList));
+ }
+ 
+ const response = await fetch('{{ route("admin.premium-booking.book") }}', {
+ method: 'POST',
+ headers: {
+ 'X-CSRF-TOKEN': '{{ csrf_token() }}'
+ },
+ body: formData
+ });
 
-        const data = await response.json();
-        
-        if (data.success) {
-            const roomCount = selectedRooms.length;
-            showGlobalModal('success', `Booking created successfully with ${roomCount} room${roomCount > 1 ? 's' : ''}!`);
-            setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
-        } else {
-            showGlobalModal('error', data.message || 'Booking failed!');
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            isSubmitting = false;
-        }
-    } catch (error) {
-        console.error('Booking error:', error);
-        showGlobalModal('error', 'Error creating booking');
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        isSubmitting = false;
-    }
+ const data = await response.json();
+ 
+ if (data.success) {
+ const roomCount = selectedRooms.length;
+ showGlobalModal('success', `Booking created successfully with ${roomCount} room${roomCount > 1 ? 's' : ''}!`);
+ setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
+ } else {
+ showGlobalModal('error', data.message || 'Booking failed!');
+ submitBtn.innerHTML = originalText;
+ submitBtn.disabled = false;
+ isSubmitting = false;
+ }
+ } catch (error) {
+ console.error('Booking error:', error);
+ showGlobalModal('error', 'Error creating booking');
+ submitBtn.innerHTML = originalText;
+ submitBtn.disabled = false;
+ isSubmitting = false;
+ }
 }
 
 function resetAll() {
-    showConfirmModal('Are you sure you want to reset all fields?', function() {
-        location.reload();
-    });
+ showConfirmModal('Are you sure you want to reset all fields?', function() {
+ location.reload();
+ });
 }
 
 // Initialize discount type change
@@ -1171,80 +1184,80 @@ document.getElementById('discount_type').addEventListener('change', recalculateA
 
 // Pre-fill customer info from URL parameters
 (function() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('phone')) {
-        document.getElementById('customer_phone').value = params.get('phone');
-    }
-    if (params.get('name')) {
-        document.getElementById('customer_name').value = decodeURIComponent(params.get('name'));
-    }
-    if (params.get('nid')) {
-        document.getElementById('customer_nid').value = params.get('nid');
-    }
-    if (params.get('address')) {
-        document.getElementById('customer_address').value = decodeURIComponent(params.get('address'));
-    }
-    if (params.get('company')) {
-        document.getElementById('company_name').value = decodeURIComponent(params.get('company'));
-    }
-    
-    // Pre-fill dates and auto-search if provided
-    if (params.get('checkin')) {
-        document.getElementById('checkInDate').value = params.get('checkin');
-    }
-    if (params.get('checkout')) {
-        document.getElementById('checkOutDate').value = params.get('checkout');
-    }
-    
-    // Auto-search rooms if dates are pre-filled
-    if (params.get('checkin') && params.get('checkout')) {
-        setTimeout(() => {
-            document.getElementById('searchRoomsForm').dispatchEvent(new Event('submit'));
-        }, 500);
-    }
+ const params = new URLSearchParams(window.location.search);
+ if (params.get('phone')) {
+ document.getElementById('customer_phone').value = params.get('phone');
+ }
+ if (params.get('name')) {
+ document.getElementById('customer_name').value = decodeURIComponent(params.get('name'));
+ }
+ if (params.get('nid')) {
+ document.getElementById('customer_nid').value = params.get('nid');
+ }
+ if (params.get('address')) {
+ document.getElementById('customer_address').value = decodeURIComponent(params.get('address'));
+ }
+ if (params.get('company')) {
+ document.getElementById('company_name').value = decodeURIComponent(params.get('company'));
+ }
+ 
+ // Pre-fill dates and auto-search if provided
+ if (params.get('checkin')) {
+ document.getElementById('checkInDate').value = params.get('checkin');
+ }
+ if (params.get('checkout')) {
+ document.getElementById('checkOutDate').value = params.get('checkout');
+ }
+ 
+ // Auto-search rooms if dates are pre-filled
+ if (params.get('checkin') && params.get('checkout')) {
+ setTimeout(() => {
+ document.getElementById('searchRoomsForm').dispatchEvent(new Event('submit'));
+ }, 500);
+ }
 })();
 
 // Handle preselected room from dashboard
 @if(isset($preselectedRoom) && $preselectedRoom)
 (function() {
-    // Set today's date as check-in
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    
-    document.getElementById('checkInDate').value = today;
-    document.getElementById('checkOutDate').value = tomorrowStr;
-    
-    // Wait for page to load, then search and select room
-    setTimeout(async () => {
-        // Trigger room search
-        const form = document.getElementById('searchRoomsForm');
-        form.dispatchEvent(new Event('submit'));
-        
-        // Wait for results to load
-        setTimeout(() => {
-            // Find and click the preselected room
-            const preselectedRoomId = {{ $preselectedRoom->id }};
-            const roomCard = document.getElementById('roomCard-' + preselectedRoomId);
-            if (roomCard) {
-                // Check if room already in selection (prevent duplicates)
-                const alreadySelected = selectedRooms.some(r => parseInt(r.roomId) === preselectedRoomId);
-                if (alreadySelected) {
-                    console.log('Preselected room already in selection, skipping');
-                    return;
-                }
-                
-                // Use the proper toggle function to add room
-                const nights = currentSearchDates.nights || 1;
-                const pricePerNight = {{ $preselectedRoom->roomType->base_price ?? 0 }};
-                toggleRoomSelection(preselectedRoomId, '{{ $preselectedRoom->room_number }}', '{{ $preselectedRoom->roomType->name ?? "Room" }}', nights, pricePerNight, null);
-                
-                // Scroll to booking form
-                document.querySelector('[name="customer_name"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }, 1500);
-    }, 100);
+ // Set today's date as check-in
+ const today = new Date().toISOString().split('T')[0];
+ const tomorrow = new Date();
+ tomorrow.setDate(tomorrow.getDate() + 1);
+ const tomorrowStr = tomorrow.toISOString().split('T')[0];
+ 
+ document.getElementById('checkInDate').value = today;
+ document.getElementById('checkOutDate').value = tomorrowStr;
+ 
+ // Wait for page to load, then search and select room
+ setTimeout(async () => {
+ // Trigger room search
+ const form = document.getElementById('searchRoomsForm');
+ form.dispatchEvent(new Event('submit'));
+ 
+ // Wait for results to load
+ setTimeout(() => {
+ // Find and click the preselected room
+ const preselectedRoomId = {{ $preselectedRoom->id }};
+ const roomCard = document.getElementById('roomCard-' + preselectedRoomId);
+ if (roomCard) {
+ // Check if room already in selection (prevent duplicates)
+ const alreadySelected = selectedRooms.some(r => parseInt(r.roomId) === preselectedRoomId);
+ if (alreadySelected) {
+ console.log('Preselected room already in selection, skipping');
+ return;
+ }
+ 
+ // Use the proper toggle function to add room
+ const nights = currentSearchDates.nights || 1;
+ const pricePerNight = {{ $preselectedRoom->roomType->base_price ?? 0 }};
+ toggleRoomSelection(preselectedRoomId, '{{ $preselectedRoom->room_number }}', '{{ $preselectedRoom->roomType->name ?? "Room" }}', nights, pricePerNight, null);
+ 
+ // Scroll to booking form
+ document.querySelector('[name="customer_name"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+ }
+ }, 1500);
+ }, 100);
 })();
 @endif
 </script>

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Response;
 
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
-        $query = Booking::with(['room.roomType', 'bookingRooms.room']);
+        $query = Booking::with(['room.roomType']);
         if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
         if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
         if($request->status) $query->where('status', $request->status);
@@ -23,14 +23,11 @@ class ReportController extends Controller {
             });
         }
         
-        // Calculate totals before pagination for accurate figures
-        $totalBookings = (clone $query)->count();
-        
-        // Get all bookings for calculating correct totals
-        $allBookingsForTotals = (clone $query)->get();
-        $totalRevenue = $allBookingsForTotals->sum(fn($b) => $b->getGrandTotal());
-        $totalAdvance = $allBookingsForTotals->sum('advance_payment');
-        $totalRemaining = $allBookingsForTotals->sum(fn($b) => $b->getCalculatedRemaining());
+        $summaryBookings = (clone $query)->get();
+        $totalBookings = $summaryBookings->count();
+        $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
+        $totalAdvance = $summaryBookings->sum('advance_payment');
+        $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
         
         $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
         $roomTypes = RoomType::all();
@@ -82,6 +79,296 @@ class ReportController extends Controller {
         ]);
     }
     
+    public function advanceBookings(Request $request) {
+        $query = Booking::with(['room.roomType'])
+            ->where('check_in_date', '>', date('Y-m-d'))
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
+        
+        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
+        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+        if($request->status) $query->where('status', $request->status);
+        if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
+        if($request->room_id) $query->where('room_id', $request->room_id);
+        if($request->payment_status) $query->where('payment_status', $request->payment_status);
+        if($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%");
+            });
+        }
+        
+        $totalAdvance = (clone $query)->sum('advance_payment');
+        $totalBookings = (clone $query)->count();
+        $totalRevenue = (clone $query)->sum('total_amount');
+        
+        $bookings = $query->orderBy('check_in_date', 'asc')->paginate(20)->withQueryString();
+        $roomTypes = RoomType::all();
+        $resortInfo = ResortInfo::first();
+        
+        return view('admin.reports.advance-bookings', compact('bookings', 'totalAdvance', 'totalBookings', 'totalRevenue', 'roomTypes', 'resortInfo'));
+    }
+    
+    public function exportAdvanceBookings(Request $request) {
+        $query = Booking::with(['room.roomType'])
+            ->where('check_in_date', '>', date('Y-m-d'))
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
+        
+        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
+        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+        if($request->status) $query->where('status', $request->status);
+        if($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%");
+            });
+        }
+        
+        $bookings = $query->orderBy('check_in_date', 'asc')->get();
+        
+        $csvContent = "ID,Customer Name,Phone,Room,Check-In,Check-Out,Total,Bill Night,Rent,Advance,Status\n";
+        foreach ($bookings as $b) {
+            $nights = \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date));
+            $nights = max(1, $nights);
+            $csvContent .= "\"{$b->id}\",";
+            $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
+            $csvContent .= "\"{$b->customer_phone}\",";
+            $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
+            $csvContent .= "\"{$b->check_in_date}\",";
+            $csvContent .= "\"{$b->check_out_date}\",";
+            $csvContent .= "\"{$nights}\",";
+            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getCalculatedTotal()}\",";
+            $csvContent .= "\"{$b->advance_payment}\",";
+            $csvContent .= "\"{$b->status}\"\n";
+        }
+        
+        $filename = 'advance-bookings-report-' . date('Y-m-d') . '.csv';
+        return Response::make($csvContent, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename={$filename}",
+        ]);
+    }
+    
+    public function unpaidCheckedIn(Request $request) {
+        $query = Booking::with(['room.roomType'])
+            ->where('status', 'checked_in')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'paid')
+                  ->orWhereRaw('remaining_payment > 0');
+            });
+        
+        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
+        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+        if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
+        if($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
+            });
+        }
+        
+        $summaryBookings = (clone $query)->get();
+        $totalUnpaid = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
+        $totalAdvance = $summaryBookings->sum('advance_payment');
+        $totalBookings = $summaryBookings->count();
+        
+        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        $roomTypes = RoomType::all();
+        $resortInfo = ResortInfo::first();
+        
+        return view('admin.reports.unpaid-checked-in', compact('bookings', 'totalUnpaid', 'totalAdvance', 'totalBookings', 'roomTypes', 'resortInfo'));
+    }
+    
+    public function exportUnpaidCheckedIn(Request $request) {
+        $query = Booking::with(['room.roomType'])
+            ->where('status', 'checked_in')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'paid')
+                  ->orWhereRaw('remaining_payment > 0');
+            });
+        
+        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
+        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+        if($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
+            });
+        }
+        
+        $bookings = $query->orderBy('check_in_date', 'desc')->get();
+        
+        $csvContent = "ID,Customer Name,Phone,Room,Check-In,Total,Advance,Bill,Due,Status\n";
+        foreach ($bookings as $b) {
+            $due = $b->getCalculatedRemaining();
+            $csvContent .= "\"{$b->id}\",";
+            $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
+            $csvContent .= "\"{$b->customer_phone}\",";
+            $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
+            $csvContent .= "\"{$b->check_in_date}\",";
+            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->advance_payment}\",";
+            $csvContent .= "\"{$b->getCalculatedTotal()}\",";
+            $csvContent .= "\"{$due}\",";
+            $csvContent .= "\"{$b->status}\"\n";
+        }
+        
+        $filename = 'unpaid-checked-in-report-' . date('Y-m-d') . '.csv';
+        return Response::make($csvContent, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename={$filename}",
+        ]);
+    }
+    
+    public function combined(Request $request) {
+        $roomTypeFilter = $request->room_type_id;
+        
+        $roomBookingsQuery = Booking::with(['room.roomType'])
+            ->orderBy('check_in_date', 'desc');
+        $advanceBookingsQuery = Booking::with(['room.roomType'])
+            ->where('check_in_date', '>', date('Y-m-d'))
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+            ->orderBy('check_in_date', 'asc');
+        $unpaidBookingsQuery = Booking::with(['room.roomType'])
+            ->where('status', 'checked_in')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'paid')
+                  ->orWhereRaw('remaining_payment > 0');
+            })
+            ->orderBy('check_in_date', 'desc');
+        
+        if($roomTypeFilter) {
+            $roomBookingsQuery->whereHas('room', fn($q) => $q->where('room_type_id', $roomTypeFilter));
+            $advanceBookingsQuery->whereHas('room', fn($q) => $q->where('room_type_id', $roomTypeFilter));
+            $unpaidBookingsQuery->whereHas('room', fn($q) => $q->where('room_type_id', $roomTypeFilter));
+        }
+        
+        if($request->start_date) {
+            $roomBookingsQuery->whereDate('check_in_date', '>=', $request->start_date);
+            $unpaidBookingsQuery->whereDate('check_in_date', '>=', $request->start_date);
+        }
+        if($request->end_date) {
+            $roomBookingsQuery->whereDate('check_in_date', '<=', $request->end_date);
+            $unpaidBookingsQuery->whereDate('check_in_date', '<=', $request->end_date);
+        }
+        
+        $allRoomBookings = $roomBookingsQuery->get();
+        $allAdvanceBookings = $advanceBookingsQuery->get();
+        $allUnpaidBookings = $unpaidBookingsQuery->get();
+        
+        $roomBookings = $allRoomBookings->take(20);
+        $advanceBookings = $allAdvanceBookings->take(20);
+        $unpaidBookings = $allUnpaidBookings->take(20);
+        
+        $roomBookingsCount = $allRoomBookings->count();
+        $advanceCount = $allAdvanceBookings->count();
+        $unpaidCount = $allUnpaidBookings->count();
+        
+        $grandTotalBookings = $roomBookingsCount;
+        $grandTotalRevenue = $allRoomBookings->sum(fn($b) => $b->getGrandTotal());
+        $grandTotalRemaining = $allRoomBookings->sum(fn($b) => $b->getCalculatedRemaining());
+        
+        $roomTypes = RoomType::all();
+        $resortInfo = ResortInfo::first();
+        
+        return view('admin.reports.combined', compact(
+            'roomBookings', 'advanceBookings', 'unpaidBookings',
+            'roomBookingsCount', 'advanceCount', 'unpaidCount',
+            'grandTotalBookings', 'grandTotalRevenue', 'grandTotalRemaining',
+            'roomTypes', 'resortInfo'
+        ));
+    }
+    
+    public function exportCombined(Request $request) {
+        $roomTypeFilter = $request->room_type_id;
+        
+        $roomBookingsQuery = Booking::with(['room.roomType']);
+        $advanceBookingsQuery = Booking::with(['room.roomType'])
+            ->where('check_in_date', '>', date('Y-m-d'))
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
+        $unpaidBookingsQuery = Booking::with(['room.roomType'])
+            ->where('status', 'checked_in')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'paid')
+                  ->orWhereRaw('remaining_payment > 0');
+            });
+        
+        if($roomTypeFilter) {
+            $roomBookingsQuery->whereHas('room', fn($q) => $q->where('room_type_id', $roomTypeFilter));
+            $advanceBookingsQuery->whereHas('room', fn($q) => $q->where('room_type_id', $roomTypeFilter));
+            $unpaidBookingsQuery->whereHas('room', fn($q) => $q->where('room_type_id', $roomTypeFilter));
+        }
+        
+        if($request->start_date) {
+            $roomBookingsQuery->whereDate('check_in_date', '>=', $request->start_date);
+            $unpaidBookingsQuery->whereDate('check_in_date', '>=', $request->start_date);
+        }
+        if($request->end_date) {
+            $roomBookingsQuery->whereDate('check_in_date', '<=', $request->end_date);
+            $unpaidBookingsQuery->whereDate('check_in_date', '<=', $request->end_date);
+        }
+        
+        $allRoomBookings = $roomBookingsQuery->get();
+        $allAdvanceBookings = $advanceBookingsQuery->get();
+        $allUnpaidBookings = $unpaidBookingsQuery->get();
+        
+        $csvContent = "=== ROOM BOOKINGS ===\n";
+        $csvContent .= "ID,Customer Name,Phone,Room,Check-In,Check-Out,Total,Advance,Remaining,Status\n";
+        foreach ($allRoomBookings as $b) {
+            $csvContent .= "\"{$b->id}\",";
+            $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
+            $csvContent .= "\"{$b->customer_phone}\",";
+            $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
+            $csvContent .= "\"{$b->check_in_date}\",";
+            $csvContent .= "\"{$b->check_out_date}\",";
+            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->advance_payment}\",";
+            $csvContent .= "\"{$b->remaining_payment}\",";
+            $csvContent .= "\"{$b->status}\"\n";
+        }
+        
+        $csvContent .= "\n=== ADVANCE BOOKINGS ===\n";
+        $csvContent .= "ID,Customer Name,Phone,Room,Check-In,Check-Out,Nights,Total,Advance,Status\n";
+        foreach ($allAdvanceBookings as $b) {
+            $nights = \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date));
+            $nights = max(1, $nights);
+            $csvContent .= "\"{$b->id}\",";
+            $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
+            $csvContent .= "\"{$b->customer_phone}\",";
+            $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
+            $csvContent .= "\"{$b->check_in_date}\",";
+            $csvContent .= "\"{$b->check_out_date}\",";
+            $csvContent .= "\"{$nights}\",";
+            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->advance_payment}\",";
+            $csvContent .= "\"{$b->status}\"\n";
+        }
+        
+        $csvContent .= "\n=== UNPAID CHECKED-IN ===\n";
+        $csvContent .= "ID,Customer Name,Phone,Room,Check-In,Total,Advance,Bill,Due,Status\n";
+        foreach ($allUnpaidBookings as $b) {
+            $due = $b->getCalculatedRemaining();
+            $csvContent .= "\"{$b->id}\",";
+            $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
+            $csvContent .= "\"{$b->customer_phone}\",";
+            $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
+            $csvContent .= "\"{$b->check_in_date}\",";
+            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->advance_payment}\",";
+            $csvContent .= "\"{$b->getCalculatedTotal()}\",";
+            $csvContent .= "\"{$due}\",";
+            $csvContent .= "\"{$b->status}\"\n";
+        }
+        
+        $filename = 'combined-report-' . date('Y-m-d') . '.csv';
+        return Response::make($csvContent, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename={$filename}",
+        ]);
+    }
+    
     public function conventionBookings(Request $request) {
         $query = ConventionBooking::with('conventionHall');
         if($request->start_date) $query->whereDate('event_date', '>=', $request->start_date);
@@ -105,8 +392,9 @@ class ReportController extends Controller {
         
         $bookings = $query->orderBy('event_date', 'desc')->paginate(20)->withQueryString();
         $halls = ConventionHall::all();
+        $resortInfo = ResortInfo::first();
         
-        return view('admin.reports.convention-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'halls'));
+        return view('admin.reports.convention-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'halls', 'resortInfo'));
     }
     
     public function exportConventionBookings(Request $request) {
