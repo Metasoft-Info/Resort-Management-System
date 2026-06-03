@@ -230,6 +230,7 @@ Create these secrets:
 - `PROD_SSH_PORT` = SSH port (example: `22`)
 - `PROD_SSH_USER` = SSH user (example: `tufanconx`)
 - `PROD_SSH_PRIVATE_KEY` = private key content (full multi-line key)
+- `PROD_SSH_PASSPHRASE` = private key passphrase (if key is encrypted)
 - `PROD_APP_DIR` = Laravel root path (the folder that contains `artisan`)
 - `PROD_PHP_BIN` = `php` (or full path if needed)
 - `PROD_COMPOSER_BIN` = `composer` (or full path if needed)

@@ -23,6 +23,7 @@ jobs:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
           key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PROD_SSH_PASSPHRASE }}
           port: ${{ secrets.PROD_SSH_PORT }}
           script_stop: true
           envs: APP_DIR,DEPLOY_BRANCH,PHP_BIN,COMPOSER_BIN
