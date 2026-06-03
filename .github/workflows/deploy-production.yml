@@ -27,6 +27,12 @@ jobs:
           script_stop: true
           envs: APP_DIR,DEPLOY_BRANCH,PHP_BIN,COMPOSER_BIN
           script: |
+            if [ ! -f "$APP_DIR/deploy/production_deploy.sh" ]; then
+              cd "$APP_DIR"
+              git fetch --all --prune
+              git checkout "$DEPLOY_BRANCH" || git checkout -b "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
+              git reset --hard "origin/$DEPLOY_BRANCH"
+            fi
             bash "$APP_DIR/deploy/production_deploy.sh"
         env:
           APP_DIR: ${{ secrets.PROD_APP_DIR }}
