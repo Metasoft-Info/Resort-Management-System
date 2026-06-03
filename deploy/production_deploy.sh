@@ -69,10 +69,18 @@ resolve_composer_cmd() {
     fi
   done
 
-  # Last resort: download composer.phar into /tmp
+  # Last resort: download composer.phar into /tmp using PHP (no curl needed)
+  echo "[deploy] Downloading composer.phar to /tmp via PHP ..." >&2
+  "$PHP_BIN" -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');" 2>/dev/null && \
+  "$PHP_BIN" /tmp/composer-setup.php --quiet --install-dir=/tmp --filename=composer.phar >&2 2>/dev/null && \
+  rm -f /tmp/composer-setup.php && {
+    printf '%s %s\n' "$PHP_BIN" "/tmp/composer.phar"
+    return 0
+  }
+
+  # Also try curl as secondary fallback
   if command -v curl >/dev/null 2>&1; then
-    echo "[deploy] Downloading composer.phar to /tmp ..." >&2
-    curl -sS https://getcomposer.org/installer | "$PHP_BIN" -- --quiet --install-dir=/tmp --filename=composer.phar >&2 && {
+    curl -sS https://getcomposer.org/installer 2>/dev/null | "$PHP_BIN" -- --quiet --install-dir=/tmp --filename=composer.phar >&2 2>/dev/null && {
       printf '%s %s\n' "$PHP_BIN" "/tmp/composer.phar"
       return 0
     }
@@ -148,11 +156,23 @@ if [ "$REPO_DIR" != "$APP_DIR" ]; then
   git checkout "$DEPLOY_BRANCH"
   git reset --hard "origin/$DEPLOY_BRANCH"
 
+  # Run composer install in REPO_DIR so vendor/ exists before rsync
+  if [ -n "$COMPOSER_BIN" ]; then
+    echo "[deploy] Running composer install in REPO_DIR ..."
+    $COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+  elif [ -f "$APP_DIR/vendor/autoload.php" ]; then
+    echo "[deploy] WARNING: No composer. Will sync existing vendor from APP_DIR."
+    # Copy vendor back into REPO_DIR so rsync re-syncs it unchanged
+    rsync -a --delete "$APP_DIR/vendor/" "$REPO_DIR/vendor/" 2>/dev/null || true
+  else
+    echo "ERROR: composer binary not found and no existing vendor in APP_DIR."
+    exit 1
+  fi
+
   if command -v rsync >/dev/null 2>&1; then
     rsync -a --delete \
       --exclude '.git' \
       --exclude '.env' \
-      --exclude 'vendor' \
       --exclude 'storage/logs' \
       --exclude 'storage/framework/cache' \
       --exclude 'storage/framework/sessions' \
@@ -170,13 +190,16 @@ else
   git reset --hard "origin/$DEPLOY_BRANCH"
 fi
 
-if [ -n "$COMPOSER_BIN" ]; then
-  $COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader
-elif [ -f "$APP_DIR/vendor/autoload.php" ]; then
-  echo "WARNING: composer not found. Reusing existing vendor directory."
-else
-  echo "ERROR: composer binary not found and vendor/autoload.php is missing."
-  exit 1
+# For same-dir deployments (REPO_DIR == APP_DIR), run composer here
+if [ "$REPO_DIR" = "$APP_DIR" ]; then
+  if [ -n "$COMPOSER_BIN" ]; then
+    $COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+  elif [ ! -f "$APP_DIR/vendor/autoload.php" ]; then
+    echo "ERROR: composer binary not found and vendor/autoload.php is missing."
+    exit 1
+  else
+    echo "WARNING: composer not found. Reusing existing vendor directory."
+  fi
 fi
 
 "$PHP_BIN" artisan migrate --force
