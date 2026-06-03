@@ -257,3 +257,32 @@ Examples for `PROD_APP_DIR`:
 - Ensure the server project folder has Git configured with origin pointing to your GitHub repo.
 - Ensure the deploy user has permission to run composer, php artisan, and write to `storage` and `bootstrap/cache`.
 - If the private key is passphrase-protected, use an unencrypted deploy key dedicated for CI/CD.
+
+---
+
+## cPanel Fallback: Cron-Based Auto Deploy (No Inbound SSH Needed)
+
+If GitHub Actions cannot reach your server (timeout), use this mode.
+
+### Included Script
+
+- `deploy/cron_production_poll.sh`
+
+This script checks `origin/production` every run. If there is a new commit, it runs `deploy/production_deploy.sh` automatically.
+
+### How To Enable In cPanel
+
+1. Open **cPanel -> Cron Jobs**.
+2. Add a cron entry to run every minute:
+
+```cron
+* * * * * /bin/bash -lc 'APP_DIR="/home/tufanconx/tufanconventionresort.com" DEPLOY_BRANCH="production" /home/tufanconx/tufanconventionresort.com/deploy/cron_production_poll.sh >> /home/tufanconx/deploy-cron.log 2>&1'
+```
+
+3. If your Laravel root is different, replace both path occurrences with the folder that contains `artisan`.
+
+### Important
+
+- This mode does not require incoming SSH from GitHub.
+- For GitHub SSH deploy workflow, set secret `PROD_ENABLE_SSH_DEPLOY=true`.
+- If `PROD_ENABLE_SSH_DEPLOY` is not `true`, GitHub workflow will skip SSH deploy and finish successfully.
