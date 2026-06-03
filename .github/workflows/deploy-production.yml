@@ -17,7 +17,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: SSH Deploy Is Disabled
+        if: ${{ secrets.PROD_ENABLE_SSH_DEPLOY != 'true' }}
+        run: |
+          echo "SSH deploy is disabled."
+          echo "Set PROD_ENABLE_SSH_DEPLOY=true to enable GitHub->SSH deployment."
+
       - name: Deploy Over SSH
+        if: ${{ secrets.PROD_ENABLE_SSH_DEPLOY == 'true' }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
