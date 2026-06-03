@@ -14,13 +14,13 @@ resolve_app_dir() {
   fi
 
   # Direct Laravel root.
-  if [ -f "$candidate/artisan" ] && [ -d "$candidate/.git" ]; then
+  if [ -f "$candidate/artisan" ] && [ -e "$candidate/.git" ]; then
     printf '%s\n' "$(cd "$candidate" && pwd)"
     return 0
   fi
 
   # If candidate is public/public_html, parent may be Laravel root.
-  if [ -f "$candidate/../artisan" ] && [ -d "$candidate/../.git" ]; then
+  if [ -f "$candidate/../artisan" ] && [ -e "$candidate/../.git" ]; then
     printf '%s\n' "$(cd "$candidate/.." && pwd)"
     return 0
   fi
@@ -30,12 +30,12 @@ resolve_app_dir() {
     local link_target
     link_target="$(readlink -f "$candidate" || true)"
 
-    if [ -n "$link_target" ] && [ -f "$link_target/../artisan" ] && [ -d "$link_target/../.git" ]; then
+    if [ -n "$link_target" ] && [ -f "$link_target/../artisan" ] && [ -e "$link_target/../.git" ]; then
       printf '%s\n' "$(cd "$link_target/.." && pwd)"
       return 0
     fi
 
-    if [ -n "$link_target" ] && [ -f "$link_target/artisan" ] && [ -d "$link_target/.git" ]; then
+    if [ -n "$link_target" ] && [ -f "$link_target/artisan" ] && [ -e "$link_target/.git" ]; then
       printf '%s\n' "$(cd "$link_target" && pwd)"
       return 0
     fi
