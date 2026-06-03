@@ -6,6 +6,8 @@ REPO_DIR="${REPO_DIR:-$APP_DIR}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-composer}"
+HOME_DIR="${HOME_DIR:-/home/tufanconx}"
+COMPOSER_HOME_DIR="${COMPOSER_HOME_DIR:-$HOME_DIR/.composer}"
 
 resolve_app_dir() {
   local candidate="$1"
@@ -71,7 +73,9 @@ resolve_composer_cmd() {
 
   # Last resort: download composer.phar into /tmp using PHP (no curl needed)
   echo "[deploy] Downloading composer.phar to /tmp via PHP ..." >&2
+  HOME="$HOME_DIR" COMPOSER_HOME="$COMPOSER_HOME_DIR" \
   "$PHP_BIN" -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');" 2>/dev/null && \
+  HOME="$HOME_DIR" COMPOSER_HOME="$COMPOSER_HOME_DIR" \
   "$PHP_BIN" /tmp/composer-setup.php --quiet --install-dir=/tmp --filename=composer.phar >&2 2>/dev/null && \
   rm -f /tmp/composer-setup.php && {
     printf '%s %s\n' "$PHP_BIN" "/tmp/composer.phar"
@@ -80,7 +84,7 @@ resolve_composer_cmd() {
 
   # Also try curl as secondary fallback
   if command -v curl >/dev/null 2>&1; then
-    curl -sS https://getcomposer.org/installer 2>/dev/null | "$PHP_BIN" -- --quiet --install-dir=/tmp --filename=composer.phar >&2 2>/dev/null && {
+    curl -sS https://getcomposer.org/installer 2>/dev/null | HOME="$HOME_DIR" COMPOSER_HOME="$COMPOSER_HOME_DIR" "$PHP_BIN" -- --quiet --install-dir=/tmp --filename=composer.phar >&2 2>/dev/null && {
       printf '%s %s\n' "$PHP_BIN" "/tmp/composer.phar"
       return 0
     }
@@ -132,6 +136,10 @@ if [ ! -e "$REPO_DIR/.git" ]; then
   echo "ERROR: git repository not found in REPO_DIR: $REPO_DIR"
   exit 1
 fi
+
+mkdir -p "$COMPOSER_HOME_DIR" 2>/dev/null || true
+export HOME="$HOME_DIR"
+export COMPOSER_HOME="$COMPOSER_HOME_DIR"
 
 if resolved_composer="$(resolve_composer_cmd "$COMPOSER_BIN")"; then
   COMPOSER_BIN="$resolved_composer"
