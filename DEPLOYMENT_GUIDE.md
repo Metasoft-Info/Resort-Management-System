@@ -264,6 +264,11 @@ Examples for `PROD_APP_DIR`:
 
 If GitHub Actions cannot reach your server (timeout), use this mode.
 
+Recommended shared-hosting layout:
+
+- Live app directory: `/home/tufanconx/public_html`
+- Git repository clone: `/home/tufanconx/repo-production`
+
 ### Included Script
 
 - `deploy/cron_production_poll.sh`
@@ -276,10 +281,11 @@ This script checks `origin/production` every run. If there is a new commit, it r
 2. Add a cron entry to run every minute:
 
 ```cron
-* * * * * /bin/bash -lc 'APP_DIR="/home/tufanconx/tufanconventionresort.com" DEPLOY_BRANCH="production" /home/tufanconx/tufanconventionresort.com/deploy/cron_production_poll.sh >> /home/tufanconx/deploy-cron.log 2>&1'
+*/5 * * * * /bin/bash -lc 'APP_DIR="/home/tufanconx/public_html" REPO_DIR="/home/tufanconx/repo-production" DEPLOY_BRANCH="production" /home/tufanconx/repo-production/deploy/cron_production_poll.sh >> /home/tufanconx/deploy-cron.log 2>&1'
 ```
 
-3. If your Laravel root is different, replace both path occurrences with the folder that contains `artisan`.
+3. Clone your GitHub repository into `/home/tufanconx/repo-production` using cPanel Git Version Control.
+4. Keep your live website in `/home/tufanconx/public_html`.
 
 ### Important
 

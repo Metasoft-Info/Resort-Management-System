@@ -2,11 +2,12 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/home/tufanconx/public_html}"
+REPO_DIR="${REPO_DIR:-$APP_DIR}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 LOCK_DIR="${LOCK_DIR:-/tmp/lakeview-deploy-lock}"
 
-if [ ! -d "$APP_DIR" ]; then
-  echo "[cron-deploy] APP_DIR does not exist: $APP_DIR"
+if [ ! -d "$REPO_DIR" ]; then
+  echo "[cron-deploy] REPO_DIR does not exist: $REPO_DIR"
   exit 1
 fi
 
@@ -24,8 +25,8 @@ cleanup_lock() {
 }
 trap cleanup_lock EXIT
 
-cd "$APP_DIR"
-git config --global --add safe.directory "$APP_DIR" || true
+cd "$REPO_DIR"
+git config --global --add safe.directory "$REPO_DIR" || true
 
 git fetch origin "$DEPLOY_BRANCH" --prune
 
@@ -38,4 +39,4 @@ if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
 fi
 
 echo "[cron-deploy] New commit detected on $DEPLOY_BRANCH. Running deploy."
-bash "$APP_DIR/deploy/production_deploy.sh"
+APP_DIR="$APP_DIR" REPO_DIR="$REPO_DIR" DEPLOY_BRANCH="$DEPLOY_BRANCH" bash "$REPO_DIR/deploy/production_deploy.sh"
