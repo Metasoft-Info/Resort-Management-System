@@ -203,3 +203,51 @@ php artisan storage:link
 ## Support
 If you face any issues, check Laravel logs at:
 `/home/tufanconx/laravel/storage/logs/laravel.log`
+
+---
+
+## GitHub Auto Deploy (Production Branch)
+
+This project now includes:
+
+- GitHub Action workflow: `.github/workflows/deploy-production.yml`
+- Server deploy script: `deploy/production_deploy.sh`
+
+### Branch Strategy
+
+1. Keep your ongoing work in `master` (or any feature branch).
+2. Create PR from `master` -> `production`.
+3. Merge into `production`.
+4. GitHub Actions will auto-deploy to server.
+
+### Required GitHub Repository Secrets
+
+Go to: GitHub repository -> Settings -> Secrets and variables -> Actions
+
+Create these secrets:
+
+- `PROD_SSH_HOST` = your server host (example: `198.54.115.196`)
+- `PROD_SSH_PORT` = SSH port (example: `22`)
+- `PROD_SSH_USER` = SSH user (example: `tufanconx`)
+- `PROD_SSH_PRIVATE_KEY` = private key content (full multi-line key)
+- `PROD_APP_DIR` = `/home/tufanconx/laravel`
+- `PROD_PHP_BIN` = `php` (or full path if needed)
+- `PROD_COMPOSER_BIN` = `composer` (or full path if needed)
+
+### What Runs Automatically On Each Production Deploy
+
+1. Put app in maintenance mode
+2. Fetch latest code from `origin/production`
+3. Hard reset working tree to `origin/production`
+4. Install production composer dependencies
+5. Run database migrations (`php artisan migrate --force`)
+6. Ensure storage symlink exists
+7. Clear and rebuild Laravel caches
+8. Restart queue workers (if running)
+9. Restore app from maintenance mode
+
+### Notes
+
+- Ensure the server project folder has Git configured with origin pointing to your GitHub repo.
+- Ensure the deploy user has permission to run composer, php artisan, and write to `storage` and `bootstrap/cache`.
+- If the private key is passphrase-protected, use an unencrypted deploy key dedicated for CI/CD.

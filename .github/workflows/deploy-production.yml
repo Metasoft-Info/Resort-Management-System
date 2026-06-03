@@ -1,0 +1,35 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT }}
+          script_stop: true
+          envs: APP_DIR,DEPLOY_BRANCH,PHP_BIN,COMPOSER_BIN
+          script: |
+            bash "$APP_DIR/deploy/production_deploy.sh"
+        env:
+          APP_DIR: ${{ secrets.PROD_APP_DIR }}
+          DEPLOY_BRANCH: production
+          PHP_BIN: ${{ secrets.PROD_PHP_BIN }}
+          COMPOSER_BIN: ${{ secrets.PROD_COMPOSER_BIN }}
