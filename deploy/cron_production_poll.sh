@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/home/tufanconx/laravel}"
+APP_DIR="${APP_DIR:-/home/tufanconx/public_html}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 LOCK_DIR="${LOCK_DIR:-/tmp/lakeview-deploy-lock}"
 
@@ -11,26 +11,7 @@ if [ ! -d "$APP_DIR" ]; then
 fi
 
 # If APP_DIR points to public/public_html, try to auto-resolve Laravel root.
-if [ ! -f "$APP_DIR/artisan" ]; then
-  if [ -f "$APP_DIR/../artisan" ]; then
-    APP_DIR="$(cd "$APP_DIR/.." && pwd)"
-  elif [ -L "$APP_DIR" ]; then
-    LINK_TARGET="$(readlink -f "$APP_DIR" || true)"
-    if [ -n "$LINK_TARGET" ] && [ -f "$LINK_TARGET/../artisan" ]; then
-      APP_DIR="$(cd "$LINK_TARGET/.." && pwd)"
-    fi
-  fi
-fi
-
-if [ ! -f "$APP_DIR/artisan" ]; then
-  echo "[cron-deploy] artisan not found under APP_DIR: $APP_DIR"
-  exit 1
-fi
-
-if [ ! -d "$APP_DIR/.git" ]; then
-  echo "[cron-deploy] Git repository not found under APP_DIR: $APP_DIR"
-  exit 1
-fi
+# Laravel root is auto-resolved inside production_deploy.sh.
 
 # Prevent overlapping deployments when cron runs every minute.
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
