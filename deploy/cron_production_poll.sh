@@ -38,5 +38,8 @@ if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
   exit 0
 fi
 
-echo "[cron-deploy] New commit detected on $DEPLOY_BRANCH. Running deploy."
+echo "[cron-deploy] New commit detected on $DEPLOY_BRANCH. Updating repo..."
+git checkout "$DEPLOY_BRANCH"
+git reset --hard "origin/$DEPLOY_BRANCH"
+echo "[cron-deploy] Repo updated to $(git rev-parse --short HEAD). Running deploy."
 APP_DIR="$APP_DIR" REPO_DIR="$REPO_DIR" DEPLOY_BRANCH="$DEPLOY_BRANCH" bash "$REPO_DIR/deploy/production_deploy.sh"
