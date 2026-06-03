@@ -6,30 +6,75 @@ DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-composer}"
 
+resolve_app_dir() {
+  local candidate="$1"
+
+  if [ -z "$candidate" ] || [ ! -d "$candidate" ]; then
+    return 1
+  fi
+
+  # Direct Laravel root.
+  if [ -f "$candidate/artisan" ] && [ -d "$candidate/.git" ]; then
+    printf '%s\n' "$(cd "$candidate" && pwd)"
+    return 0
+  fi
+
+  # If candidate is public/public_html, parent may be Laravel root.
+  if [ -f "$candidate/../artisan" ] && [ -d "$candidate/../.git" ]; then
+    printf '%s\n' "$(cd "$candidate/.." && pwd)"
+    return 0
+  fi
+
+  # If candidate is symlink, check link target and target parent.
+  if [ -L "$candidate" ]; then
+    local link_target
+    link_target="$(readlink -f "$candidate" || true)"
+
+    if [ -n "$link_target" ] && [ -f "$link_target/../artisan" ] && [ -d "$link_target/../.git" ]; then
+      printf '%s\n' "$(cd "$link_target/.." && pwd)"
+      return 0
+    fi
+
+    if [ -n "$link_target" ] && [ -f "$link_target/artisan" ] && [ -d "$link_target/.git" ]; then
+      printf '%s\n' "$(cd "$link_target" && pwd)"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+if resolved="$(resolve_app_dir "$APP_DIR")"; then
+  APP_DIR="$resolved"
+else
+  # Fallback scan for shared hosting layouts.
+  for probe in \
+    /home/tufanconx/tufanconventionresort.com \
+    /home/tufanconx/laravel \
+    /home/tufanconx/public_html; do
+    if resolved="$(resolve_app_dir "$probe")"; then
+      APP_DIR="$resolved"
+      break
+    fi
+  done
+fi
+
 if [ ! -d "$APP_DIR" ]; then
   echo "ERROR: APP_DIR does not exist: $APP_DIR"
   exit 1
-fi
-
-# If APP_DIR points to public/public_html, try to auto-resolve Laravel root.
-if [ ! -f "$APP_DIR/artisan" ]; then
-  if [ -f "$APP_DIR/../artisan" ]; then
-    APP_DIR="$(cd "$APP_DIR/.." && pwd)"
-  elif [ -L "$APP_DIR" ]; then
-    LINK_TARGET="$(readlink -f "$APP_DIR" || true)"
-    if [ -n "$LINK_TARGET" ] && [ -f "$LINK_TARGET/../artisan" ]; then
-      APP_DIR="$(cd "$LINK_TARGET/.." && pwd)"
-    fi
-  fi
 fi
 
 cd "$APP_DIR"
 
 if [ ! -f artisan ]; then
   echo "ERROR: artisan file not found in APP_DIR: $APP_DIR"
-  echo "Set PROD_APP_DIR to your Laravel root (folder that contains artisan)."
-  echo "Possible artisan locations under /home/tufanconx:"
-  find /home/tufanconx -maxdepth 4 -type f -name artisan 2>/dev/null || true
+  echo "Set PROD_APP_DIR to your Laravel root (folder that contains both artisan and .git)."
+  echo "Possible Laravel roots under /home/tufanconx:"
+  find /home/tufanconx -maxdepth 5 -type f -name artisan 2>/dev/null | sed 's#/artisan$##' | while read -r p; do
+    if [ -d "$p/.git" ]; then
+      echo "$p"
+    fi
+  done
   exit 1
 fi
 
