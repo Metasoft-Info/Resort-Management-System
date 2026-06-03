@@ -6,7 +6,20 @@ DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-composer}"
 
+if [ ! -d "$APP_DIR" ]; then
+  echo "ERROR: APP_DIR does not exist: $APP_DIR"
+  exit 1
+fi
+
 cd "$APP_DIR"
+
+if [ ! -f artisan ]; then
+  echo "ERROR: artisan file not found in APP_DIR: $APP_DIR"
+  echo "Set PROD_APP_DIR to your Laravel root (folder that contains artisan)."
+  echo "Possible artisan locations under /home/tufanconx:"
+  find /home/tufanconx -maxdepth 4 -type f -name artisan 2>/dev/null || true
+  exit 1
+fi
 
 git config --global --add safe.directory "$APP_DIR" || true
 

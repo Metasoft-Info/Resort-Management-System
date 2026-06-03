@@ -230,9 +230,14 @@ Create these secrets:
 - `PROD_SSH_PORT` = SSH port (example: `22`)
 - `PROD_SSH_USER` = SSH user (example: `tufanconx`)
 - `PROD_SSH_PRIVATE_KEY` = private key content (full multi-line key)
-- `PROD_APP_DIR` = `/home/tufanconx/laravel`
+- `PROD_APP_DIR` = Laravel root path (the folder that contains `artisan`)
 - `PROD_PHP_BIN` = `php` (or full path if needed)
 - `PROD_COMPOSER_BIN` = `composer` (or full path if needed)
+
+Examples for `PROD_APP_DIR`:
+
+- `/home/tufanconx/laravel`
+- `/home/tufanconx/tufanconventionresort.com` (only if this folder contains `artisan`)
 
 ### What Runs Automatically On Each Production Deploy
 
