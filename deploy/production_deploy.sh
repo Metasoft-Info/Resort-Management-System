@@ -45,6 +45,32 @@ resolve_app_dir() {
   return 1
 }
 
+resolve_composer_cmd() {
+  local composer_cmd="$1"
+
+  if command -v "$composer_cmd" >/dev/null 2>&1; then
+    printf '%s\n' "$composer_cmd"
+    return 0
+  fi
+
+  for candidate in \
+    /opt/cpanel/composer/bin/composer \
+    /usr/local/bin/composer \
+    /usr/bin/composer \
+    /home/tufanconx/composer.phar; do
+    if [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+    if [ -f "$candidate" ]; then
+      printf '%s %s\n' "$PHP_BIN" "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 if resolved="$(resolve_app_dir "$APP_DIR")"; then
   APP_DIR="$resolved"
 else
@@ -86,6 +112,13 @@ fi
 
 if [ ! -e "$REPO_DIR/.git" ]; then
   echo "ERROR: git repository not found in REPO_DIR: $REPO_DIR"
+  exit 1
+fi
+
+if resolved_composer="$(resolve_composer_cmd "$COMPOSER_BIN")"; then
+  COMPOSER_BIN="$resolved_composer"
+else
+  echo "ERROR: composer binary not found. Set COMPOSER_BIN to the correct path."
   exit 1
 fi
 
