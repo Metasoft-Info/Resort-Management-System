@@ -2,6 +2,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/home/tufanconx/laravel}"
+REPO_DIR="${REPO_DIR:-$APP_DIR}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-production}"
 PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-composer}"
@@ -60,6 +61,10 @@ else
   done
 fi
 
+if [ -d "$REPO_DIR" ]; then
+  REPO_DIR="$(cd "$REPO_DIR" && pwd)"
+fi
+
 if [ ! -d "$APP_DIR" ]; then
   echo "ERROR: APP_DIR does not exist: $APP_DIR"
   exit 1
@@ -79,7 +84,13 @@ if [ ! -f artisan ]; then
   exit 1
 fi
 
+if [ ! -e "$REPO_DIR/.git" ]; then
+  echo "ERROR: git repository not found in REPO_DIR: $REPO_DIR"
+  exit 1
+fi
+
 git config --global --add safe.directory "$APP_DIR" || true
+git config --global --add safe.directory "$REPO_DIR" || true
 
 # Always restore application availability on exit.
 cleanup() {
@@ -89,9 +100,31 @@ trap cleanup EXIT
 
 "$PHP_BIN" artisan down || true
 
-git fetch --all --prune
-git checkout "$DEPLOY_BRANCH"
-git reset --hard "origin/$DEPLOY_BRANCH"
+if [ "$REPO_DIR" != "$APP_DIR" ]; then
+  cd "$REPO_DIR"
+  git fetch --all --prune
+  git checkout "$DEPLOY_BRANCH"
+  git reset --hard "origin/$DEPLOY_BRANCH"
+
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --delete \
+      --exclude '.git' \
+      --exclude 'storage/logs' \
+      --exclude 'storage/framework/cache' \
+      --exclude 'storage/framework/sessions' \
+      --exclude 'storage/framework/views' \
+      "$REPO_DIR/" "$APP_DIR/"
+  else
+    echo "ERROR: rsync is required when REPO_DIR and APP_DIR are different."
+    exit 1
+  fi
+
+  cd "$APP_DIR"
+else
+  git fetch --all --prune
+  git checkout "$DEPLOY_BRANCH"
+  git reset --hard "origin/$DEPLOY_BRANCH"
+fi
 
 "$COMPOSER_BIN" install --no-interaction --prefer-dist --no-dev --optimize-autoloader
 
