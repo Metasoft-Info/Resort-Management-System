@@ -132,6 +132,12 @@ if [ ! -f artisan ]; then
   exit 1
 fi
 
+if [ ! -f "$APP_DIR/.env" ]; then
+  echo "ERROR: .env file is missing in APP_DIR: $APP_DIR"
+  echo "Refusing to deploy with fallback defaults (can cause wrong DB connection)."
+  exit 1
+fi
+
 if [ ! -e "$REPO_DIR/.git" ]; then
   echo "ERROR: git repository not found in REPO_DIR: $REPO_DIR"
   exit 1
