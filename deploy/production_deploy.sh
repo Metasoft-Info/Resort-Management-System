@@ -49,6 +49,7 @@ if resolved="$(resolve_app_dir "$APP_DIR")"; then
 else
   # Fallback scan for shared hosting layouts.
   for probe in \
+    /home/tufanconx \
     /home/tufanconx/tufanconventionresort.com \
     /home/tufanconx/laravel \
     /home/tufanconx/public_html; do
