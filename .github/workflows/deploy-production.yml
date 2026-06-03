@@ -28,6 +28,20 @@ jobs:
           script_stop: true
           envs: APP_DIR,DEPLOY_BRANCH,PHP_BIN,COMPOSER_BIN
           script: |
+            RESOLVED_APP_DIR="$APP_DIR"
+            if [ ! -f "$RESOLVED_APP_DIR/artisan" ]; then
+              if [ -f "$RESOLVED_APP_DIR/../artisan" ]; then
+                RESOLVED_APP_DIR="$(cd "$RESOLVED_APP_DIR/.." && pwd)"
+              elif [ -L "$RESOLVED_APP_DIR" ]; then
+                LINK_TARGET="$(readlink -f "$RESOLVED_APP_DIR" || true)"
+                if [ -n "$LINK_TARGET" ] && [ -f "$LINK_TARGET/../artisan" ]; then
+                  RESOLVED_APP_DIR="$(cd "$LINK_TARGET/.." && pwd)"
+                fi
+              fi
+            fi
+
+            APP_DIR="$RESOLVED_APP_DIR"
+
             if [ ! -f "$APP_DIR/deploy/production_deploy.sh" ]; then
               cd "$APP_DIR"
               git fetch --all --prune

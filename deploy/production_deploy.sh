@@ -11,6 +11,18 @@ if [ ! -d "$APP_DIR" ]; then
   exit 1
 fi
 
+# If APP_DIR points to public/public_html, try to auto-resolve Laravel root.
+if [ ! -f "$APP_DIR/artisan" ]; then
+  if [ -f "$APP_DIR/../artisan" ]; then
+    APP_DIR="$(cd "$APP_DIR/.." && pwd)"
+  elif [ -L "$APP_DIR" ]; then
+    LINK_TARGET="$(readlink -f "$APP_DIR" || true)"
+    if [ -n "$LINK_TARGET" ] && [ -f "$LINK_TARGET/../artisan" ]; then
+      APP_DIR="$(cd "$LINK_TARGET/.." && pwd)"
+    fi
+  fi
+fi
+
 cd "$APP_DIR"
 
 if [ ! -f artisan ]; then
