@@ -118,8 +118,7 @@ fi
 if resolved_composer="$(resolve_composer_cmd "$COMPOSER_BIN")"; then
   COMPOSER_BIN="$resolved_composer"
 else
-  echo "ERROR: composer binary not found. Set COMPOSER_BIN to the correct path."
-  exit 1
+  COMPOSER_BIN=""
 fi
 
 git config --global --add safe.directory "$APP_DIR" || true
@@ -142,6 +141,8 @@ if [ "$REPO_DIR" != "$APP_DIR" ]; then
   if command -v rsync >/dev/null 2>&1; then
     rsync -a --delete \
       --exclude '.git' \
+      --exclude '.env' \
+      --exclude 'vendor' \
       --exclude 'storage/logs' \
       --exclude 'storage/framework/cache' \
       --exclude 'storage/framework/sessions' \
@@ -159,7 +160,14 @@ else
   git reset --hard "origin/$DEPLOY_BRANCH"
 fi
 
-"$COMPOSER_BIN" install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+if [ -n "$COMPOSER_BIN" ]; then
+  $COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+elif [ -f "$APP_DIR/vendor/autoload.php" ]; then
+  echo "WARNING: composer not found. Reusing existing vendor directory."
+else
+  echo "ERROR: composer binary not found and vendor/autoload.php is missing."
+  exit 1
+fi
 
 "$PHP_BIN" artisan migrate --force
 "$PHP_BIN" artisan storage:link || true
