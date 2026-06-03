@@ -57,7 +57,8 @@ resolve_composer_cmd() {
     /opt/cpanel/composer/bin/composer \
     /usr/local/bin/composer \
     /usr/bin/composer \
-    /home/tufanconx/composer.phar; do
+    /home/tufanconx/composer.phar \
+    /tmp/composer.phar; do
     if [ -x "$candidate" ]; then
       printf '%s\n' "$candidate"
       return 0
@@ -67,6 +68,15 @@ resolve_composer_cmd() {
       return 0
     fi
   done
+
+  # Last resort: download composer.phar into /tmp
+  if command -v curl >/dev/null 2>&1; then
+    echo "[deploy] Downloading composer.phar to /tmp ..." >&2
+    curl -sS https://getcomposer.org/installer | "$PHP_BIN" -- --quiet --install-dir=/tmp --filename=composer.phar >&2 && {
+      printf '%s %s\n' "$PHP_BIN" "/tmp/composer.phar"
+      return 0
+    }
+  fi
 
   return 1
 }
