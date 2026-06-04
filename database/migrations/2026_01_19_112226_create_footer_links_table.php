@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('footer_links')) {
+            return;
+        }
+
         Schema::create('footer_links', function (Blueprint $table) {
             $table->id();
             $table->foreignId('footer_section_id')->constrained()->onDelete('cascade');
