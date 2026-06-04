@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('users', 'dashboard_mode')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->string('dashboard_mode')->nullable()->default('resort')->after('permissions');
         });

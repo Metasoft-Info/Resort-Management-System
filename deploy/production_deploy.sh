@@ -208,6 +208,7 @@ if [ "$REPO_DIR" != "$APP_DIR" ]; then
     rsync -a --delete \
       --exclude '.git' \
       --exclude '.env' \
+      --exclude 'storage/app' \
       --exclude 'storage/logs' \
       --exclude 'storage/framework/cache' \
       --exclude 'storage/framework/sessions' \
