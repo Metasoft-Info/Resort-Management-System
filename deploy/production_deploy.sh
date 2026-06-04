@@ -243,6 +243,7 @@ fi
 
 "$PHP_BIN" artisan storage:link --force || true
 "$PHP_BIN" artisan migrate --force || echo "[deploy] WARNING: Some migrations failed, continuing deploy..."
+"$PHP_BIN" artisan db:seed --class=AdminMenuSettingSeeder --force
 
 "$PHP_BIN" artisan optimize:clear
 "$PHP_BIN" artisan config:cache
