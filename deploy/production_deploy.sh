@@ -50,6 +50,15 @@ resolve_app_dir() {
 resolve_composer_cmd() {
   local composer_cmd="$1"
 
+  # Allow fully-qualified command strings like:
+  #   COMPOSER_BIN="php /path/to/composer.phar"
+  if [ -n "$composer_cmd" ] && [[ "$composer_cmd" == *" "* ]]; then
+    if bash -lc "$composer_cmd --version" >/dev/null 2>&1; then
+      printf '%s\n' "$composer_cmd"
+      return 0
+    fi
+  fi
+
   if command -v "$composer_cmd" >/dev/null 2>&1; then
     printf '%s\n' "$composer_cmd"
     return 0
@@ -57,8 +66,10 @@ resolve_composer_cmd() {
 
   for candidate in \
     /opt/cpanel/composer/bin/composer \
+    /opt/cpanel/composer/bin/composer-cli \
     /usr/local/bin/composer \
     /usr/bin/composer \
+    /home/tufanconx/bin/composer \
     /home/tufanconx/composer.phar \
     /tmp/composer.phar; do
     if [ -x "$candidate" ]; then
@@ -91,6 +102,18 @@ resolve_composer_cmd() {
   fi
 
   return 1
+}
+
+run_composer_install() {
+  if [ -z "${COMPOSER_BIN:-}" ]; then
+    return 1
+  fi
+
+  if [[ "$COMPOSER_BIN" == *" "* ]]; then
+    bash -lc "$COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader"
+  else
+    "$COMPOSER_BIN" install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+  fi
 }
 
 if resolved="$(resolve_app_dir "$APP_DIR")"; then
@@ -162,8 +185,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"$PHP_BIN" artisan down || true
-
 if [ "$REPO_DIR" != "$APP_DIR" ]; then
   cd "$REPO_DIR"
   git fetch --all --prune
@@ -173,7 +194,7 @@ if [ "$REPO_DIR" != "$APP_DIR" ]; then
   # Run composer install in REPO_DIR so vendor/ exists before rsync
   if [ -n "$COMPOSER_BIN" ]; then
     echo "[deploy] Running composer install in REPO_DIR ..."
-    $COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+    run_composer_install
   elif [ -f "$APP_DIR/vendor/autoload.php" ]; then
     echo "[deploy] WARNING: No composer. Will sync existing vendor from APP_DIR."
     # Copy vendor back into REPO_DIR so rsync re-syncs it unchanged
@@ -207,7 +228,7 @@ fi
 # For same-dir deployments (REPO_DIR == APP_DIR), run composer here
 if [ "$REPO_DIR" = "$APP_DIR" ]; then
   if [ -n "$COMPOSER_BIN" ]; then
-    $COMPOSER_BIN install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+    run_composer_install
   elif [ ! -f "$APP_DIR/vendor/autoload.php" ]; then
     echo "ERROR: composer binary not found and vendor/autoload.php is missing."
     exit 1
@@ -215,6 +236,9 @@ if [ "$REPO_DIR" = "$APP_DIR" ]; then
     echo "WARNING: composer not found. Reusing existing vendor directory."
   fi
 fi
+
+# Only enter maintenance mode after dependencies are confirmed.
+"$PHP_BIN" artisan down || true
 
 "$PHP_BIN" artisan migrate --force
 "$PHP_BIN" artisan storage:link || true

@@ -233,7 +233,14 @@ Create these secrets:
 - `PROD_SSH_PASSPHRASE` = private key passphrase (if key is encrypted)
 - `PROD_APP_DIR` = Laravel root path (the folder that contains `artisan`)
 - `PROD_PHP_BIN` = `php` (or full path if needed)
-- `PROD_COMPOSER_BIN` = `composer` (or full path if needed)
+- `PROD_COMPOSER_BIN` = `composer` (or full path/command if needed)
+
+Examples for `PROD_COMPOSER_BIN` on shared hosting:
+
+- `composer`
+- `/opt/cpanel/composer/bin/composer`
+- `php /opt/cpanel/composer/bin/composer`
+- `php /tmp/composer.phar`
 
 Examples for `PROD_APP_DIR`:
 
@@ -242,10 +249,10 @@ Examples for `PROD_APP_DIR`:
 
 ### What Runs Automatically On Each Production Deploy
 
-1. Put app in maintenance mode
-2. Fetch latest code from `origin/production`
-3. Hard reset working tree to `origin/production`
-4. Install production composer dependencies
+1. Fetch latest code from `origin/production`
+2. Hard reset working tree to `origin/production`
+3. Install production composer dependencies (or reuse existing `vendor` safely)
+4. Put app in maintenance mode
 5. Run database migrations (`php artisan migrate --force`)
 6. Ensure storage symlink exists
 7. Clear and rebuild Laravel caches
@@ -281,8 +288,14 @@ This script checks `origin/production` every run. If there is a new commit, it r
 2. Add a cron entry to run every minute:
 
 ```cron
-*/5 * * * * /bin/bash -lc 'APP_DIR="/home/tufanconx/public_html" REPO_DIR="/home/tufanconx/repo-production" DEPLOY_BRANCH="production" /home/tufanconx/repo-production/deploy/cron_production_poll.sh >> /home/tufanconx/deploy-cron.log 2>&1'
+*/5 * * * * /bin/bash -lc 'APP_DIR="/home/tufanconx/public_html" REPO_DIR="/home/tufanconx/repo-production" DEPLOY_BRANCH="production" PHP_BIN="php" COMPOSER_BIN="php /opt/cpanel/composer/bin/composer" /home/tufanconx/repo-production/deploy/cron_production_poll.sh >> /home/tufanconx/deploy-cron.log 2>&1'
 ```
+
+If `/opt/cpanel/composer/bin/composer` does not exist, try one of these in the cron command:
+
+- `COMPOSER_BIN="composer"`
+- `COMPOSER_BIN="/usr/local/bin/composer"`
+- `COMPOSER_BIN="php /tmp/composer.phar"`
 
 3. Clone your GitHub repository into `/home/tufanconx/repo-production` using cPanel Git Version Control.
 4. Keep your live website in `/home/tufanconx/public_html`.
