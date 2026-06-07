@@ -1,3 +1,10 @@
+# Booking Update 500 Fix - TODO
+
+- [x] Review BookingController@update flow and identify risky calculations
+- [x] Patch update flow for null-safe totals and non-negative remaining payment
+- [x] Add defensive try/catch + logging for production-safe failure handling
+- [x] Run PHP syntax check and summarize
+
 # Combined Report Detail & Room Mapping Fix - TODO
 
 - [x] Review combined report query + view rendering gaps (N/A room/room type)

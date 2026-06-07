@@ -456,79 +456,105 @@ class BookingController extends Controller
 
     public function update(Request $request, Booking $booking)
     {
-        $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
-            'check_in_date' => 'required|date',
-            'check_out_date' => 'required|date|after_or_equal:check_in_date',
-            'customer_name' => 'required|string|max:255',
-            'customer_phone' => 'required|string|max:20',
-            'customer_email' => 'nullable|email|max:255',
-            'customer_nid' => 'nullable|string|max:50',
-            'customer_address' => 'nullable|string',
-            'company_name' => 'nullable|string|max:255',
-            'booking_purpose' => 'nullable|string|max:50',
-            'number_of_guests' => 'nullable|integer|min:1',
-            'reference_name' => 'nullable|string|max:255',
-            'reference_phone' => 'nullable|string|max:20',
-            'total_amount' => 'nullable|numeric|min:0',
-            'advance_payment' => 'nullable|numeric|min:0',
-            'remaining_payment' => 'nullable|numeric|min:0',
-            'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled',
-            'payment_status' => 'sometimes|in:pending,partial,paid,refunded',
-            'notes' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'room_id' => 'required|exists:rooms,id',
+                'check_in_date' => 'required|date',
+                'check_out_date' => 'required|date|after_or_equal:check_in_date',
+                'customer_name' => 'required|string|max:255',
+                'customer_phone' => 'required|string|max:20',
+                'customer_email' => 'nullable|email|max:255',
+                'customer_nid' => 'nullable|string|max:50',
+                'customer_address' => 'nullable|string',
+                'company_name' => 'nullable|string|max:255',
+                'booking_purpose' => 'nullable|string|max:50',
+                'number_of_guests' => 'nullable|integer|min:1',
+                'reference_name' => 'nullable|string|max:255',
+                'reference_phone' => 'nullable|string|max:20',
+                'total_amount' => 'nullable|numeric|min:0',
+                'advance_payment' => 'nullable|numeric|min:0',
+                'remaining_payment' => 'nullable|numeric|min:0',
+                'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled',
+                'payment_status' => 'sometimes|in:pending,partial,paid,refunded',
+                'notes' => 'nullable|string',
+            ]);
 
-        $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
-        $oldCheckIn = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
-        $oldCheckOut = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
-        $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->startOfDay();
-        $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->startOfDay();
+            $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
+            $oldCheckIn = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
+            $oldCheckOut = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
+            $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->startOfDay();
+            $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->startOfDay();
 
-        $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
-        $checkoutExtended = $newCheckOut->gt($oldCheckOut);
+            $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
+            $checkoutExtended = $newCheckOut->gt($oldCheckOut);
 
-        // Requirement:
-        // - If only checkout is reduced (earlier), allow update without strict availability block.
-        // - If checkout is extended OR room/check-in changed, check room availability first.
-        $mustCheckAvailability = $roomChanged || !$newCheckIn->equalTo($oldCheckIn) || $checkoutExtended;
+            // Requirement:
+            // - If only checkout is reduced (earlier), allow update without strict availability block.
+            // - If checkout is extended OR room/check-in changed, check room availability first.
+            $mustCheckAvailability = $roomChanged || !$newCheckIn->equalTo($oldCheckIn) || $checkoutExtended;
 
-        if ($mustCheckAvailability) {
-            $hasConflict = Booking::query()
-                ->where('id', '!=', $booking->id)
-                ->where('room_id', $validated['room_id'])
-                ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
-                ->where(function ($query) use ($validated) {
-                    $query->where('check_in_date', '<', $validated['check_out_date'])
-                        ->where('check_out_date', '>', $validated['check_in_date']);
-                })
-                ->exists();
+            if ($mustCheckAvailability) {
+                $hasConflict = Booking::query()
+                    ->where('id', '!=', $booking->id)
+                    ->where('room_id', $validated['room_id'])
+                    ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+                    ->where(function ($query) use ($validated) {
+                        $query->where('check_in_date', '<', $validated['check_out_date'])
+                            ->where('check_out_date', '>', $validated['check_in_date']);
+                    })
+                    ->exists();
 
-            if ($hasConflict) {
-                return back()
-                    ->withErrors(['check_out_date' => 'এই রুমটি নির্বাচিত তারিখে আগে থেকেই বুকড আছে। অন্য রুম/তারিখ নির্বাচন করুন।'])
-                    ->withInput()
-                    ->with('error', 'এই তারিখে রুমটি অলরেডি বুকড।');
-            }
-        }
-
-        if ($roomChanged || $datesChanged || empty($validated['total_amount'])) {
-            $room = \App\Models\Room::with('roomType')->find($validated['room_id']);
-
-            if (!$room) {
-                return back()
-                    ->withErrors(['room_id' => 'Selected room not found.'])
-                    ->withInput();
+                if ($hasConflict) {
+                    return back()
+                        ->withErrors(['check_out_date' => 'এই রুমটি নির্বাচিত তারিখে আগে থেকেই বুকড আছে। অন্য রুম/তারিখ নির্বাচন করুন।'])
+                        ->withInput()
+                        ->with('error', 'এই তারিখে রুমটি অলরেডি বুকড।');
+                }
             }
 
-            $nights = max(1, $newCheckIn->diffInDays($newCheckOut));
-            $roomPrice = $room->roomType->price_per_night ?? $room->price_per_night ?? 0;
-            $validated['total_amount'] = $roomPrice * $nights;
-        }
+            if ($roomChanged || $datesChanged || !isset($validated['total_amount']) || $validated['total_amount'] === null || $validated['total_amount'] === '') {
+                $room = \App\Models\Room::with('roomType')->find($validated['room_id']);
 
-        $validated['remaining_payment'] = ($validated['total_amount'] ?? 0) - ($validated['advance_payment'] ?? 0);
-        
-        $booking->update($validated);
-        return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে');
+                if (!$room) {
+                    return back()
+                        ->withErrors(['room_id' => 'Selected room not found.'])
+                        ->withInput();
+                }
+
+                $nights = max(1, $newCheckIn->diffInDays($newCheckOut));
+                $roomTypePrice = optional($room->roomType)->price_per_night;
+                $roomOwnPrice = $room->price_per_night ?? 0;
+                $roomPrice = is_numeric($roomTypePrice) ? (float) $roomTypePrice : (float) $roomOwnPrice;
+                $validated['total_amount'] = max(0, $roomPrice * $nights);
+            } else {
+                $validated['total_amount'] = max(0, (float) $validated['total_amount']);
+            }
+
+            $advancePayment = isset($validated['advance_payment']) ? (float) $validated['advance_payment'] : (float) ($booking->advance_payment ?? 0);
+            $validated['advance_payment'] = max(0, $advancePayment);
+            $validated['remaining_payment'] = max(0, (float) $validated['total_amount'] - (float) $validated['advance_payment']);
+
+            if (!isset($validated['payment_status']) || $validated['payment_status'] === null || $validated['payment_status'] === '') {
+                $validated['payment_status'] = $validated['remaining_payment'] <= 0
+                    ? 'paid'
+                    : ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
+            }
+
+            $booking->update($validated);
+
+            return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে');
+        } catch (\Throwable $e) {
+            Log::error('Booking update failed', [
+                'booking_id' => $booking->id,
+                'user_id' => Auth::id(),
+                'request_data' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Booking update failed. Please check the data and try again.');
+        }
     }
 
     public function destroy(Booking $booking)
