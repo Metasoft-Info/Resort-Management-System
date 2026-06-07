@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class BookingController extends Controller
 {
@@ -488,9 +489,6 @@ class BookingController extends Controller
             $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
             $checkoutExtended = $newCheckOut->gt($oldCheckOut);
 
-            // Requirement:
-            // - If only checkout is reduced (earlier), allow update without strict availability block.
-            // - If checkout is extended OR room/check-in changed, check room availability first.
             $mustCheckAvailability = $roomChanged || !$newCheckIn->equalTo($oldCheckIn) || $checkoutExtended;
 
             if ($mustCheckAvailability) {
@@ -540,7 +538,18 @@ class BookingController extends Controller
                     : ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
             }
 
-            $booking->update($validated);
+            static $bookingColumns = null;
+            if ($bookingColumns === null) {
+                $bookingColumns = Schema::getColumnListing('bookings');
+            }
+
+            $filteredValidated = array_intersect_key($validated, array_flip($bookingColumns));
+
+            if (!array_key_exists('room_id', $filteredValidated)) {
+                $filteredValidated['room_id'] = $booking->room_id;
+            }
+
+            $booking->update($filteredValidated);
 
             return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে');
         } catch (\Throwable $e) {
@@ -550,6 +559,39 @@ class BookingController extends Controller
                 'request_data' => $request->all(),
                 'error' => $e->getMessage(),
             ]);
+
+            try {
+                static $bookingColumnsFallback = null;
+                if ($bookingColumnsFallback === null) {
+                    $bookingColumnsFallback = Schema::getColumnListing('bookings');
+                }
+
+                $minimal = [
+                    'room_id' => $request->input('room_id', $booking->room_id),
+                    'check_in_date' => $request->input('check_in_date', $booking->check_in_date),
+                    'check_out_date' => $request->input('check_out_date', $booking->check_out_date),
+                    'customer_name' => $request->input('customer_name', $booking->customer_name),
+                    'customer_phone' => $request->input('customer_phone', $booking->customer_phone),
+                    'customer_email' => $request->input('customer_email', $booking->customer_email),
+                    'customer_nid' => $request->input('customer_nid', $booking->customer_nid),
+                    'status' => $request->input('status', $booking->status),
+                ];
+
+                $minimalFiltered = array_intersect_key($minimal, array_flip($bookingColumnsFallback));
+
+                if (!empty($minimalFiltered)) {
+                    $booking->update($minimalFiltered);
+
+                    return redirect()->route('admin.bookings.show', $booking)
+                        ->with('success', 'বুকিং আংশিকভাবে আপডেট হয়েছে (production compatibility mode)।');
+                }
+            } catch (\Throwable $fallbackError) {
+                Log::error('Booking update fallback failed', [
+                    'booking_id' => $booking->id,
+                    'user_id' => Auth::id(),
+                    'error' => $fallbackError->getMessage(),
+                ]);
+            }
 
             return back()
                 ->withInput()
