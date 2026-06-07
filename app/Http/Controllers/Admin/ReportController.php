@@ -7,9 +7,37 @@ use Illuminate\Support\Facades\Response;
 
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
+        $today = date('Y-m-d');
         $query = Booking::with(['room.roomType']);
-        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
-        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+
+        // Default operational report scope:
+        // - currently checked-in guests
+        // - guests checked-out today (or within selected date window)
+        // - guests with check-in/check-out activity in selected window
+        // This keeps pure advance-only bookings out of this report by default.
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start)
+                         ->where('status', 'checked_in');
+                  });
+            });
+        } else {
+            $query->where(function ($q) use ($today) {
+                $q->where('status', 'checked_in')
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'checked_out')
+                         ->whereDate('check_out_date', $today);
+                  });
+            });
+        }
+
         if($request->status) $query->where('status', $request->status);
         if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
         if($request->room_id) $query->where('room_id', $request->room_id);
@@ -38,9 +66,32 @@ class ReportController extends Controller {
     }
     
     public function exportRoomBookings(Request $request) {
+        $today = date('Y-m-d');
         $query = Booking::with(['room.roomType']);
-        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
-        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start)
+                         ->where('status', 'checked_in');
+                  });
+            });
+        } else {
+            $query->where(function ($q) use ($today) {
+                $q->where('status', 'checked_in')
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'checked_out')
+                         ->whereDate('check_out_date', $today);
+                  });
+            });
+        }
+
         if($request->status) $query->where('status', $request->status);
         if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
         if($request->room_id) $query->where('room_id', $request->room_id);
@@ -225,13 +276,13 @@ class ReportController extends Controller {
     public function combined(Request $request) {
         $roomTypeFilter = $request->room_type_id;
         
-        $roomBookingsQuery = Booking::with(['room.roomType'])
+        $roomBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->orderBy('check_in_date', 'desc');
-        $advanceBookingsQuery = Booking::with(['room.roomType'])
+        $advanceBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('check_in_date', '>', date('Y-m-d'))
             ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
             ->orderBy('check_in_date', 'asc');
-        $unpaidBookingsQuery = Booking::with(['room.roomType'])
+        $unpaidBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('status', 'checked_in')
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'paid')
@@ -284,11 +335,11 @@ class ReportController extends Controller {
     public function exportCombined(Request $request) {
         $roomTypeFilter = $request->room_type_id;
         
-        $roomBookingsQuery = Booking::with(['room.roomType']);
-        $advanceBookingsQuery = Booking::with(['room.roomType'])
+        $roomBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType']);
+        $advanceBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('check_in_date', '>', date('Y-m-d'))
             ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
-        $unpaidBookingsQuery = Booking::with(['room.roomType'])
+        $unpaidBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('status', 'checked_in')
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'paid')

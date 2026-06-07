@@ -733,7 +733,7 @@
  </div>
  <div class="border-t pt-4">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount</label>
- <select name="discount_type" id="payment_discount_type" onchange="toggleDiscountFields()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+ <select name="discount_type" id="payment_discount_type" onchange="toggleDiscountFields(true)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
  <option value="none">No Discount</option>
  <option value="flat">Fixed Amount</option>
  <option value="percentage">Percentage (%)</option>
@@ -741,11 +741,11 @@
  </div>
  <div id="discount_flat_div" class="hidden">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Amount ()</label>
- <input type="number" step="0.01" name="discount_amount" id="discount_amount_input" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+ <input type="number" step="0.01" name="discount_amount" id="discount_amount_input" oninput="calculatePaymentPreview(true)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
  </div>
  <div id="discount_percentage_div" class="hidden">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Percentage (%)</label>
- <input type="number" step="0.01" name="discount_percentage" id="discount_percentage_input" min="0" max="100" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+ <input type="number" step="0.01" name="discount_percentage" id="discount_percentage_input" min="0" max="100" oninput="calculatePaymentPreview(true)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
  </div>
  <div id="discount_reference_div" class="hidden">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Reference (approved by?)</label>
@@ -923,7 +923,16 @@ function closeTimeModal() {
 function openPaymentModal() {
  document.getElementById('paymentModal').classList.remove('hidden');
  document.getElementById('paymentModal').classList.add('flex');
- document.getElementById('payment_amount').value = remainingBalance.toFixed(2);
+
+ // Reset to clean defaults for better UX each time modal opens
+ document.getElementById('payment_modal_method').value = 'cash';
+ togglePaymentModalFields();
+
+ document.getElementById('payment_discount_type').value = 'none';
+ document.getElementById('discount_amount_input').value = '';
+ document.getElementById('discount_percentage_input').value = '';
+ toggleDiscountFields(true); // force auto-calc on modal open
+
  calculatePaymentPreview();
 }
 
@@ -944,7 +953,7 @@ function togglePaymentModalFields() {
  }
 }
 
-function toggleDiscountFields() {
+function toggleDiscountFields(forceAutoUpdateAmount = false) {
  const type = document.getElementById('payment_discount_type').value;
  document.getElementById('discount_flat_div').classList.add('hidden');
  document.getElementById('discount_percentage_div').classList.add('hidden');
@@ -957,24 +966,47 @@ function toggleDiscountFields() {
  document.getElementById('discount_percentage_div').classList.remove('hidden');
  document.getElementById('discount_reference_div').classList.remove('hidden');
  }
- calculatePaymentPreview();
+
+ // When discount type changes, auto-adjust payment amount for user friendliness
+ autoAdjustPaymentAmountFromDiscount();
+ calculatePaymentPreview(forceAutoUpdateAmount);
 }
 
 // Calculate real-time payment preview
 const remainingBalance = {{ $remainingPayment }};
 
-function calculatePaymentPreview() {
- const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+function getDiscountAmount() {
  const discountType = document.getElementById('payment_discount_type').value;
- 
- let discountAmount = 0;
+
  if (discountType === 'flat') {
- discountAmount = parseFloat(document.getElementById('discount_amount_input').value) || 0;
- } else if (discountType === 'percentage') {
- const percentage = parseFloat(document.getElementById('discount_percentage_input').value) || 0;
- discountAmount = (remainingBalance * percentage) / 100;
+ return parseFloat(document.getElementById('discount_amount_input').value) || 0;
  }
- 
+
+ if (discountType === 'percentage') {
+ const percentage = parseFloat(document.getElementById('discount_percentage_input').value) || 0;
+ const safePercentage = Math.max(0, Math.min(100, percentage));
+ return (remainingBalance * safePercentage) / 100;
+ }
+
+ return 0;
+}
+
+function autoAdjustPaymentAmountFromDiscount() {
+ const paymentInput = document.getElementById('payment_amount');
+ const discountAmount = getDiscountAmount();
+
+ // Auto-fill payment so (payment + discount) targets full remaining amount
+ const suggestedPayment = Math.max(0, remainingBalance - discountAmount);
+ paymentInput.value = suggestedPayment.toFixed(2);
+}
+
+function calculatePaymentPreview(forceAutoUpdateAmount = false) {
+ if (forceAutoUpdateAmount) {
+ autoAdjustPaymentAmountFromDiscount();
+ }
+
+ const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+ const discountAmount = getDiscountAmount();
  const totalDeduction = paymentAmount + discountAmount;
  const afterPayment = remainingBalance - totalDeduction;
  
@@ -992,7 +1024,7 @@ function calculatePaymentPreview() {
  remainingSpan.classList.remove('text-primary-600');
  remainingSpan.classList.add('text-red-600');
  errorDiv.classList.remove('hidden');
- errorDiv.textContent = 'Total payment and discount cannot exceed remaining amount!';
+ errorDiv.textContent = 'Total payment + discount cannot exceed remaining amount.';
  submitBtn.disabled = true;
  submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
  } else {

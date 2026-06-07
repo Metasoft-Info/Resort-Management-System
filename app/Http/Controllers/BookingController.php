@@ -478,14 +478,49 @@ class BookingController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $roomChanged = $validated['room_id'] != $booking->room_id;
-        $datesChanged = $validated['check_in_date'] != $booking->check_in_date || $validated['check_out_date'] != $booking->check_out_date;
-        
+        $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
+        $oldCheckIn = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
+        $oldCheckOut = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
+        $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->startOfDay();
+        $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->startOfDay();
+
+        $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
+        $checkoutExtended = $newCheckOut->gt($oldCheckOut);
+
+        // Requirement:
+        // - If only checkout is reduced (earlier), allow update without strict availability block.
+        // - If checkout is extended OR room/check-in changed, check room availability first.
+        $mustCheckAvailability = $roomChanged || !$newCheckIn->equalTo($oldCheckIn) || $checkoutExtended;
+
+        if ($mustCheckAvailability) {
+            $hasConflict = Booking::query()
+                ->where('id', '!=', $booking->id)
+                ->where('room_id', $validated['room_id'])
+                ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+                ->where(function ($query) use ($validated) {
+                    $query->where('check_in_date', '<', $validated['check_out_date'])
+                        ->where('check_out_date', '>', $validated['check_in_date']);
+                })
+                ->exists();
+
+            if ($hasConflict) {
+                return back()
+                    ->withErrors(['check_out_date' => 'এই রুমটি নির্বাচিত তারিখে আগে থেকেই বুকড আছে। অন্য রুম/তারিখ নির্বাচন করুন।'])
+                    ->withInput()
+                    ->with('error', 'এই তারিখে রুমটি অলরেডি বুকড।');
+            }
+        }
+
         if ($roomChanged || $datesChanged || empty($validated['total_amount'])) {
-            $room = \App\Models\Room::findOrFail($validated['room_id']);
-            $checkIn = \Carbon\Carbon::parse($validated['check_in_date']);
-            $checkOut = \Carbon\Carbon::parse($validated['check_out_date']);
-            $nights = max(1, $checkIn->diffInDays($checkOut));
+            $room = \App\Models\Room::with('roomType')->find($validated['room_id']);
+
+            if (!$room) {
+                return back()
+                    ->withErrors(['room_id' => 'Selected room not found.'])
+                    ->withInput();
+            }
+
+            $nights = max(1, $newCheckIn->diffInDays($newCheckOut));
             $roomPrice = $room->roomType->price_per_night ?? $room->price_per_night ?? 0;
             $validated['total_amount'] = $roomPrice * $nights;
         }
