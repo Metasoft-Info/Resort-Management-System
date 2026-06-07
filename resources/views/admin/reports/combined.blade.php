@@ -76,48 +76,78 @@
     <!-- Section 1: সব Room Bookings -->
     <div class="bg-white rounded-lg shadow mb-6 print:shadow-none print:rounded-none">
         <div class="px-4 py-3 bg-primary-50 border-b border-primary-200 flex items-center justify-between">
-            <h2 class="font-bold text-primary-800"><i class="fas fa-bed mr-2"></i>সব Room Bookings</h2>
+            <h2 class="font-bold text-primary-800"><i class="fas fa-bed mr-2"></i>সব Room Bookings (Detailed)</h2>
             <span class="text-sm text-gray-600">{{ count($roomBookings) }} bookings</span>
         </div>
         <div class="report-table-container">
             <table class="report-table text-sm border border-gray-300">
                 <thead><tr class="bg-gray-100">
                     <th class="border border-gray-300 px-2 py-2 text-xs">Date</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs">Name</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Phone</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Name</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Company</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Room</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Room Type</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Rent</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Discount</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Extra</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs text-right">Total</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs text-right">Advance</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Remaining</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Due</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">In</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Out</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-center">Night</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Payment</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Status</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs print:hidden">Action</th>
                 </tr></thead>
                 <tbody>
                     @forelse($roomBookings as $b)
-                    @php $remaining = $b->getCalculatedRemaining(); @endphp
+                    @php
+                        $remaining = $b->getCalculatedRemaining();
+                        $nights = max(1, \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date)));
+                        $roomRent = $b->getCalculatedTotal();
+                        $roomNumbers = $b->bookingRooms->count() > 0
+                            ? $b->bookingRooms->map(fn($br) => $br->room->room_number ?? 'N/A')->implode(', ')
+                            : ($b->room->room_number ?? 'N/A');
+                        $roomTypeNames = $b->bookingRooms->count() > 0
+                            ? $b->bookingRooms->map(fn($br) => $br->room?->roomType?->name)->filter()->unique()->implode(', ')
+                            : ($b->room?->roomType?->name ?? 'N/A');
+                    @endphp
                     <tr class="hover:bg-gray-50">
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m') }}</td>
-                        <td class="border border-gray-300 px-2 py-1">{{ $b->customer_name }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->created_at)->format('d-m-Y') }}</td>
                         <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $b->customer_phone }}</td>
-                        <td class="border border-gray-300 px-2 py-1">{{ $b->room ? $b->room->room_number : 'N/A' }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $b->customer_name }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $b->company_name ?? '-' }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $roomNumbers }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $roomTypeNames }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($roomRent) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->discount_amount ?? 0) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->extra_charges ?? 0) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->getGrandTotal()) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->advance_payment) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right font-bold {{ $remaining > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($remaining) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_out_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-center">{{ $nights }}</td>
                         <td class="border border-gray-300 px-2 py-1">
-                            @if($b->payment_status == 'paid') <span class="bg-green-100 text-green-800 px-2 rounded text-xs">Paid</span>
-                            @elseif($b->payment_status == 'partial') <span class="bg-yellow-100 text-yellow-800 px-2 rounded text-xs">Partial</span>
-                            @else <span class="bg-red-100 text-red-800 px-2 rounded text-xs">Unpaid</span>
-                            @endif
+                            <span class="px-2 py-1 rounded text-xs {{ $b->payment_status == 'paid' ? 'bg-green-100 text-green-700' : ($b->payment_status == 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
+                                {{ ucfirst($b->payment_status) }}
+                            </span>
                         </td>
                         <td class="border border-gray-300 px-2 py-1">
-                            @if($b->status == 'confirmed') <span class="bg-blue-100 text-blue-800 px-2 rounded text-xs">নিশ্চিত</span>
-                            @elseif($b->status == 'checked_in') <span class="bg-green-100 text-green-800 px-2 rounded text-xs">চেক-ইন</span>
-                            @else <span class="bg-gray-100 text-gray-800 px-2 rounded text-xs">{{ ucfirst($b->status) }}</span>
-                            @endif
+                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700') }}">
+                                {{ ucfirst($b->status) }}
+                            </span>
+                        </td>
+                        <td class="border border-gray-300 px-2 py-1 print:hidden whitespace-nowrap">
+                            <a href="{{ route('admin.bookings.show', $b) }}" class="bg-primary-600 text-white px-2 py-1 rounded text-xs hover:bg-primary-700">
+                                <i class="fas fa-eye"></i> View
+                            </a>
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="9" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="18" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -135,27 +165,53 @@
             <table class="report-table text-sm border border-gray-300">
                 <thead><tr class="bg-green-50">
                     <th class="border border-gray-300 px-2 py-2 text-xs">Date</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Phone</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Name</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Company</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Room</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Room Type</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs whitespace-nowrap">Check-In</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs whitespace-nowrap">Check-Out</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Rent</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Discount</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Extra</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs text-right">Total</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs text-right">Advance</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Due</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">In</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Out</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-center">Night</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Payment</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Status</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs print:hidden">Action</th>
                 </tr></thead>
                 <tbody>
                     @forelse($advanceBookings as $b)
+                    @php
+                        $due = $b->getCalculatedRemaining();
+                        $nights = max(1, \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date)));
+                        $roomRent = $b->getCalculatedTotal();
+                        $roomNumbers = $b->bookingRooms->count() > 0
+                            ? $b->bookingRooms->map(fn($br) => $br->room->room_number ?? 'N/A')->implode(', ')
+                            : ($b->room->room_number ?? 'N/A');
+                        $roomTypeNames = $b->bookingRooms->count() > 0
+                            ? $b->bookingRooms->map(fn($br) => $br->room?->roomType?->name)->filter()->unique()->implode(', ')
+                            : ($b->room?->roomType?->name ?? 'N/A');
+                    @endphp
                     <tr class="hover:bg-green-50">
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m-Y') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->created_at)->format('d-m-Y') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $b->customer_phone }}</td>
                         <td class="border border-gray-300 px-2 py-1">{{ $b->customer_name }}</td>
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $b->room ? $b->room->room_number : 'N/A' }}</td>
-                        <td class="border border-gray-300 px-2 py-1">{{ $b->room?->roomType?->name ?? 'N/A' }}</td>
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m') }}</td>
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_out_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $b->company_name ?? '-' }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $roomNumbers }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $roomTypeNames }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($roomRent) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->discount_amount ?? 0) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->extra_charges ?? 0) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->getGrandTotal()) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right text-green-600">{{ number_format($b->advance_payment) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right font-bold {{ $due > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($due) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_out_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-center">{{ $nights }}</td>
                         <td class="border border-gray-300 px-2 py-1">
                             <span class="px-2 py-1 rounded text-xs {{ $b->payment_status == 'paid' ? 'bg-green-100 text-green-700' : ($b->payment_status == 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
                                 {{ ucfirst($b->payment_status) }}
@@ -166,9 +222,14 @@
                                 {{ ucfirst($b->status) }}
                             </span>
                         </td>
+                        <td class="border border-gray-300 px-2 py-1 print:hidden whitespace-nowrap">
+                            <a href="{{ route('admin.bookings.show', $b) }}" class="bg-primary-600 text-white px-2 py-1 rounded text-xs hover:bg-primary-700">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="10" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো অগ্রিম বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="18" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো অগ্রিম বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -180,42 +241,78 @@
     @if($unpaidBookings->count() > 0)
     <div class="bg-white rounded-lg shadow mb-6 print:shadow-none print:rounded-none">
         <div class="px-4 py-3 bg-red-50 border-b border-red-200 flex items-center justify-between">
-            <h2 class="font-bold text-red-800"><i class="fas fa-exclamation-triangle mr-2"></i>চেক-ইন কিন্তু পুরোপুরি টাকা নাও দিয়েছেন</h2>
+            <h2 class="font-bold text-red-800"><i class="fas fa-exclamation-triangle mr-2"></i>Checked-in Guests with Outstanding Balance</h2>
             <span class="text-sm text-red-600">{{ count($unpaidBookings) }} bookings</span>
         </div>
         <div class="report-table-container">
             <table class="report-table text-sm border border-gray-300">
                 <thead><tr class="bg-red-50">
-                    <th class="border border-gray-300 px-2 py-2 text-xs">#ID</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs">Name</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Date</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Phone</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Name</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Company</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Room</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs whitespace-nowrap">Check-In</th>
-                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Total Bill</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Room Type</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Rent</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Discount</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Extra</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-right">Total</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs text-right">Advance</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs text-right">Due</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">In</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Out</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs text-center">Night</th>
                     <th class="border border-gray-300 px-2 py-2 text-xs">Payment</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs">Status</th>
+                    <th class="border border-gray-300 px-2 py-2 text-xs print:hidden">Action</th>
                 </tr></thead>
                 <tbody>
                     @forelse($unpaidBookings as $b)
-                    @php $due = $b->getGrandTotal() - $b->advance_payment; @endphp
+                    @php
+                        $due = $b->getCalculatedRemaining();
+                        $nights = max(1, \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date)));
+                        $roomRent = $b->getCalculatedTotal();
+                        $roomNumbers = $b->bookingRooms->count() > 0
+                            ? $b->bookingRooms->map(fn($br) => $br->room->room_number ?? 'N/A')->implode(', ')
+                            : ($b->room->room_number ?? 'N/A');
+                        $roomTypeNames = $b->bookingRooms->count() > 0
+                            ? $b->bookingRooms->map(fn($br) => $br->room?->roomType?->name)->filter()->unique()->implode(', ')
+                            : ($b->room?->roomType?->name ?? 'N/A');
+                    @endphp
                     <tr class="hover:bg-red-50">
-                        <td class="border border-gray-300 px-2 py-1 font-bold">#{{ $b->id }}</td>
-                        <td class="border border-gray-300 px-2 py-1">{{ $b->customer_name }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->created_at)->format('d-m-Y') }}</td>
                         <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $b->customer_phone }}</td>
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $b->room ? $b->room->room_number : 'N/A' }}</td>
-                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m-Y') }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $b->customer_name }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $b->company_name ?? '-' }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ $roomNumbers }}</td>
+                        <td class="border border-gray-300 px-2 py-1">{{ $roomTypeNames }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($roomRent) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->discount_amount ?? 0) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->extra_charges ?? 0) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->getGrandTotal()) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right">{{ number_format($b->advance_payment) }}</td>
                         <td class="border border-gray-300 px-2 py-1 text-right font-bold text-red-600">{{ number_format($due) }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_in_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($b->check_out_date)->format('d-m') }}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-center">{{ $nights }}</td>
                         <td class="border border-gray-300 px-2 py-1">
                             <span class="px-2 py-1 rounded text-xs {{ $b->payment_status == 'paid' ? 'bg-green-100 text-green-700' : ($b->payment_status == 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
                                 {{ ucfirst($b->payment_status) }}
                             </span>
                         </td>
+                        <td class="border border-gray-300 px-2 py-1">
+                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700') }}">
+                                {{ ucfirst($b->status) }}
+                            </span>
+                        </td>
+                        <td class="border border-gray-300 px-2 py-1 print:hidden whitespace-nowrap">
+                            <a href="{{ route('admin.bookings.show', $b) }}" class="bg-primary-600 text-white px-2 py-1 rounded text-xs hover:bg-primary-700">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="9" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="18" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -236,16 +333,96 @@
 
 <style>
 @media print {
-    @page { size: A4 portrait; margin: 10mm; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    body { font-size: 9px !important; }
-    .print\:hidden { display: none !important; }
-    .print\:block { display: block !important; }
-    nav, header, aside, footer { display: none !important; }
-    .lg\:ml-64 { margin-left: 0 !important; }
-    table { width: 100% !important; border-collapse: collapse !important; }
-    th, td { padding: 2px 4px !important; border: 1px solid #666 !important; font-size: 8px !important; }
-    tr { page-break-inside: avoid !important; }
+    /* Combined report: force full-page printable flow */
+    @page { size: A4 landscape !important; margin: 6mm !important; }
+
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .p-6 {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .report-table-container {
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+        height: auto !important;
+        max-height: none !important;
+    }
+
+    .grid.grid-cols-2.md\:grid-cols-6 {
+        display: grid !important;
+        grid-template-columns: repeat(6, 1fr) !important;
+        gap: 2mm !important;
+        margin-bottom: 3mm !important;
+    }
+
+    .grid.grid-cols-2.md\:grid-cols-6 > div {
+        padding: 2mm !important;
+        border-radius: 2px !important;
+    }
+
+    .grid.grid-cols-2.md\:grid-cols-6 .text-xl {
+        font-size: 10px !important;
+        line-height: 1.1 !important;
+    }
+
+    .grid.grid-cols-2.md\:grid-cols-6 .text-xs {
+        font-size: 7px !important;
+    }
+
+    .report-table {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        font-size: 7.6px !important;
+        table-layout: auto !important;
+    }
+
+    .report-table th,
+    .report-table td {
+        padding: 2px 3px !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* Reduce visual noise in print */
+    .report-table .rounded,
+    .report-table .rounded.text-xs,
+    .report-table span[class*="bg-"] {
+        background: transparent !important;
+        color: #111827 !important;
+        border: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        font-size: 7px !important;
+        font-weight: 600 !important;
+    }
+
+    /* Hide action column in print explicitly */
+    .report-table th.print\:hidden,
+    .report-table td.print\:hidden {
+        display: none !important;
+    }
+
+    /* For this dense report, allow wrapping so print doesn't look like horizontal scroll/cut */
+    .report-table th,
+    .report-table td {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* Slightly tighter headings */
+    h2 {
+        font-size: 10px !important;
+    }
 }
 </style>
 @endsection
