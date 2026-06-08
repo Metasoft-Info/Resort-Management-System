@@ -13,3 +13,11 @@
 - [x] Add action button (view details) in each combined report table
 - [x] Replace Bangla unpaid checked-in heading with clear English text
 - [x] Run PHP syntax check and summarize
+
+# Room Bookings Report - Total Deposited & Due Update - TODO
+
+- [x] Review booking payment relationships/helpers for deposited calculation
+- [x] Update roomBookings report query/summary to include total deposited
+- [x] Update room-bookings blade: add "মোট জমা" in summary and table
+- [x] Recalculate/display "বাকি" based on grand total - total deposited
+- [x] Run syntax checks and summarize

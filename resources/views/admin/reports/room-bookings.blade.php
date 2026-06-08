@@ -60,7 +60,7 @@
         $summaryExtra = $bookings->sum('extra_charges');
         $summaryDiscount = $bookings->sum('discount_amount');
     @endphp
-    <div class="grid grid-cols-2 md:grid-cols-7 gap-4 mb-6 print:grid-cols-7 print:gap-2 print:text-xs">
+    <div class="grid grid-cols-2 md:grid-cols-8 gap-4 mb-6 print:grid-cols-8 print:gap-2 print:text-xs">
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">মোট বুকিং</p>
             <p class="text-xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
@@ -84,6 +84,10 @@
         <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200 print:p-2">
             <p class="text-gray-600 text-xs">অগ্রিম জমা</p>
             <p class="text-xl font-bold text-green-600 print:text-base">৳{{ number_format($totalAdvance, 0) }}</p>
+        </div>
+        <div class="bg-emerald-50 rounded-lg p-4 text-center border border-emerald-200 print:p-2">
+            <p class="text-gray-600 text-xs">মোট জমা</p>
+            <p class="text-xl font-bold text-emerald-700 print:text-base">৳{{ number_format($totalDeposited, 0) }}</p>
         </div>
         <div class="bg-red-50 rounded-lg p-4 text-center border border-red-200 print:p-2">
             <p class="text-gray-600 text-xs">বাকি</p>
@@ -114,6 +118,7 @@
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অতিরিক্ত</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অগ্রিম</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট জমা</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বাকি</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ইন</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">আউট</th>
@@ -122,7 +127,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php $totalNights = 0; $sumGrandTotal = 0; @endphp
+                    @php $totalNights = 0; $sumGrandTotal = 0; $sumDeposited = 0; @endphp
                     @forelse($bookings as $booking)
                     @php 
                         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
@@ -130,7 +135,9 @@
                         $roomRent = $booking->getCalculatedTotal();
                         $grandTotal = $booking->getGrandTotal();
                         $sumGrandTotal += $grandTotal;
-                        $calculatedRemaining = $booking->getCalculatedRemaining();
+                        $totalDeposited = $booking->getTotalDeposited();
+                        $sumDeposited += $totalDeposited;
+                        $calculatedRemaining = $booking->getGrandTotal() - $totalDeposited;
                     @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>
@@ -143,6 +150,7 @@
                         <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold whitespace-nowrap">{{ number_format($grandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($booking->advance_payment, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-emerald-700 whitespace-nowrap">{{ number_format($totalDeposited, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold whitespace-nowrap">{{ number_format($calculatedRemaining, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m') }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m') }}</td>
@@ -154,7 +162,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="15" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="16" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
@@ -171,7 +179,8 @@
                         <td class="border border-gray-400 px-2 py-2 text-right text-purple-600 whitespace-nowrap">{{ number_format($sumExtra, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">{{ number_format($sumGrandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($sumAdvance, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($totalRemaining, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-emerald-700 whitespace-nowrap">{{ number_format($sumDeposited, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($bookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDeposited()), 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-center">{{ $totalNights }}</td>
                         <td class="border border-gray-400 px-2 py-2 print:hidden"></td>
@@ -257,24 +266,24 @@
     }
     
     /* Summary stats - make smaller for print */
-    .grid.grid-cols-2.md\:grid-cols-7 {
+    .grid.grid-cols-2.md\:grid-cols-8 {
         display: grid !important;
-        grid-template-columns: repeat(7, 1fr) !important;
+        grid-template-columns: repeat(8, 1fr) !important;
         gap: 2mm !important;
         margin-bottom: 3mm !important;
     }
     
-    .grid.grid-cols-2.md\:grid-cols-7 > div {
+    .grid.grid-cols-2.md\:grid-cols-8 > div {
         padding: 2mm !important;
         border-radius: 2px !important;
     }
     
-    .grid.grid-cols-2.md\:grid-cols-7 .text-xl {
+    .grid.grid-cols-2.md\:grid-cols-8 .text-xl {
         font-size: 11px !important;
         font-weight: bold;
     }
     
-    .grid.grid-cols-2.md\:grid-cols-7 .text-xs {
+    .grid.grid-cols-2.md\:grid-cols-8 .text-xs {
         font-size: 8px !important;
     }
     

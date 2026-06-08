@@ -349,11 +349,6 @@
 
     .report-table-container {
         overflow: visible !important;
-        overflow-x: visible !important;
-        overflow-y: visible !important;
-        height: auto !important;
-        max-height: none !important;
-    }
 
     .grid.grid-cols-2.md\:grid-cols-6 {
         display: grid !important;
