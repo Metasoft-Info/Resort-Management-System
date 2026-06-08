@@ -106,24 +106,21 @@ class Booking extends Model
         return $baseAmount;
     }
 
+    // Get total deposited amount (advance + all payment history)
+    public function getTotalDeposited()
+    {
+        $paymentsTotal = $this->relationLoaded('payments')
+            ? $this->payments->sum('amount')
+            : $this->payments()->sum('amount');
+
+        return ($this->advance_payment ?? 0) + $paymentsTotal;
+    }
+
     // Get calculated remaining payment
     public function getCalculatedRemaining()
     {
-        $baseAmount = $this->getCalculatedTotal();
-        
-        $discountAmount = 0;
-        if($this->discount_type === 'percentage' && $this->discount_percentage > 0) {
-            $discountAmount = ($baseAmount * $this->discount_percentage) / 100;
-        } elseif($this->discount_type === 'flat' && $this->discount_amount > 0) {
-            $discountAmount = $this->discount_amount;
-        }
-        
-        $afterDiscount = $baseAmount - $discountAmount;
-        $extraCharges = $this->extra_charges ?? 0;
-        $vatAmount = $this->vat_enabled ? ($afterDiscount * 0.15) : 0;
-        $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
-        
-        return $grandTotal - $this->advance_payment;
+        $grandTotal = $this->getGrandTotal();
+        return $grandTotal - $this->getTotalDeposited();
     }
 
     // Get grand total (Room Rent + Extra - Discount + VAT)

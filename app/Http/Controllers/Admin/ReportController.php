@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Response;
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
         $today = date('Y-m-d');
-        $query = Booking::with(['room.roomType']);
+        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'payments']);
 
         // Default operational report scope:
         // - currently checked-in guests
@@ -55,6 +55,7 @@ class ReportController extends Controller {
         $totalBookings = $summaryBookings->count();
         $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
         $totalAdvance = $summaryBookings->sum('advance_payment');
+        $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
         $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
         
         $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
@@ -62,7 +63,7 @@ class ReportController extends Controller {
         $rooms = Room::orderBy('room_number')->get();
         $resortInfo = ResortInfo::first();
         
-        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo'));
+        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalDeposited', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo'));
     }
     
     public function exportRoomBookings(Request $request) {
