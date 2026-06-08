@@ -109,11 +109,18 @@ class Booking extends Model
     // Get total deposited amount (advance + all payment history)
     public function getTotalDeposited()
     {
-        $paymentsTotal = $this->relationLoaded('payments')
-            ? $this->payments->sum('amount')
-            : $this->payments()->sum('amount');
+        $payments = $this->relationLoaded('payments')
+            ? $this->payments
+            : $this->payments()->get();
 
-        return ($this->advance_payment ?? 0) + $paymentsTotal;
+        $paymentsTotal = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') !== 'refund')
+            ->sum('amount');
+
+        return max(
+            (float) ($this->advance_payment ?? 0),
+            (float) $paymentsTotal
+        );
     }
 
     // Get calculated remaining payment
