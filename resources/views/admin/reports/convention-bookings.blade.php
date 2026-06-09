@@ -265,10 +265,6 @@
     body.print-convention-info .invoice-print td {
         padding: 6px 10px !important;
     }
-    @page {
-        size: A4 portrait;
-        margin: 10mm;
-    }
 }
 </style>
 

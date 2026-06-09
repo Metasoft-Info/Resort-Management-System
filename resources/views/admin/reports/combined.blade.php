@@ -333,22 +333,32 @@
 
 <style>
 @media print {
-    /* Combined report: force full-page printable flow */
-    @page { size: A4 landscape !important; margin: 6mm !important; }
+    @page { size: A4 landscape; margin: 8mm; }
 
-    html, body {
-        height: auto !important;
-        overflow: visible !important;
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body {
+        font-size: 10px !important;
+    }
+
+    .print\:hidden {
+        display: none !important;
+    }
+
+    nav, header, aside, footer {
+        display: none !important;
+    }
+
+    .lg\:ml-64 {
+        margin-left: 0 !important;
     }
 
     .p-6 {
-        height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
+        padding: 2mm !important;
     }
-
-    .report-table-container {
-        overflow: visible !important;
 
     .grid.grid-cols-2.md\:grid-cols-6 {
         display: grid !important;
@@ -363,31 +373,29 @@
     }
 
     .grid.grid-cols-2.md\:grid-cols-6 .text-xl {
-        font-size: 10px !important;
+        font-size: 11px !important;
         line-height: 1.1 !important;
     }
 
     .grid.grid-cols-2.md\:grid-cols-6 .text-xs {
-        font-size: 7px !important;
+        font-size: 8px !important;
     }
 
     .report-table {
         width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        font-size: 7.6px !important;
-        table-layout: auto !important;
+        font-size: 9px !important;
+        border-collapse: collapse !important;
     }
 
     .report-table th,
     .report-table td {
-        padding: 2px 3px !important;
+        padding: 3px 5px !important;
+        border: 1px solid #666 !important;
         white-space: normal !important;
         word-break: break-word !important;
         overflow-wrap: anywhere !important;
     }
 
-    /* Reduce visual noise in print */
     .report-table .rounded,
     .report-table .rounded.text-xs,
     .report-table span[class*="bg-"] {
@@ -396,27 +404,29 @@
         border: 0 !important;
         padding: 0 !important;
         border-radius: 0 !important;
-        font-size: 7px !important;
+        font-size: 8px !important;
         font-weight: 600 !important;
     }
 
-    /* Hide action column in print explicitly */
     .report-table th.print\:hidden,
     .report-table td.print\:hidden {
         display: none !important;
     }
 
-    /* For this dense report, allow wrapping so print doesn't look like horizontal scroll/cut */
-    .report-table th,
-    .report-table td {
-        white-space: normal !important;
-        word-break: break-word !important;
-        overflow-wrap: anywhere !important;
+    tr {
+        page-break-inside: avoid !important;
     }
 
-    /* Slightly tighter headings */
+    thead {
+        display: table-header-group !important;
+    }
+
+    tfoot {
+        display: table-footer-group !important;
+    }
+
     h2 {
-        font-size: 10px !important;
+        font-size: 11px !important;
     }
 }
 </style>

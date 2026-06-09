@@ -28,6 +28,8 @@ class SettingsController extends Controller {
     }
 
     public function updateResortInfo(Request $request) {
+        \Log::info('updateResortInfo called', ['email' => $request->input('email')]);
+        
         $validated = $request->validate([
             'resort_name' => 'required|string|max:255',
             'resort_tagline' => 'nullable|string|max:255',
@@ -43,6 +45,9 @@ class SettingsController extends Controller {
             'twitter_url' => 'nullable|url',
             'copyright_text' => 'nullable|string',
             'facilities' => 'nullable|string',
+        ], [
+            'email.required' => 'Email field is required',
+            'email.email' => 'Please enter a valid email address',
         ]);
 
         $resortInfo = ResortInfo::first() ?? new ResortInfo();
@@ -73,8 +78,10 @@ class SettingsController extends Controller {
 
         if ($resortInfo->exists) {
             $resortInfo->update($validated);
+            \Log::info('Resort info updated', ['email_after' => $resortInfo->fresh()->email]);
         } else {
             ResortInfo::create($validated);
+            \Log::info('New resort info created');
         }
 
         return back()->with('success', 'Resort information updated successfully!');

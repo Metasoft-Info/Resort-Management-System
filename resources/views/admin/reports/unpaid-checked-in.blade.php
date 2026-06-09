@@ -9,7 +9,7 @@
 
     @if(!request('print'))
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 print:hidden">
-        <form method="GET" action="{{ route('admin.reports.unpaid-checked-in') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="GET" action="{{ route('admin.reports.unpaid-checked-in') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">শুরুর তারিখ</label>
                 <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
@@ -23,13 +23,21 @@
                 <select name="room_type_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                     <option value="">সব</option>
                     @foreach($roomTypes as $rt)
-                        <option value="{{ $rt->id }}">{{ $rt->name }}</option>
+                        <option value="{{ $rt->id }}" {{ (string)request('room_type_id') === (string)$rt->id ? 'selected' : '' }}>{{ $rt->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">নাম / ফোন</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="খুঁজুন" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
+                    <i class="fas fa-filter mr-2"></i>ফিল্টার
+                </button>
+                <a href="{{ route('admin.reports.unpaid-checked-in') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                    <i class="fas fa-times"></i>
+                </a>
             </div>
         </form>
     </div>
@@ -99,14 +107,14 @@
 
 <style>
 @media print {
-    @page { size: A4 portrait; margin: 10mm; }
+    @page { size: A4 landscape; margin: 8mm; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    body { font-size: 10px !important; }
+    body { font-size: 11px !important; }
     .print\:hidden { display: none !important; }
     nav, header, aside, footer { display: none !important; }
     .lg\:ml-64 { margin-left: 0 !important; }
-    table { width: 100% !important; border-collapse: collapse !important; }
-    th, td { padding: 3px 5px !important; border: 1px solid #666 !important; }
+    table { width: 100% !important; border-collapse: collapse !important; font-size: 10px !important; }
+    th, td { padding: 4px 6px !important; border: 1px solid #666 !important; }
     tr { page-break-inside: avoid !important; }
 }
 </style>

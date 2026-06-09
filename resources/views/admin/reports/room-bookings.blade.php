@@ -2,8 +2,7 @@
 @section('content')
 <div class="p-6">
     @include('admin.reports.partials.shared-header', [
-        'title' => 'রুম বুকিং রিপোর্ট',
-        'subtitle' => 'রুম ভাড়া, ডিসকাউন্ট, অতিরিক্ত, মোট, অগ্রিম ও বাকি'
+        'title' => 'রুম বুকিং রিপোর্ট'
     ])
     @include('admin.reports.partials.shared-styles')
 
@@ -369,10 +368,6 @@
     body.print-guest-info .invoice-print th,
     body.print-guest-info .invoice-print td {
         padding: 6px 10px !important;
-    }
-    @page {
-        size: A4 portrait;
-        margin: 10mm;
     }
 }
 </style>

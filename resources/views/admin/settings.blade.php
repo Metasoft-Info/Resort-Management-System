@@ -33,6 +33,25 @@
  <!-- Resort Info Tab -->
  <div id="content-resort" class="tab-content">
  <div class="bg-white rounded-xl shadow-lg p-8">
+ 
+ @if($errors->any())
+ <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+ <p class="font-bold">Error:</p>
+ <ul>
+ @foreach($errors->all() as $error)
+ <li>{{ $error }}</li>
+ @endforeach
+ </ul>
+ </div>
+ @endif
+ 
+ @if(session('success'))
+ <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+ <p class="font-bold">Success:</p>
+ <p>{{ session('success') }}</p>
+ </div>
+ @endif
+ 
  <form action="{{ route('admin.settings.resort-info') }}" method="POST">
  @csrf
  <h3 class="text-xl font-bold text-gray-700 mb-6 flex items-center">
@@ -53,7 +72,7 @@
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
- <input type="email" name="email" value="{{ old('email', $resortInfo->email ?? '') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="email" name="email" value="{{ $resortInfo->email ?? '' }}" required autocomplete="off" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
  </div>
  <div class="md:col-span-2">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Address *</label>
@@ -518,6 +537,14 @@ function confirmReset(type) {
 function confirmClear(type) {
  return confirm('Are you sure you want to clear ' + type + '?\n\nThis action cannot be undone.');
 }
+// Force correct email value after page load (override browser autofill)
+document.addEventListener('DOMContentLoaded', function() {
+    var emailInput = document.querySelector('input[name="email"]');
+    if (emailInput) {
+        emailInput.value = '{{ addslashes($resortInfo->email ?? '') }}';
+    }
+});
+
 function showTab(tabName) {
  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
  document.querySelectorAll('.tab-btn').forEach(el => {

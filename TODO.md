@@ -28,3 +28,12 @@
 - [x] Update DashboardController to merge occupied IDs from both sources
 - [x] Apply merged occupied IDs to stats and room status cards
 - [x] Run PHP syntax check and summarize
+
+# Reports Print & Filter UX Polish - TODO
+
+- [x] Make shared report header compact (logo/title block smaller)
+- [x] Add explicit filter + reset buttons in advance/unpaid report filters
+- [x] Switch advance/unpaid print to A4 landscape with improved readability
+- [x] Fix/simplify combined report print CSS (remove malformed block)
+- [x] Remove room booking subtitle line text under title
+- [x] Run syntax/lint checks and summarize
