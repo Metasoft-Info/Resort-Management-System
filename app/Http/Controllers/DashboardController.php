@@ -7,6 +7,7 @@ use App\Models\ConventionBooking;
 use App\Models\ConventionHall;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -23,15 +24,30 @@ class DashboardController extends Controller
         $currentMode = $user->getDashboardMode();
         
         // Get rooms that are currently occupied (have active bookings for today)
-        // Check legacy room_id column
+        // 1) Legacy single-room bookings from bookings.room_id
         $occupiedRoomIdsLegacy = Booking::whereIn('status', ['confirmed', 'checked_in'])
             ->where('check_in_date', '<=', $today)
             ->where('check_out_date', '>', $today)
             ->whereNotNull('room_id')
             ->pluck('room_id')
             ->toArray();
-        
-        $occupiedRoomIds = $occupiedRoomIdsLegacy;
+
+        // 2) Multi-room bookings from booking_rooms pivot table
+        $activeBookingIds = Booking::whereIn('status', ['confirmed', 'checked_in'])
+            ->where('check_in_date', '<=', $today)
+            ->where('check_out_date', '>', $today)
+            ->pluck('id');
+
+        $occupiedRoomIdsFromBookingRooms = DB::table('booking_rooms')
+            ->whereIn('booking_id', $activeBookingIds)
+            ->pluck('room_id')
+            ->toArray();
+
+        // Merge both sources (unique room IDs)
+        $occupiedRoomIds = array_values(array_unique(array_merge(
+            $occupiedRoomIdsLegacy,
+            $occupiedRoomIdsFromBookingRooms
+        )));
         
         $totalRooms = Room::count();
         $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
@@ -86,14 +102,15 @@ class DashboardController extends Controller
         // Get room status with current and upcoming bookings
         $roomsWithStatus = [];
         foreach ($allRooms as $room) {
-            // Check legacy room_id
+            // Determine if room is currently occupied using merged occupied room IDs
+            $isOccupied = in_array($room->id, $occupiedRoomIds);
+
+            // Keep current booking detail for legacy direct relation display
             $currentBooking = Booking::where('room_id', $room->id)
                 ->whereIn('status', ['confirmed', 'checked_in'])
                 ->where('check_in_date', '<=', $today)
                 ->where('check_out_date', '>', $today)
                 ->first();
-            
-            $status = 'available';
             
             // Check upcoming bookings - legacy
             $upcomingBooking = Booking::where('room_id', $room->id)
@@ -104,7 +121,7 @@ class DashboardController extends Controller
             
             $roomsWithStatus[] = [
                 'room' => $room,
-                'status' => $currentBooking ? 'occupied' : 'available',
+                'status' => $isOccupied ? 'occupied' : 'available',
                 'current_booking' => $currentBooking,
                 'upcoming_booking' => $upcomingBooking,
                 'available_from' => $currentBooking ? $currentBooking->check_out_date : $today,

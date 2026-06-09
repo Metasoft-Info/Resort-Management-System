@@ -21,3 +21,10 @@
 - [x] Update room-bookings blade: add "মোট জমা" in summary and table
 - [x] Recalculate/display "বাকি" based on grand total - total deposited
 - [x] Run syntax checks and summarize
+
+# Dashboard Resort Room Availability Sync Fix (Production) - TODO
+
+- [x] Review dashboard occupied-room calculation (legacy room_id vs booking_rooms)
+- [x] Update DashboardController to merge occupied IDs from both sources
+- [x] Apply merged occupied IDs to stats and room status cards
+- [x] Run PHP syntax check and summarize
