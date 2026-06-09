@@ -33,14 +33,20 @@
 /* Modern shared print style for all reports */
 @media print {
     @page {
-        size: A4 landscape;
-        margin: 6mm;
+        size: landscape !important;
+        margin: 0 !important;
     }
 
     html,
     body {
-        height: auto !important;
-        overflow: visible !important;
+        width: 297mm !important;
+        min-width: 297mm !important;
+        max-width: 297mm !important;
+        height: 210mm !important;
+        min-height: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }
 
     .main-content,
@@ -61,7 +67,7 @@
 
     body {
         font-size: 9px !important;
-        line-height: 1.25 !important;
+        line-height: 1.15 !important;
         color: #111827 !important;
         background: #ffffff !important;
     }
@@ -88,7 +94,35 @@
     }
 
     .p-6 {
+        width: 100% !important;
+        max-width: 297mm !important;
+        min-height: 210mm !important;
+        box-sizing: border-box !important;
+        padding: 4mm 5mm !important;
+        margin: 0 !important;
+    }
+
+    /* Horizontal flow: header at left, table/content at right */
+    .print-horizontal-layout {
+        display: grid !important;
+        grid-template-columns: 68mm 1fr !important;
+        column-gap: 4mm !important;
+        align-items: start !important;
+        width: 100% !important;
+    }
+
+    .print-horizontal-layout .report-header-card {
+        grid-column: 1 !important;
+        margin: 0 !important;
         padding: 2mm !important;
+        position: sticky !important;
+        top: 0 !important;
+    }
+
+    .print-horizontal-layout .print-main-content {
+        grid-column: 2 !important;
+        width: 100% !important;
+        min-width: 0 !important;
     }
 
     .report-header-card {

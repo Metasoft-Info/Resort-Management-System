@@ -3,33 +3,39 @@
     $reportSubtitle = $subtitle ?? null;
 @endphp
 
-<div class="report-header-card shadow-lg p-5 mb-6">
-    <div class="text-center border-b border-gray-300 pb-4 mb-3">
+<div class="report-header-card shadow-sm p-2 mb-2">
+    <div class="text-center border-b border-gray-300 pb-1 mb-1">
         @if(!empty($resortInfo) && $resortInfo->header_logo)
-            <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-16 mx-auto mb-2">
+            <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-9 mx-auto mb-0.5">
+            <h1 class="text-base font-bold text-gray-800 tracking-wide leading-tight">TUFAN RESORT</h1>
         @else
-            <h1 class="text-2xl font-bold text-gray-800">{{ $resortInfo->resort_name ?? 'তুফান কনভেনশন রিসোর্ট' }}</h1>
+            <h1 class="text-base font-bold text-gray-800 tracking-wide leading-tight">{{ $resortInfo->resort_name ?? 'TUFAN RESORT' }}</h1>
         @endif
 
+        <p class="text-[11px] italic text-gray-700 leading-tight">It's Institution of Tufan Company Limited</p>
+
         @if(!empty($resortInfo) && $resortInfo->address)
-            <p class="text-gray-600 text-sm">{{ $resortInfo->address }}</p>
+            <p class="text-[11px] text-gray-600 leading-tight">{{ $resortInfo->address }}</p>
         @endif
-        <p class="text-gray-500 text-xs mt-1">
+
+        <p class="text-[10px] text-gray-500 leading-tight">
             @if(!empty($resortInfo))
+                @if($resortInfo->email)E-mail: {{ $resortInfo->email }}@endif
+                @if($resortInfo->email && $resortInfo->phone) | @endif
                 @if($resortInfo->phone)Phone: {{ $resortInfo->phone }}@endif
-                @if($resortInfo->phone && $resortInfo->email) | @endif
-                @if($resortInfo->email)Email: {{ $resortInfo->email }}@endif
+            @else
+                E-mail: info@tufanconventionresort.com | Phone: 01958-216728
             @endif
         </p>
     </div>
 
     <div class="text-center">
-        <h2 class="text-xl font-bold text-gray-800 tracking-wide">{{ $reportTitle }}</h2>
+        <h2 class="text-sm font-bold text-gray-800 tracking-wide leading-tight">{{ $reportTitle }}</h2>
         @if($reportSubtitle)
-            <p class="text-sm text-gray-600 mt-1">{{ $reportSubtitle }}</p>
+            <p class="text-[10px] text-gray-600 leading-tight">{{ $reportSubtitle }}</p>
         @endif
 
-        <p class="text-sm text-gray-600 mt-1">
+        <p class="text-[10px] text-gray-600 leading-tight">
             @if(request('start_date') || request('end_date'))
                 তারিখ: {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'শুরু' }}
                 থেকে {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'শেষ' }}
