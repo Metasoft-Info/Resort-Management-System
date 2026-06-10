@@ -38,7 +38,7 @@ class PremiumBookingController extends Controller
         // Filter out rooms that are already booked for these dates
         $availableRooms = $rooms->filter(function ($room) use ($checkIn, $checkOut) {
             $hasConflict = Booking::where('room_id', $room->id)
-                ->where('status', '!=', 'cancelled')
+                ->whereNotIn('status', ['cancelled', 'checked_out'])
                 ->where(function ($query) use ($checkIn, $checkOut) {
                     $query->whereBetween('check_in_date', [$checkIn, $checkOut])
                         ->orWhereBetween('check_out_date', [$checkIn, $checkOut])

@@ -274,33 +274,39 @@ class DashboardController extends Controller
         $checkIn = $request->checkIn;
         $checkOut = $request->checkOut;
 
-        // Get booked room IDs for the date range
-        $bookedRoomIds = Booking::where(function($query) use ($checkIn, $checkOut) {
-            $query->whereBetween('check_in_date', [$checkIn, $checkOut])
-                  ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
-                  ->orWhere(function($q) use ($checkIn, $checkOut) {
-                      $q->where('check_in_date', '<=', $checkIn)
-                        ->where('check_out_date', '>=', $checkOut);
-                  });
-        })
-        ->whereNotIn('status', ['cancelled'])
-        ->pluck('room_id')->toArray();
+        // Get active (non-cancelled, non-checked-out) booking IDs that overlap the date range
+        // Proper hotel overlap: existing.check_in < new.check_out AND existing.check_out > new.check_in
+        $activeBookingIds = Booking::where('check_in_date', '<', $checkOut)
+            ->where('check_out_date', '>', $checkIn)
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->pluck('id');
+
+        // 1) Legacy single-room bookings
+        $bookedRoomIdsLegacy = Booking::whereIn('id', $activeBookingIds)
+            ->whereNotNull('room_id')
+            ->pluck('room_id')
+            ->toArray();
+
+        // 2) Multi-room bookings from booking_rooms pivot table
+        $bookedRoomIdsFromPivot = DB::table('booking_rooms')
+            ->whereIn('booking_id', $activeBookingIds)
+            ->pluck('room_id')
+            ->toArray();
+
+        $bookedRoomIds = array_values(array_unique(array_merge(
+            $bookedRoomIdsLegacy,
+            $bookedRoomIdsFromPivot
+        )));
 
         $availableRooms = Room::whereNotIn('id', $bookedRoomIds)
             ->where('status', 'available')
             ->get();
 
         $roomBookings = Booking::with('room')
-            ->whereIn('room_id', $bookedRoomIds)
-            ->where(function($query) use ($checkIn, $checkOut) {
-                $query->whereBetween('check_in_date', [$checkIn, $checkOut])
-                      ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
-                      ->orWhere(function($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in_date', '<=', $checkIn)
-                            ->where('check_out_date', '>=', $checkOut);
-                      });
-            })
-            ->whereNotIn('status', ['cancelled'])
+            ->whereIn('id', $activeBookingIds)
+            ->where('check_in_date', '<', $checkOut)
+            ->where('check_out_date', '>', $checkIn)
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
             ->get();
 
         return response()->json([

@@ -157,6 +157,21 @@ class BookingController extends Controller
 
         $oldStatus = $booking->status;
         $booking->update(['status' => $validated['status']]);
+
+        // Free up room(s) when checking out
+        if ($validated['status'] === 'checked_out' && $oldStatus !== 'checked_out') {
+            $roomIds = [];
+            if ($booking->room_id) {
+                $roomIds[] = $booking->room_id;
+            }
+            foreach ($booking->bookingRooms as $bookingRoom) {
+                $roomIds[] = $bookingRoom->room_id;
+            }
+            $roomIds = array_unique($roomIds);
+            if (!empty($roomIds)) {
+                Room::whereIn('id', $roomIds)->update(['status' => 'available']);
+            }
+        }
         
         ActivityLog::log('Updated booking status', 'Booking', $booking->id, [
             'old_status' => $oldStatus,
