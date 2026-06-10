@@ -98,7 +98,7 @@ class PremiumBookingController extends Controller
         $availableRooms = $rooms->filter(function ($room) use ($checkIn, $checkOut, $excludeBookingId) {
             // Check legacy bookings
             $legacyQuery = Booking::where('room_id', $room->id)
-                ->where('status', '!=', 'cancelled');
+                ->whereNotIn('status', ['cancelled', 'checked_out']);
             
             // Exclude the current booking if adding rooms
             if ($excludeBookingId) {
@@ -119,7 +119,7 @@ class PremiumBookingController extends Controller
             // Check booking_rooms table
             $multiRoomQuery = BookingRoom::where('room_id', $room->id)
                 ->whereHas('booking', function($q) use ($checkIn, $checkOut, $excludeBookingId) {
-                    $q->where('status', '!=', 'cancelled');
+                    $q->whereNotIn('status', ['cancelled', 'checked_out']);
                     
                     if ($excludeBookingId) {
                         $q->where('id', '!=', $excludeBookingId);
@@ -309,7 +309,7 @@ class PremiumBookingController extends Controller
                 // Check if room is already booked for these dates (in booking_rooms table)
                 $hasConflict = BookingRoom::where('room_id', $roomId)
                     ->whereHas('booking', function($q) use ($checkIn, $checkOut) {
-                        $q->where('status', '!=', 'cancelled')
+                        $q->whereNotIn('status', ['cancelled', 'checked_out'])
                           ->where('check_in_date', '<', $checkOut)
                           ->where('check_out_date', '>', $checkIn);
                     })->exists();
@@ -317,7 +317,7 @@ class PremiumBookingController extends Controller
                 // Also check legacy room_id booking
                 if (!$hasConflict) {
                     $hasConflict = Booking::where('room_id', $roomId)
-                        ->where('status', '!=', 'cancelled')
+                        ->whereNotIn('status', ['cancelled', 'checked_out'])
                         ->where('check_in_date', '<', $checkOut)
                         ->where('check_out_date', '>', $checkIn)
                         ->exists();
