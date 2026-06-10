@@ -48,4 +48,35 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
         return redirect()->route('login');
     }
+
+    public function profile()
+    {
+        return view('admin.profile');
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'current_password' => 'nullable|string',
+            'new_password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        $user->name = $validated['name'];
+
+        if ($validated['new_password']) {
+            if (!$validated['current_password'] || !Hash::check($validated['current_password'], $user->password)) {
+                return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+            }
+            $user->password = Hash::make($validated['new_password']);
+        }
+
+        $user->save();
+
+        ActivityLog::log('Updated profile', 'User', $user->id, ['name' => $user->name]);
+
+        return back()->with('success', 'Profile updated successfully!');
+    }
 }

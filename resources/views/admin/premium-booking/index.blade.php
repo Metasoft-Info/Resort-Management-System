@@ -361,15 +361,33 @@
  <input type="number" id="discount_amount" step="0.01" value="0" onchange="recalculateAmount()"
  class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
  </div>
- <div>
- <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra ()</label>
- <input type="number" id="extra_charges" step="0.01" value="0" onchange="recalculateAmount()"
- class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <!-- Extra Charges Section with Categories -->
+ <div class="col-span-2 lg:col-span-3">
+ <label class="flex items-center text-xs sm:text-sm font-semibold text-gray-700 mb-2 cursor-pointer">
+ <input type="checkbox" id="enable_extra_charges" onchange="toggleExtraChargesSection()" class="mr-2 w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500">
+ <span>Extra Charges</span>
+ </label>
+ <div id="extraChargesSection" class="hidden">
+ <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-2">
+ <p class="text-xs text-gray-600 mb-2 font-semibold">Select categories and quantity:</p>
+ <div id="extraChargeCategoriesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 max-h-48 overflow-y-auto">
+ <div class="text-center text-gray-400 py-2 text-xs">Loading categories...</div>
  </div>
- <div class="col-span-2">
- <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra Description</label>
- <input type="text" id="extra_charges_description"
- class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <div id="selectedExtraChargesSummary" class="hidden">
+ <div class="border-t border-yellow-300 pt-2 mt-2">
+ <p class="text-xs font-semibold text-gray-700 mb-1">Selected:</p>
+ <div id="selectedExtraChargesList" class="space-y-1"></div>
+ <div class="flex justify-between items-center mt-2 pt-2 border-t border-yellow-300">
+ <span class="text-sm font-bold text-gray-700">Total Extra:</span>
+ <span class="text-sm font-bold text-primary-600" id="extraChargesTotalDisplay">0</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ <input type="hidden" id="extra_charges" value="0">
+ <input type="hidden" id="extra_charges_description" value="">
+ <input type="hidden" id="extra_charges_data" value="">
  </div>
  <div class="col-span-2 lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-3 sm:p-4">
  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
@@ -898,6 +916,140 @@ function togglePaymentFields() {
  }
 }
 
+// Extra Charge Categories
+let extraChargeCategories = [];
+let selectedExtraChargeItems = [];
+
+function toggleExtraChargesSection() {
+ const checkbox = document.getElementById('enable_extra_charges');
+ const section = document.getElementById('extraChargesSection');
+ if (checkbox.checked) {
+ section.classList.remove('hidden');
+ loadExtraChargeCategories();
+ } else {
+ section.classList.add('hidden');
+ selectedExtraChargeItems = [];
+ updateExtraChargesSummary();
+ recalculateAmount();
+ }
+}
+
+async function loadExtraChargeCategories() {
+ const list = document.getElementById('extraChargeCategoriesList');
+ list.innerHTML = '<div class="text-center text-gray-400 py-2 text-xs">Loading categories...</div>';
+ try {
+ const response = await fetch('/admin/api/extra-charge-categories');
+ extraChargeCategories = await response.json();
+ renderCategoriesList();
+ } catch (error) {
+ list.innerHTML = '<div class="text-center text-red-500 py-2 text-xs">Failed to load</div>';
+ }
+}
+
+function renderCategoriesList() {
+ const container = document.getElementById('extraChargeCategoriesList');
+ if (extraChargeCategories.length === 0) {
+ container.innerHTML = '<div class="text-center text-gray-500 py-2 text-xs col-span-2">No categories available</div>';
+ return;
+ }
+ container.innerHTML = extraChargeCategories.map(cat => {
+ const isSelected = selectedExtraChargeItems.some(item => item.categoryId === cat.id);
+ return `
+ <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 ${isSelected ? 'ring-2 ring-yellow-400' : ''}" data-cat-id="${cat.id}">
+ <div class="flex-1 min-w-0">
+ <div class="flex items-center">
+ <input type="checkbox" id="cat_chk_${cat.id}" onchange="toggleCategorySelection(${cat.id})" ${isSelected ? 'checked' : ''} class="mr-2 w-4 h-4 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500">
+ <span class="text-sm font-medium text-gray-800 truncate">${cat.name}</span>
+ </div>
+ <span class="text-xs text-gray-500 ml-6">${parseFloat(cat.price).toFixed(2)}${cat.unit ? '/' + cat.unit : ''}</span>
+ </div>
+ <div class="flex items-center gap-1 ml-2">
+ <input type="number" min="1" value="1" id="cat_qty_${cat.id}" onchange="updateCategoryQuantity(${cat.id})"
+ class="w-12 px-1 py-1 text-xs border rounded text-center focus:ring-2 focus:ring-yellow-500"
+ ${!isSelected ? 'disabled' : ''}>
+ </div>
+ </div>
+ `;
+ }).join('');
+}
+
+function toggleCategorySelection(categoryId) {
+ const checkbox = document.getElementById('cat_chk_' + categoryId);
+ const qtyInput = document.getElementById('cat_qty_' + categoryId);
+ const category = extraChargeCategories.find(c => c.id === categoryId);
+ if (!category) return;
+
+ if (checkbox.checked) {
+ qtyInput.disabled = false;
+ const quantity = parseInt(qtyInput.value) || 1;
+ const existingIndex = selectedExtraChargeItems.findIndex(item => item.categoryId === categoryId);
+ if (existingIndex >= 0) {
+ selectedExtraChargeItems[existingIndex].quantity = quantity;
+ selectedExtraChargeItems[existingIndex].amount = parseFloat(category.price) * quantity;
+ } else {
+ selectedExtraChargeItems.push({
+ categoryId: category.id,
+ name: category.name,
+ price: parseFloat(category.price),
+ quantity: quantity,
+ amount: parseFloat(category.price) * quantity
+ });
+ }
+ } else {
+ qtyInput.disabled = true;
+ selectedExtraChargeItems = selectedExtraChargeItems.filter(item => item.categoryId !== categoryId);
+ }
+ updateExtraChargesSummary();
+ recalculateAmount();
+}
+
+function updateCategoryQuantity(categoryId) {
+ const qtyInput = document.getElementById('cat_qty_' + categoryId);
+ const quantity = parseInt(qtyInput.value) || 1;
+ const item = selectedExtraChargeItems.find(i => i.categoryId === categoryId);
+ if (item) {
+ item.quantity = quantity;
+ item.amount = item.price * quantity;
+ updateExtraChargesSummary();
+ recalculateAmount();
+ }
+}
+
+function updateExtraChargesSummary() {
+ const summaryDiv = document.getElementById('selectedExtraChargesSummary');
+ const listDiv = document.getElementById('selectedExtraChargesList');
+ const totalDisplay = document.getElementById('extraChargesTotalDisplay');
+
+ if (selectedExtraChargeItems.length === 0) {
+ summaryDiv.classList.add('hidden');
+ document.getElementById('extra_charges').value = '0';
+ document.getElementById('extra_charges_description').value = '';
+ document.getElementById('extra_charges_data').value = '';
+ return;
+ }
+
+ summaryDiv.classList.remove('hidden');
+ let total = 0;
+ listDiv.innerHTML = selectedExtraChargeItems.map(item => {
+ total += item.amount;
+ return `
+ <div class="flex justify-between text-xs">
+ <span class="text-gray-700">${item.name} × ${item.quantity} @ ${item.price.toFixed(2)}</span>
+ <span class="font-semibold text-gray-800">${item.amount.toFixed(2)}</span>
+ </div>
+ `;
+ }).join('');
+
+ totalDisplay.textContent = total.toFixed(2);
+ document.getElementById('extra_charges').value = total.toFixed(2);
+
+ const descriptions = selectedExtraChargeItems.map(item =>
+ `${item.name} × ${item.quantity} = ${item.amount.toFixed(2)}`
+ );
+ document.getElementById('extra_charges_description').value = descriptions.join('; ');
+ document.getElementById('extra_charges_data').value = JSON.stringify(selectedExtraChargeItems);
+}
+
 // Calculations
 function recalculateAmount() {
  if (selectedRooms.length === 0) return;
@@ -1133,6 +1285,19 @@ async function submitBooking(e) {
  formData.append('discount_amount', document.getElementById('discount_amount').value || '0');
  formData.append('extra_charges', document.getElementById('extra_charges').value || '0');
  formData.append('extra_charges_description', document.getElementById('extra_charges_description').value);
+ const extraChargesData = document.getElementById('extra_charges_data').value;
+ if (extraChargesData) {
+  try {
+   const parsed = JSON.parse(extraChargesData);
+   parsed.forEach((item, index) => {
+    formData.append(`extra_charges_data[${index}][category_id]`, item.categoryId || '');
+    formData.append(`extra_charges_data[${index}][name]`, item.name || '');
+    formData.append(`extra_charges_data[${index}][price]`, item.price || 0);
+    formData.append(`extra_charges_data[${index}][quantity]`, item.quantity || 1);
+    formData.append(`extra_charges_data[${index}][amount]`, item.amount || 0);
+   });
+  } catch (e) {}
+ }
  formData.append('advance_payment', document.getElementById('advance_payment').value);
  formData.append('remaining_payment', document.getElementById('remaining_payment').value);
  formData.append('payment_method', document.getElementById('payment_method').value);

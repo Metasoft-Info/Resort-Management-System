@@ -244,22 +244,11 @@
  </div>
  @endforeach
  
- <!-- Logout -->
- <div class="border-t border-slate-700/50 mt-4 pt-4">
- <form method="POST" action="{{ route('admin.logout') }}">
- @csrf
- <button type="submit" class="sidebar-menu-item group relative flex items-center w-full px-3 py-2.5 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition text-sm">
- <i class="fas fa-sign-out-alt w-5 mr-3 group-hover:text-red-400"></i>
- <span class="sidebar-text">Logout</span>
- <span class="sidebar-tooltip">Logout</span>
- </button>
- </form>
- </div>
  </nav>
- 
+
  <!-- Sidebar Footer -->
  <div class="p-3 border-t border-slate-700/50">
- <div class="sidebar-text flex items-center justify-between px-2 py-2 bg-slate-800/50 rounded-xl">
+ <div class="sidebar-text flex items-center px-2 py-2 bg-slate-800/50 rounded-xl">
  <div class="flex items-center">
  <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-2">
  <i class="fas fa-user text-white text-xs"></i>
@@ -305,11 +294,25 @@
  </div>
  </div>
  </div>
- <div class="hidden sm:flex items-center bg-gradient-to-r from-slate-100 to-slate-50 rounded-full px-4 py-2 shadow-sm border border-slate-200">
+ <div class="relative hidden sm:block" id="topUserDropdownWrapper">
+ <button onclick="toggleTopUserDropdown()" class="flex items-center bg-gradient-to-r from-slate-100 to-slate-50 rounded-full px-4 py-2 shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer">
  <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow">
  <i class="fas fa-user text-white text-xs"></i>
  </div>
  <span class="text-sm font-semibold text-gray-700">{{ auth()->user()->name ?? 'Admin' }}</span>
+ <i class="fas fa-chevron-down text-gray-400 text-xs ml-2 transition-transform" id="topUserChevron"></i>
+ </button>
+ <div id="topUserDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+ <a href="{{ route('admin.profile') }}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+ <i class="fas fa-user-edit w-5 mr-3 text-indigo-500"></i>My Profile
+ </a>
+ <form method="POST" action="{{ route('admin.logout') }}">
+ @csrf
+ <button type="submit" class="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition text-left">
+ <i class="fas fa-sign-out-alt w-5 mr-3 text-red-500"></i>Logout
+ </button>
+ </form>
+ </div>
  </div>
  </div>
  </div>
@@ -387,7 +390,34 @@
  localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
  }
  
- function toggleSection(sectionKey) {
+ function toggleSidebarUserDropdown() {
+ const dropdown = document.getElementById('sidebarUserDropdown');
+ const chevron = document.getElementById('sidebarUserChevron');
+ dropdown.classList.toggle('hidden');
+ chevron.style.transform = dropdown.classList.contains('hidden') ? '' : 'rotate(180deg)';
+}
+
+function toggleTopUserDropdown() {
+ const dropdown = document.getElementById('topUserDropdown');
+ const chevron = document.getElementById('topUserChevron');
+ dropdown.classList.toggle('hidden');
+ chevron.style.transform = dropdown.classList.contains('hidden') ? '' : 'rotate(180deg)';
+}
+
+// Close top user dropdown when clicking outside
+document.addEventListener('click', function(e) {
+ const wrapper = document.getElementById('topUserDropdownWrapper');
+ if (wrapper && !wrapper.contains(e.target)) {
+  const dropdown = document.getElementById('topUserDropdown');
+  const chevron = document.getElementById('topUserChevron');
+  if (dropdown && !dropdown.classList.contains('hidden')) {
+   dropdown.classList.add('hidden');
+   if (chevron) chevron.style.transform = '';
+  }
+ }
+});
+
+function toggleSection(sectionKey) {
  const section = document.getElementById('section-' + sectionKey);
  const header = document.querySelector(`[onclick="toggleSection('${sectionKey}')"]`);
  

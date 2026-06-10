@@ -113,14 +113,28 @@ class Booking extends Model
             ? $this->payments
             : $this->payments()->get();
 
-        $paymentsTotal = $payments
-            ->filter(fn($p) => ($p->type ?? 'payment') !== 'refund')
+        $advanceRecord = $payments->first(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advanceRecordAmount = $advanceRecord ? (float) $advanceRecord->amount : 0;
+        $advanceInDb = (float) ($this->advance_payment ?? 0);
+
+        $extraPayments = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
             ->sum('amount');
 
-        return max(
-            (float) ($this->advance_payment ?? 0),
-            (float) $paymentsTotal
-        );
+        // If advance payment record exists but doesn't match bookings.advance_payment,
+        // there's a data inconsistency (e.g., booking was edited but payment record wasn't updated).
+        // Trust bookings.advance_payment as ground truth and add extra payments.
+        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
+            return $advanceInDb + (float) $extraPayments;
+        }
+
+        if ($advanceRecord) {
+            // All payments (including advance) properly tracked in booking_payments table
+            return $advanceRecordAmount + (float) $extraPayments;
+        }
+
+        // Advance is only in bookings table; add any additional payments
+        return $advanceInDb + (float) $extraPayments;
     }
 
     // Get calculated remaining payment
