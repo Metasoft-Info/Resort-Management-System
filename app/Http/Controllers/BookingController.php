@@ -117,6 +117,17 @@ class BookingController extends Controller
         $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
 
         $booking = Booking::create($validated);
+
+        // Record initial advance payment in payment history
+        if ($validated['advance_payment'] > 0) {
+            $booking->payments()->create([
+                'amount' => $validated['advance_payment'],
+                'method' => $validated['payment_method'],
+                'type' => 'advance',
+                'note' => 'Initial advance payment during booking creation',
+                'recorded_by_id' => Auth::id(),
+            ]);
+        }
         
         ActivityLog::log('Created booking', 'Booking', $booking->id, [
             'customer_name' => $booking->customer_name,
@@ -345,12 +356,24 @@ class BookingController extends Controller
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
             'description' => 'required|string',
+            'items' => 'nullable|array',
+            'items.*.category_id' => 'nullable|integer',
+            'items.*.name' => 'required|string',
+            'items.*.price' => 'required|numeric',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.amount' => 'required|numeric',
         ]);
 
         $newExtraCharges = ($booking->extra_charges ?? 0) + $validated['amount'];
-        $newDescription = $booking->extra_charges_description 
+        $newDescription = $booking->extra_charges_description
             ? $booking->extra_charges_description . '; ' . $validated['description']
             : $validated['description'];
+
+        // Store structured extra charge items
+        $existingData = $booking->extra_charges_data ?? [];
+        if (!empty($validated['items'])) {
+            $existingData = array_merge($existingData, $validated['items']);
+        }
 
         // Recalculate remaining payment
         $baseAmount = $booking->total_amount;
@@ -370,6 +393,7 @@ class BookingController extends Controller
         $booking->update([
             'extra_charges' => $newExtraCharges,
             'extra_charges_description' => $newDescription,
+            'extra_charges_data' => $existingData,
             'remaining_payment' => $newRemainingPayment,
         ]);
 

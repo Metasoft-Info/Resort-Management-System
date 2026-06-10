@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\{Booking, ConventionBooking, RoomType, Room, ConventionHall, ResortInfo};
+use App\Models\{Booking, ConventionBooking, RoomType, Room, ConventionHall, ResortInfo, ExtraChargeCategory};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 
@@ -447,6 +447,88 @@ class ReportController extends Controller {
         $resortInfo = ResortInfo::first();
         
         return view('admin.reports.convention-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'halls', 'resortInfo'));
+    }
+
+    public function policeStation(Request $request) {
+        $today = date('Y-m-d');
+        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'additionalGuests', 'createdBy']);
+
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start)
+                         ->where('status', 'checked_in');
+                  });
+            });
+        } else {
+            $query->where(function ($q) use ($today) {
+                $q->where('status', 'checked_in')
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'checked_out')
+                         ->whereDate('check_out_date', $today);
+                  });
+            });
+        }
+
+        if ($request->status) $query->where('status', $request->status);
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                  ->orWhere('customer_nid', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
+            });
+        }
+
+        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        $roomTypes = RoomType::all();
+        $rooms = Room::orderBy('room_number')->get();
+        $resortInfo = ResortInfo::first();
+
+        return view('admin.reports.police-station', compact('bookings', 'roomTypes', 'rooms', 'resortInfo'));
+    }
+
+    public function guestExtraCharges(Request $request) {
+        $today = date('Y-m-d');
+        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'createdBy'])
+            ->where(function($q) {
+                $q->where('extra_charges', '>', 0)
+                  ->orWhereNotNull('extra_charges_data');
+            });
+
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start);
+                  });
+            });
+        }
+
+        if ($request->status) $query->where('status', $request->status);
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
+            });
+        }
+
+        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        $categories = ExtraChargeCategory::active()->orderBy('order')->get();
+        $rooms = Room::orderBy('room_number')->get();
+        $resortInfo = ResortInfo::first();
+
+        return view('admin.reports.guest-extra-charges', compact('bookings', 'categories', 'rooms', 'resortInfo'));
     }
     
     public function exportConventionBookings(Request $request) {

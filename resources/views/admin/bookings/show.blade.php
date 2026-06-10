@@ -506,7 +506,20 @@
  <span class="font-semibold">Extra Charges:</span>
  <span class="font-bold text-lg">+ {{ number_format($extraCharges, 2) }}</span>
  </div>
- @if($booking->extra_charges_description)
+ @php
+ $extraData = $booking->extra_charges_data ?? [];
+ @endphp
+ @if(!empty($extraData) && is_array($extraData))
+ <div class="mt-2 pt-2 border-t border-primary-400">
+ <p class="text-xs text-primary-100 font-semibold mb-1"><i class="fas fa-list mr-1"></i> Details:</p>
+ @foreach($extraData as $item)
+ <div class="text-xs text-primary-100 flex justify-between">
+ <span>{{ $item['name'] ?? 'Unknown' }} {{ ($item['quantity'] ?? 1) > 1 ? '× ' . ($item['quantity'] ?? 1) . ' @ ' . number_format($item['price'] ?? 0) : '' }}</span>
+ <span>{{ number_format($item['amount'] ?? 0, 2) }}</span>
+ </div>
+ @endforeach
+ </div>
+ @elseif($booking->extra_charges_description)
  <div class="mt-2 pt-2 border-t border-primary-400">
  <p class="text-xs text-primary-100"><i class="fas fa-list mr-1"></i> {{ $booking->extra_charges_description }}</p>
  </div>
@@ -1048,10 +1061,29 @@ function calculatePaymentPreview(forceAutoUpdateAmount = false) {
 let extraChargeCategories = [];
 let selectedCharges = [];
 
+// Pre-load existing extra charges from booking
+const existingExtraChargesData = @json($booking->extra_charges_data ?? []);
+
 function openExtraChargesModal() {
  document.getElementById('extraChargesModal').classList.remove('hidden');
  document.getElementById('extraChargesModal').classList.add('flex');
  selectedCharges = [];
+
+ // Populate from existing data if available
+ if (existingExtraChargesData && existingExtraChargesData.length > 0) {
+  existingExtraChargesData.forEach(item => {
+   selectedCharges.push({
+    categoryId: item.category_id || null,
+    name: item.name || 'Unknown',
+    price: parseFloat(item.price) || 0,
+    unit: item.unit || null,
+    quantity: parseInt(item.quantity) || 1,
+    amount: parseFloat(item.amount) || 0,
+    description: item.name || ''
+   });
+  });
+ }
+
  updateSelectedChargesUI();
  loadExtraChargeCategories();
 }
@@ -1213,10 +1245,11 @@ function addManualCharge() {
 
 async function submitAllExtraCharges() {
  if (selectedCharges.length === 0) return;
- 
+
  let totalAmount = 0;
  let descriptions = [];
- 
+ let items = [];
+
  selectedCharges.forEach(charge => {
  totalAmount += charge.amount;
  if (charge.quantity > 1) {
@@ -1224,8 +1257,15 @@ async function submitAllExtraCharges() {
  } else {
  descriptions.push(`${charge.name} = ${charge.amount.toFixed(2)}`);
  }
+ items.push({
+ category_id: charge.categoryId,
+ name: charge.name,
+ price: charge.price,
+ quantity: charge.quantity,
+ amount: charge.amount
  });
- 
+ });
+
  try {
  const response = await fetch(`/admin/bookings/{{ $booking->id }}/add-extra-charges`, {
  method: 'POST',
@@ -1235,7 +1275,8 @@ async function submitAllExtraCharges() {
  },
  body: JSON.stringify({
  amount: totalAmount,
- description: descriptions.join('; ')
+ description: descriptions.join('; '),
+ items: items
  })
  });
 

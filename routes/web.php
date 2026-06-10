@@ -34,6 +34,8 @@ Route::get('/admin', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login.form');
 Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login');
 Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
+Route::get('/admin/profile', [AuthController::class, 'profile'])->name('admin.profile');
+Route::post('/admin/profile', [AuthController::class, 'updateProfile'])->name('admin.profile.update');
 
 // Admin routes (protected by auth middleware)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
@@ -143,6 +145,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/reports/combined/export', [ReportController::class, 'exportCombined'])->name('reports.combined.export');
     Route::get('/reports/convention-bookings', [ReportController::class, 'conventionBookings'])->name('reports.convention-bookings');
     Route::get('/reports/convention-bookings/export', [ReportController::class, 'exportConventionBookings'])->name('reports.convention-bookings.export');
+    Route::get('/reports/police-station', [ReportController::class, 'policeStation'])->name('reports.police-station');
+    Route::get('/reports/guest-extra-charges', [ReportController::class, 'guestExtraCharges'])->name('reports.guest-extra-charges');
     
     // Customers
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
