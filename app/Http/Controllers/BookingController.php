@@ -438,6 +438,45 @@ class BookingController extends Controller
         return response()->json(['message' => 'Extra charges added successfully']);
     }
 
+    public function updateCustomer(Request $request, Booking $booking)
+    {
+        $validated = $request->validate([
+            'customer_name'     => 'required|string|max:255',
+            'customer_phone'    => 'required|string|max:20',
+            'customer_nid'      => 'nullable|string|max:50',
+            'customer_email'    => 'nullable|email|max:255',
+            'customer_whatsapp' => 'nullable|string|max:20',
+            'customer_address'  => 'nullable|string|max:500',
+            'company_name'      => 'nullable|string|max:255',
+            'passport_number'   => 'nullable|string|max:50',
+            'reference_name'    => 'nullable|string|max:255',
+            'reference_phone'   => 'nullable|string|max:20',
+            'customer_photo'        => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'customer_nid_document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'passport_document'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'visiting_card'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $updateData = collect($validated)->except([
+            'customer_photo','customer_nid_document','passport_document','visiting_card'
+        ])->toArray();
+
+        // Handle file uploads
+        foreach (['customer_photo','customer_nid_document','passport_document','visiting_card'] as $field) {
+            if ($request->hasFile($field)) {
+                $path = $request->file($field)->store('bookings/documents', 'public');
+                $updateData[$field] = $path;
+            }
+        }
+
+        $updateData['updated_by_id'] = Auth::id();
+        $booking->update($updateData);
+
+        ActivityLog::log('Updated customer info', 'Booking', $booking->id, ['booking_id' => $booking->id]);
+
+        return response()->json(['message' => 'Customer information updated successfully']);
+    }
+
     public function addGuest(Request $request, Booking $booking)
     {
         $validated = $request->validate([

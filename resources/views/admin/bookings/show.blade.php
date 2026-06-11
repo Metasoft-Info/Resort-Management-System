@@ -122,10 +122,15 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <div class="lg:col-span-2 space-y-6">
  <!-- Customer Information -->
  <div class="bg-white rounded-xl shadow-lg p-6">
- <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+ <div class="flex justify-between items-center mb-4">
+ <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
  <i class="fas fa-user text-primary-600"></i>
  Guest Information
  </h2>
+ <button onclick="openEditCustomerModal()" class="print:hidden bg-primary-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-primary-700 flex items-center gap-1">
+ <i class="fas fa-edit"></i> Edit
+ </button>
+ </div>
  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
  <div>
  <span class="font-semibold text-gray-600">Name:</span>
@@ -705,6 +710,107 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  Cancel
  </button>
  </div>
+ </div>
+ </form>
+ </div>
+</div>
+
+<!-- Edit Customer Modal -->
+<div id="editCustomerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+ <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl my-8 mx-4 max-h-[90vh] overflow-y-auto">
+ <div class="flex justify-between items-center mb-4">
+ <h3 class="text-xl font-bold text-gray-800">Edit Customer Information</h3>
+ <button onclick="closeEditCustomerModal()" class="text-gray-500 hover:text-gray-700">
+ <i class="fas fa-times text-xl"></i>
+ </button>
+ </div>
+ <form id="editCustomerForm" onsubmit="submitEditCustomer(event)" enctype="multipart/form-data">
+ @csrf
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+ <input type="text" name="customer_name" value="{{ $booking->customer_name }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Phone <span class="text-red-500">*</span></label>
+ <input type="text" name="customer_phone" value="{{ $booking->customer_phone }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">NID</label>
+ <input type="text" name="customer_nid" value="{{ $booking->customer_nid }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+ <input type="email" name="customer_email" value="{{ $booking->customer_email }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">WhatsApp</label>
+ <input type="text" name="customer_whatsapp" value="{{ $booking->customer_whatsapp }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Passport No</label>
+ <input type="text" name="passport_number" value="{{ $booking->passport_number }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Company</label>
+ <input type="text" name="company_name" value="{{ $booking->company_name }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Reference Name</label>
+ <input type="text" name="reference_name" value="{{ $booking->reference_name }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Reference Phone</label>
+ <input type="text" name="reference_phone" value="{{ $booking->reference_phone }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div class="md:col-span-2">
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Address</label>
+ <textarea name="customer_address" rows="2" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">{{ $booking->customer_address }}</textarea>
+ </div>
+ </div>
+
+ <!-- Documents -->
+ <div class="mt-4 border-t pt-4">
+ <h4 class="text-sm font-bold text-gray-700 mb-3">Documents (optional — leave blank to keep existing)</h4>
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Photo</label>
+ @if($booking->customer_photo)
+ <a href="{{ asset('storage/'.$booking->customer_photo) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @endif
+ <input type="file" name="customer_photo" accept="image/*" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">NID Document</label>
+ @if($booking->customer_nid_document)
+ <a href="{{ asset('storage/'.$booking->customer_nid_document) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @endif
+ <input type="file" name="customer_nid_document" accept="image/*,.pdf" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Passport Document</label>
+ @if($booking->passport_document)
+ <a href="{{ asset('storage/'.$booking->passport_document) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @endif
+ <input type="file" name="passport_document" accept="image/*,.pdf" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Visiting Card</label>
+ @if($booking->visiting_card)
+ <a href="{{ asset('storage/'.$booking->visiting_card) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @endif
+ <input type="file" name="visiting_card" accept="image/*,.pdf" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ </div>
+ </div>
+
+ <div class="flex gap-3 mt-5">
+ <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-semibold">
+ <i class="fas fa-save mr-1"></i> Save Changes
+ </button>
+ <button type="button" onclick="closeEditCustomerModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+ Cancel
+ </button>
  </div>
  </form>
  </div>
@@ -1554,6 +1660,43 @@ async function submitVatToggle() {
  showGlobalModal('error', 'Failed to update VAT!');
  }
  });
+}
+
+// Edit Customer modal
+function openEditCustomerModal() {
+ document.getElementById('editCustomerModal').classList.remove('hidden');
+ document.getElementById('editCustomerModal').classList.add('flex');
+}
+function closeEditCustomerModal() {
+ document.getElementById('editCustomerModal').classList.add('hidden');
+ document.getElementById('editCustomerModal').classList.remove('flex');
+}
+
+async function submitEditCustomer(e) {
+ e.preventDefault();
+ const form = document.getElementById('editCustomerForm');
+ const formData = new FormData(form);
+
+ try {
+ const response = await fetch(`/admin/bookings/{{ $booking->id }}/update-customer`, {
+ method: 'POST',
+ headers: {
+ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+ },
+ body: formData
+ });
+
+ if (response.ok) {
+ showGlobalModal('success', 'Customer information updated!');
+ setTimeout(() => location.reload(), 1500);
+ } else {
+ const data = await response.json().catch(() => ({}));
+ showGlobalModal('error', data.message || 'Failed to update customer!');
+ }
+ } catch (error) {
+ console.error('Error:', error);
+ showGlobalModal('error', 'Failed to update customer!');
+ }
 }
 
 // Auto-print invoice if ?print=invoice parameter is present
