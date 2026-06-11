@@ -15,11 +15,39 @@ $kernel->bootstrap();
 
 $output = [];
 
+// Try specific migration first
+$specificMigration = 'database/migrations/2026_06_11_070000_add_updated_by_to_bookings.php';
 try {
-    \Artisan::call('migrate', ['--force' => true]);
-    $output[] = 'MIGRATION: ' . trim(\Artisan::output());
+    \Artisan::call('migrate', ['--force' => true, '--path' => $specificMigration]);
+    $output[] = 'MIGRATION (specific): ' . trim(\Artisan::output());
 } catch (\Exception $e) {
-    $output[] = 'MIGRATION ERROR: ' . $e->getMessage();
+    $output[] = 'Specific migration failed, trying full: ' . $e->getMessage();
+    try {
+        \Artisan::call('migrate', ['--force' => true]);
+        $output[] = 'MIGRATION (full): ' . trim(\Artisan::output());
+    } catch (\Exception $e2) {
+        $output[] = 'Full migration error (tables may already exist): ' . substr($e2->getMessage(), 0, 200);
+    }
+}
+
+// Ensure columns exist manually as fallback
+$added = [];
+if (!\Schema::hasColumn('bookings', 'updated_by_id')) {
+    \Schema::table('bookings', function ($table) {
+        $table->unsignedBigInteger('updated_by_id')->nullable()->after('created_by_id');
+    });
+    $added[] = 'bookings.updated_by_id';
+}
+if (!\Schema::hasColumn('convention_bookings', 'updated_by_id')) {
+    \Schema::table('convention_bookings', function ($table) {
+        $table->unsignedBigInteger('updated_by_id')->nullable()->after('created_by_id');
+    });
+    $added[] = 'convention_bookings.updated_by_id';
+}
+if ($added) {
+    $output[] = 'MANUAL COLUMNS ADDED: ' . implode(', ', $added);
+} else {
+    $output[] = 'Columns already exist: updated_by_id on both tables';
 }
 
 try {
