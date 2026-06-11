@@ -1300,11 +1300,12 @@ async function submitAllExtraCharges() {
  showGlobalModal('success', 'Extra charges added!');
  setTimeout(() => location.reload(), 1500);
  } else {
- showGlobalModal('error', 'Failed to add extra charges!');
+ const errorText = await response.text();
+ showGlobalModal('error', 'Failed: ' + (errorText.substring(0, 200) || 'Server error'));
  }
  } catch (error) {
  console.error('Error:', error);
- showGlobalModal('error', 'Failed to add extra charges!');
+ showGlobalModal('error', 'Failed: ' + error.message);
  }
 }
 

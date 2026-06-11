@@ -163,5 +163,29 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/customers/convention', [CustomerController::class, 'conventionCustomers'])->name('customers.convention');
     Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::get('/customers/{phone}', [CustomerController::class, 'show'])->name('customers.show');
+
+    // Production deployment helper - run migrations and clear caches (admin only)
+    Route::get('/run-migrations', function () {
+        $output = [];
+        try {
+            \Artisan::call('migrate', ['--force' => true]);
+            $output[] = 'Migration: ' . trim(\Artisan::output());
+        } catch (\Exception $e) {
+            $output[] = 'Migration Error: ' . $e->getMessage();
+        }
+        try {
+            \Artisan::call('config:clear');
+            $output[] = 'Config cleared';
+        } catch (\Exception $e) {
+            $output[] = 'Config clear Error: ' . $e->getMessage();
+        }
+        try {
+            \Artisan::call('cache:clear');
+            $output[] = 'Cache cleared';
+        } catch (\Exception $e) {
+            $output[] = 'Cache clear Error: ' . $e->getMessage();
+        }
+        return '<pre style="font-family:monospace;padding:20px">' . implode("\n", $output) . '</pre>';
+    })->name('run-migrations');
 });
 
