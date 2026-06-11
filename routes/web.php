@@ -62,6 +62,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/bookings/{booking}/update-time', [BookingController::class, 'updateTime'])->name('bookings.update-time');
     Route::post('/bookings/{booking}/add-payment', [BookingController::class, 'addPayment'])->name('bookings.add-payment');
     Route::post('/bookings/{booking}/add-extra-charges', [BookingController::class, 'addExtraCharges'])->name('bookings.add-extra-charges');
+    Route::post('/bookings/{booking}/update-customer', [BookingController::class, 'updateCustomer'])->name('bookings.update-customer');
     Route::post('/bookings/{booking}/add-guest', [BookingController::class, 'addGuest'])->name('bookings.add-guest');
     Route::post('/bookings/{booking}/process-refund', [BookingController::class, 'processRefund'])->name('bookings.process-refund');
     Route::post('/bookings/{booking}/update-vat', [BookingController::class, 'updateVat'])->name('bookings.update-vat');
