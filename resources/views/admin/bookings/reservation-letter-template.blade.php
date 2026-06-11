@@ -90,7 +90,8 @@
  $extraCharges = $booking->extra_charges ?? 0;
  $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
  $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
- $remainingPayment = $grandTotal - $booking->advance_payment;
+ $totalDeposited = $booking->getTotalDeposited();
+$remainingPayment = max(0, $grandTotal - $totalDeposited);
  
  // Convert to words
  $amountInWords = \App\Helpers\NumberToWords::convertTaka($grandTotal);

@@ -263,7 +263,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'nullable|numeric|min:0',
-            'method' => 'required|in:cash,card,bkash',
+            'method' => 'required|in:cash,card,mfs',
             'bkash_number' => 'nullable|string|max:20',
             'bank_name' => 'nullable|string|max:100',
             'discount_type' => 'nullable|in:none,flat,percentage',
@@ -278,8 +278,7 @@ class BookingController extends Controller
         // Recalculate current balances from rooms + discount + extra + VAT.
         $baseAmount = $booking->getCalculatedTotal();
         $currentGrandTotal = $booking->getGrandTotal();
-        $currentAdvance = floatval($booking->advance_payment ?? 0);
-        $currentRemaining = max(0, $currentGrandTotal - $currentAdvance);
+        $currentRemaining = max(0, $booking->getCalculatedRemaining());
 
         // Handle payment-level discount if provided
         $paymentDiscountAmount = 0;
@@ -350,20 +349,29 @@ class BookingController extends Controller
             }
         }
 
-        // Update booking payments
-        $newAdvancePayment = $currentAdvance + $paymentAmount;
-        $newRemainingPayment = max(0, $grandTotal - $newAdvancePayment);
+        // Do NOT update advance_payment - it stays as the initial booking payment only
+        // Record additional payment in booking_payments table
+        if ($paymentAmount > 0) {
+            $booking->payments()->create([
+                'amount' => $paymentAmount,
+                'method' => $validated['method'],
+                'type' => 'payment',
+                'note' => $validated['note'] ?? null,
+                'recorded_by_id' => Auth::id(),
+            ]);
+        }
+
+        // Recalculate remaining using getTotalDeposited() (advance + all payments)
+        $booking->refresh();
+        $newRemainingPayment = max(0, $booking->getCalculatedRemaining());
         
         $updateData['total_amount'] = $baseAmount;
-        $updateData['advance_payment'] = $newAdvancePayment;
         $updateData['remaining_payment'] = $newRemainingPayment;
-        $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : ($newAdvancePayment > 0 || $paymentDiscountAmount > 0 ? 'partial' : 'pending');
+        $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : 'partial';
         $updateData['updated_by_id'] = Auth::id();
         
         $booking->update($updateData);
 
-        // Payment history recording is disabled until payments table is created
-        // Just log the note if provided
         $paymentNote = $validated['note'] ?? '';
         if ($paymentDiscountAmount > 0) {
             $paymentNote .= ' [Discount: ৳' . number_format($paymentDiscountAmount, 2) . ' - Ref: ' . ($validated['discount_reference'] ?? 'N/A') . ']';
@@ -416,7 +424,8 @@ class BookingController extends Controller
         $afterDiscount = $baseAmount - $discountAmount;
         $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
         $grandTotal = $afterDiscount + $newExtraCharges + $vatAmount;
-        $newRemainingPayment = max(0, $grandTotal - $booking->advance_payment);
+        $totalDeposited = $booking->getTotalDeposited();
+        $newRemainingPayment = max(0, $grandTotal - $totalDeposited);
 
         $booking->update([
             'extra_charges' => $newExtraCharges,
@@ -449,27 +458,28 @@ class BookingController extends Controller
             'note' => 'nullable|string',
         ]);
 
-        if ($validated['amount'] > $booking->advance_payment) {
-            return response()->json(['message' => 'Refund amount cannot exceed advance payment'], 422);
+        $totalDeposited = $booking->getTotalDeposited();
+        if ($validated['amount'] > $totalDeposited) {
+            return response()->json(['message' => 'Refund amount cannot exceed total deposited: ' . number_format($totalDeposited, 2)], 422);
         }
 
-        $newAdvancePayment = $booking->advance_payment - $validated['amount'];
-        $grandTotal = $this->calculateGrandTotal($booking);
-        $newRemainingPayment = max(0, $grandTotal - $newAdvancePayment);
-        
-        $booking->update([
-            'advance_payment' => $newAdvancePayment,
-            'remaining_payment' => $newRemainingPayment,
-            'payment_status' => $newAdvancePayment <= 0 ? 'refunded' : 'partial',
-        ]);
-
-        // Record refund payment
+        // Record refund payment first
         $booking->payments()->create([
             'amount' => $validated['amount'],
             'method' => $validated['method'],
             'type' => 'refund',
             'note' => $validated['note'],
             'recorded_by_id' => Auth::id(),
+        ]);
+
+        // Recalculate remaining using getTotalDeposited() (which excludes refunds)
+        $booking->refresh();
+        $newRemainingPayment = max(0, $booking->getCalculatedRemaining());
+        
+        $booking->update([
+            'remaining_payment' => $newRemainingPayment,
+            'payment_status' => $newRemainingPayment <= 0 ? 'paid' : 'partial',
+            'updated_by_id' => Auth::id(),
         ]);
 
         return response()->json(['message' => 'Refund processed successfully']);

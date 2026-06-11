@@ -50,6 +50,23 @@ if ($added) {
     $output[] = 'Columns already exist: updated_by_id on both tables';
 }
 
+// Ensure booking_payments table exists
+if (!\Schema::hasTable('booking_payments')) {
+    \Schema::create('booking_payments', function ($table) {
+        $table->id();
+        $table->foreignId('booking_id')->constrained()->onDelete('cascade');
+        $table->decimal('amount', 10, 2);
+        $table->enum('method', ['cash', 'card', 'mfs'])->default('cash');
+        $table->enum('type', ['advance', 'payment', 'refund'])->default('payment');
+        $table->text('note')->nullable();
+        $table->foreignId('recorded_by_id')->constrained('users');
+        $table->timestamps();
+    });
+    $output[] = 'CREATED TABLE: booking_payments';
+} else {
+    $output[] = 'Table already exists: booking_payments';
+}
+
 try {
     \Artisan::call('config:clear');
     $output[] = 'Config cache cleared';

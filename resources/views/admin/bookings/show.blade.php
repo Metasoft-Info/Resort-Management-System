@@ -33,7 +33,8 @@
  $extraCharges = $booking->extra_charges ?? 0;
  $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
  $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
- $remainingPayment = $grandTotal - $booking->advance_payment;
+ $totalDeposited = $booking->getTotalDeposited();
+$remainingPayment = max(0, $grandTotal - $totalDeposited);
  @endphp
 
  <!-- Action Buttons (Screen Only) -->
@@ -60,7 +61,7 @@
  <i class="fas fa-money-bill"></i>
  <span>Add Payment</span>
  </button>
- <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2" @if($booking->advance_payment <= 0) disabled @endif>
+ <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2" @if($totalDeposited <= 0) disabled @endif>
  <i class="fas fa-undo"></i>
  <span>Process Refund</span>
  </button>
@@ -617,12 +618,12 @@
  <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3">
  <p class="text-sm text-yellow-700">
  <i class="fas fa-exclamation-triangle mr-2"></i>
- Available for refund: {{ number_format($booking->advance_payment, 2) }}
+ Available for refund: {{ number_format($totalDeposited, 2) }}
  </p>
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Refund Amount ()</label>
- <input type="number" step="0.01" name="amount" required max="{{ $booking->advance_payment }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500">
+ <input type="number" step="0.01" name="amount" required max="{{ $totalDeposited }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Refund Reason</label>
@@ -743,7 +744,7 @@
  <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
  <select name="method" id="payment_modal_method" required onchange="togglePaymentModalFields()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
  <option value="cash">Cash</option>
- <option value="bkash">bKash</option>
+ <option value="mfs">bKash / MFS</option>
  <option value="card">Card</option>
  </select>
  </div>
@@ -975,7 +976,7 @@ function togglePaymentModalFields() {
  document.getElementById('payment_modal_bkash').classList.add('hidden');
  document.getElementById('payment_modal_bank').classList.add('hidden');
  
- if (method === 'bkash') {
+ if (method === 'mfs') {
  document.getElementById('payment_modal_bkash').classList.remove('hidden');
  } else if (method === 'card') {
  document.getElementById('payment_modal_bank').classList.remove('hidden');
@@ -1489,7 +1490,7 @@ async function submitRefund(e) {
  e.preventDefault();
  const formData = new FormData(e.target);
  const amount = parseFloat(formData.get('amount'));
- const maxRefund = {{ $booking->advance_payment }};
+ const maxRefund = {{ $totalDeposited }};
  
  if (amount > maxRefund) {
  showGlobalModal('error', `Refund amount ${maxRefund.toFixed(2)} cannot exceed!`);
