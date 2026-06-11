@@ -51,6 +51,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Rooms
     Route::resource('rooms', RoomController::class);
+    Route::get('rooms-print', [RoomController::class, 'print'])->name('rooms.print');
     
     // Room Types
     Route::resource('room-types', RoomTypeController::class);
@@ -64,7 +65,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/bookings/{booking}/add-guest', [BookingController::class, 'addGuest'])->name('bookings.add-guest');
     Route::post('/bookings/{booking}/process-refund', [BookingController::class, 'processRefund'])->name('bookings.process-refund');
     Route::post('/bookings/{booking}/update-vat', [BookingController::class, 'updateVat'])->name('bookings.update-vat');
-    
+    Route::post('/bookings/{booking}/send-invoice-email', [BookingController::class, 'sendInvoiceEmail'])->name('bookings.send-invoice-email');
+    Route::post('/bookings/{booking}/send-reservation-email', [BookingController::class, 'sendReservationEmail'])->name('bookings.send-reservation-email');
+
     // Premium Booking (Advanced Room Booking)
     Route::get('/premium-booking', [PremiumBookingController::class, 'index'])->name('premium-booking.index');
     Route::post('/premium-booking/search', [PremiumBookingController::class, 'search'])->name('premium-booking.search');

@@ -13,7 +13,7 @@ class ConventionBooking extends Model
         'food_package_id', 'food_cost', 'selected_addons', 'addon_quantities', 'addons_cost',
         'hall_rent', 'discount', 'discount_type', 'discount_value', 'vat_amount', 'vat_percentage',
         'total_amount', 'advance_payment', 'remaining_payment', 'payment_method', 'payment_status',
-        'status', 'program_status', 'notes', 'created_by_id',
+        'status', 'program_status', 'notes', 'created_by_id', 'updated_by_id',
         'discount_status', 'discount_requested_by', 'discount_approved_by', 'discount_approved_at',
     ];
 
@@ -50,6 +50,11 @@ class ConventionBooking extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by_id');
     }
 
     public function discountRequestedBy()

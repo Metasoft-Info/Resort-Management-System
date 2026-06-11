@@ -282,6 +282,7 @@ class ConventionBookingController extends Controller
         $validated['discount_value'] = $validated['discount_value'] ?? 0;
         $validated['vat_percentage'] = $validated['vat_percentage'] ?? 0;
         $validated['created_by_id'] = auth()->id();
+        $validated['updated_by_id'] = auth()->id();
 
         // Set discount approval status
         $hasDiscount = ($validated['discount'] ?? 0) > 0;
@@ -379,6 +380,7 @@ class ConventionBookingController extends Controller
         $totals = $this->calculateTotals($validated);
         $validated = array_merge($validated, $totals);
 
+        $validated['updated_by_id'] = auth()->id();
         $conventionBooking->update($validated);
 
         return redirect()->route('admin.convention-bookings.index')
@@ -419,6 +421,7 @@ class ConventionBookingController extends Controller
             'advance_payment' => $newAdvance,
             'remaining_payment' => $remainingPayment,
             'payment_status' => $paymentStatus,
+            'updated_by_id' => auth()->id(),
         ]);
 
         return redirect()->route('admin.convention-bookings.show', $conventionBooking)
@@ -431,6 +434,7 @@ class ConventionBookingController extends Controller
             'status' => 'required|in:pending,confirmed,cancelled,completed',
         ]);
 
+        $validated['updated_by_id'] = auth()->id();
         $conventionBooking->update($validated);
 
         return response()->json([

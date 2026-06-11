@@ -340,6 +340,10 @@
  <span class="font-semibold text-gray-600">Created By:</span>
  <p class="text-gray-900">{{ $booking->createdBy->name ?? 'N/A' }}</p>
  </div>
+ <div>
+ <span class="font-semibold text-gray-600">Updated By:</span>
+ <p class="text-gray-900">{{ $booking->updatedBy->name ?? 'N/A' }}</p>
+ </div>
  @if($booking->notes)
  <div class="md:col-span-2">
  <span class="font-semibold text-gray-600">Notes:</span>

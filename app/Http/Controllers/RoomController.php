@@ -16,6 +16,14 @@ class RoomController extends Controller
         return view('admin.rooms.index', compact('rooms'));
     }
 
+    public function print()
+    {
+        $rooms = Room::with('roomType')
+            ->orderBy('room_number', 'asc')
+            ->get();
+        return view('admin.rooms.print', compact('rooms'));
+    }
+
     public function create()
     {
         $roomTypes = \App\Models\RoomType::where('is_active', true)->get();
