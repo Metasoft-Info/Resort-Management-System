@@ -229,6 +229,7 @@
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Total Amount</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Reference</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Created By</th>
+ <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Updated By</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Status</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Discount Status</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Action</th>
@@ -298,6 +299,12 @@
  <div class="font-medium text-gray-800 text-sm truncate max-w-[80px]" title="{{ $creatorName }}">{{ $creatorName }}</div>
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
+ @php
+ $updaterName = $booking->updatedBy?->name ?? ($booking->updated_by_id ? 'User #' . $booking->updated_by_id : '-');
+ @endphp
+ <div class="font-medium text-gray-800 text-sm truncate max-w-[80px]" title="{{ $updaterName }}">{{ $updaterName }}</div>
+ </td>
+ <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
  <span class="px-2 py-1 text-xs font-semibold rounded-full
  @if($booking->status == 'confirmed') bg-blue-100 text-blue-800
  @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-800
@@ -345,12 +352,18 @@
  <a href="{{ route('admin.bookings.edit', $booking) }}" class="text-indigo-600 hover:text-indigo-800 transition" title="Edit">
  <i class="fas fa-edit"></i>
  </a>
+ <button type="button" onclick="openEmailModal({{ $booking->id }}, '{{ $booking->customer_email ?? '' }}', 'invoice')" class="text-emerald-600 hover:text-emerald-800 transition" title="Send Invoice Email">
+ <i class="fas fa-file-invoice"></i>
+ </button>
+ <button type="button" onclick="openEmailModal({{ $booking->id }}, '{{ $booking->customer_email ?? '' }}', 'reservation')" class="text-amber-600 hover:text-amber-800 transition" title="Send Reservation Email">
+ <i class="fas fa-envelope"></i>
+ </button>
  </div>
  </td>
  </tr>
  @empty
  <tr>
- <td colspan="11" class="px-6 py-8 text-center text-gray-500">
+ <td colspan="12" class="px-6 py-8 text-center text-gray-500">
  <i class="fas fa-inbox text-4xl mb-2 text-gray-300"></i>
  <div>No bookings found</div>
  </td>
@@ -404,5 +417,107 @@ document.getElementById('dateFilter').addEventListener('change', function(e) {
  document.querySelector('input[name="booking_to"]').value = endDate;
  }
 });
+
+// Email Modal Logic
+let currentEmailBookingId = null;
+let currentEmailType = null;
+
+function openEmailModal(bookingId, customerEmail, type) {
+    currentEmailBookingId = bookingId;
+    currentEmailType = type;
+    const modal = document.getElementById('emailModal');
+    const emailInput = document.getElementById('emailRecipient');
+    const title = document.getElementById('emailModalTitle');
+    const icon = document.getElementById('emailModalIcon');
+
+    emailInput.value = customerEmail || '';
+
+    if (type === 'invoice') {
+        title.textContent = 'Send Invoice Email';
+        icon.className = 'fas fa-file-invoice text-emerald-600 text-2xl';
+    } else {
+        title.textContent = 'Send Reservation Email';
+        icon.className = 'fas fa-envelope text-amber-600 text-2xl';
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeEmailModal() {
+    const modal = document.getElementById('emailModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentEmailBookingId = null;
+    currentEmailType = null;
+}
+
+async function sendEmail() {
+    const email = document.getElementById('emailRecipient').value;
+    if (!email) {
+        alert('Please enter an email address');
+        return;
+    }
+
+    const btn = document.getElementById('sendEmailBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    btn.disabled = true;
+
+    const route = currentEmailType === 'invoice'
+        ? `/admin/bookings/${currentEmailBookingId}/send-invoice-email`
+        : `/admin/bookings/${currentEmailBookingId}/send-reservation-email`;
+
+    try {
+        const response = await fetch(route, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ email: email }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            closeEmailModal();
+        } else {
+            alert(data.message || 'Failed to send email');
+        }
+    } catch (e) {
+        alert('Error sending email: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
 </script>
+
+<!-- Email Send Modal -->
+<div id="emailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <i id="emailModalIcon" class="fas fa-envelope text-amber-600 text-2xl"></i>
+                <h3 id="emailModalTitle" class="text-lg font-bold text-gray-800">Send Email</h3>
+            </div>
+            <button onclick="closeEmailModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Recipient Email</label>
+            <input type="email" id="emailRecipient" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="customer@example.com">
+            <p class="text-xs text-gray-500 mt-1">You can edit the email address before sending.</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="closeEmailModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">Cancel</button>
+            <button id="sendEmailBtn" onclick="sendEmail()" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                <i class="fas fa-paper-plane mr-2"></i>Send
+            </button>
+        </div>
+    </div>
+</div>
 @endsection

@@ -9,6 +9,8 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Booking;
 use App\Models\ResortInfo;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Mail\Mailables\Attachment;
 
 class CheckoutInvoiceMail extends Mailable
 {
@@ -51,7 +53,19 @@ class CheckoutInvoiceMail extends Mailable
      */
     public function attachments(): array
     {
-        // PDF attachments disabled - DomPDF not available on production
-        return [];
+        try {
+            $pdf = Pdf::loadView('admin.bookings.invoice-template', [
+                'booking' => $this->booking,
+                'resortInfo' => $this->resortInfo,
+            ]);
+
+            return [
+                Attachment::fromData(fn () => $pdf->output(), 'invoice-' . str_pad($this->booking->id, 5, '0', STR_PAD_LEFT) . '.pdf')
+                    ->withMime('application/pdf'),
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate PDF attachment for checkout invoice: ' . $e->getMessage());
+            return [];
+        }
     }
 }

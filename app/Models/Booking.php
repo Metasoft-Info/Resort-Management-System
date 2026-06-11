@@ -17,7 +17,7 @@ class Booking extends Model
         'discount_status', 'discount_requested_by', 'discount_approved_by', 'discount_approved_at',
         'food_package_id', 'food_package_guests', 'food_package_cost', 'selected_addons', 'addons_cost', 
         'extras', 'additional_guests', 'notes', 'ac_preference', 'vat_enabled', 'vat_amount', 
-        'bkash_number', 'bank_name', 'created_by_id',
+        'bkash_number', 'bank_name', 'created_by_id', 'updated_by_id',
     ];
 
     /**
@@ -173,6 +173,11 @@ class Booking extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by_id');
     }
 
     public function discountRequestedBy()

@@ -17,9 +17,14 @@
                     <p class="text-emerald-100 text-sm">Total {{ $rooms->total() }} rooms in the system</p>
                 </div>
             </div>
-            <a href="{{ route('admin.rooms.create') }}" class="inline-flex items-center px-5 py-2.5 bg-white text-emerald-700 rounded-xl hover:bg-emerald-50 transition font-semibold shadow-lg">
-                <i class="fas fa-plus mr-2"></i>Add New Room
-            </a>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.rooms.print') }}" target="_blank" class="inline-flex items-center px-5 py-2.5 bg-white/20 text-white rounded-xl hover:bg-white/30 transition font-semibold shadow-lg border border-white/30">
+                    <i class="fas fa-print mr-2"></i>Print Rooms
+                </a>
+                <a href="{{ route('admin.rooms.create') }}" class="inline-flex items-center px-5 py-2.5 bg-white text-emerald-700 rounded-xl hover:bg-emerald-50 transition font-semibold shadow-lg">
+                    <i class="fas fa-plus mr-2"></i>Add New Room
+                </a>
+            </div>
         </div>
     </div>
 

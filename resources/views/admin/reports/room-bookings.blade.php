@@ -122,7 +122,8 @@
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">নাম</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">কোম্পানী</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">রুম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ভাড়া</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">রুম ভাড়া</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট ভাড়া</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ছাড়</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অতিরিক্ত</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট</th>
@@ -139,10 +140,16 @@
                 <tbody>
                     @php $totalNights = 0; $sumGrandTotal = 0; $sumDeposited = 0; @endphp
                     @forelse($bookings as $booking)
-                    @php 
+                    @php
                         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
                         $totalNights += $nights;
                         $roomRent = $booking->getCalculatedTotal();
+                        $baseRentPerNight = 0;
+                        if ($booking->bookingRooms->count() > 0) {
+                            $baseRentPerNight = $booking->bookingRooms->first()->price_per_night ?? 0;
+                        } elseif ($booking->room) {
+                            $baseRentPerNight = $booking->room->room_type->base_price ?? $booking->room->price_per_night ?? 0;
+                        }
                         $grandTotal = $booking->getGrandTotal();
                         $sumGrandTotal += $grandTotal;
                         $totalDeposited = $booking->getTotalDeposited();
@@ -155,6 +162,7 @@
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-gray-600 whitespace-nowrap">{{ $baseRentPerNight > 0 ? number_format($baseRentPerNight, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
@@ -187,7 +195,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="17" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="18" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
@@ -199,6 +207,7 @@
                     @endphp
                     <tr class="bg-gray-200 font-bold">
                         <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">মোট:</td>
+                        <td class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-blue-600 whitespace-nowrap">{{ number_format($sumRoomRent, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-orange-600 whitespace-nowrap">{{ number_format($sumDiscount, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-purple-600 whitespace-nowrap">{{ number_format($sumExtra, 0) }}</td>

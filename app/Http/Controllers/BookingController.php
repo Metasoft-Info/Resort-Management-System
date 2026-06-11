@@ -128,6 +128,7 @@ class BookingController extends Controller
         ]);
 
         $validated['created_by_id'] = Auth::id();
+        $validated['updated_by_id'] = Auth::id();
         $validated['remaining_payment'] = $validated['total_amount'] - $validated['advance_payment'];
         $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
 
@@ -182,7 +183,7 @@ class BookingController extends Controller
         ]);
 
         $oldStatus = $booking->status;
-        $booking->update(['status' => $validated['status']]);
+        $booking->update(['status' => $validated['status'], 'updated_by_id' => Auth::id()]);
 
         // Free up room(s) when checking out
         if ($validated['status'] === 'checked_out' && $oldStatus !== 'checked_out') {
@@ -253,6 +254,7 @@ class BookingController extends Controller
             'check_out_time' => 'nullable|date_format:H:i',
         ]);
 
+        $validated['updated_by_id'] = Auth::id();
         $booking->update($validated);
         return response()->json(['message' => 'Time updated successfully']);
     }
@@ -356,6 +358,7 @@ class BookingController extends Controller
         $updateData['advance_payment'] = $newAdvancePayment;
         $updateData['remaining_payment'] = $newRemainingPayment;
         $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : ($newAdvancePayment > 0 || $paymentDiscountAmount > 0 ? 'partial' : 'pending');
+        $updateData['updated_by_id'] = Auth::id();
         
         $booking->update($updateData);
 
@@ -420,6 +423,7 @@ class BookingController extends Controller
             'extra_charges_description' => $newDescription,
             'extra_charges_data' => $existingData,
             'remaining_payment' => $newRemainingPayment,
+            'updated_by_id' => Auth::id(),
         ]);
 
         return response()->json(['message' => 'Extra charges added successfully']);
@@ -608,6 +612,7 @@ class BookingController extends Controller
             }
 
             $filteredValidated = array_intersect_key($validated, array_flip($bookingColumns));
+            $filteredValidated['updated_by_id'] = Auth::id();
 
             if (!array_key_exists('room_id', $filteredValidated)) {
                 $filteredValidated['room_id'] = $booking->room_id;
@@ -642,6 +647,7 @@ class BookingController extends Controller
                 ];
 
                 $minimalFiltered = array_intersect_key($minimal, array_flip($bookingColumnsFallback));
+                $minimalFiltered['updated_by_id'] = Auth::id();
 
                 if (!empty($minimalFiltered)) {
                     $booking->update($minimalFiltered);
@@ -667,5 +673,51 @@ class BookingController extends Controller
     {
         $booking->delete();
         return redirect()->route('admin.bookings.index')->with('success', 'Booking deleted successfully');
+    }
+
+    public function sendInvoiceEmail(Request $request, Booking $booking)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = $request->input('email');
+
+        try {
+            Mail::to($email)->send(new CheckoutInvoiceMail($booking));
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice email sent successfully to ' . $email,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send invoice email manually: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function sendReservationEmail(Request $request, Booking $booking)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = $request->input('email');
+
+        try {
+            Mail::to($email)->send(new BookingConfirmationMail($booking));
+            return response()->json([
+                'success' => true,
+                'message' => 'Reservation email sent successfully to ' . $email,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send reservation email manually: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send email: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
