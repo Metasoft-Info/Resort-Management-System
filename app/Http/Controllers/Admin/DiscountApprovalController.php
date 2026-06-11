@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\ConventionBooking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class DiscountApprovalController extends Controller
@@ -20,12 +21,36 @@ class DiscountApprovalController extends Controller
         $dateTo = $request->date_to ? Carbon::parse($request->date_to)->endOfDay() : null;
         $statusFilter = $request->status;
 
+        // Defensive: if discount columns don't exist yet, return empty safe view
+        $hasRoomDiscountCols = Schema::hasColumn('bookings', 'discount_status')
+            && Schema::hasColumn('bookings', 'discount_requested_by')
+            && Schema::hasColumn('bookings', 'discount_approved_by');
+        $hasConvDiscountCols = Schema::hasColumn('convention_bookings', 'discount_status')
+            && Schema::hasColumn('convention_bookings', 'discount_requested_by')
+            && Schema::hasColumn('convention_bookings', 'discount_approved_by');
+
+        if (!$hasRoomDiscountCols && !$hasConvDiscountCols) {
+            return view('admin.discount-approval.index', [
+                'allBookings' => collect([]),
+                'pendingCount' => 0,
+                'approvedCount' => 0,
+                'rejectedCount' => 0,
+                'pendingAmount' => 0,
+                'approvedAmount' => 0,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'statusFilter' => $statusFilter,
+                'typeFilter' => $typeFilter,
+                'needsMigration' => true,
+            ]);
+        }
+
         $allBookings = collect([]);
         $roomBookings = collect([]);
         $conventionBookings = collect([]);
 
         // Room bookings with discounts
-        if ($typeFilter === 'all' || $typeFilter === 'room') {
+        if ($hasRoomDiscountCols && ($typeFilter === 'all' || $typeFilter === 'room')) {
             $roomQuery = Booking::with(['createdBy', 'discountRequestedBy', 'discountApprovedBy', 'room', 'bookingRooms.room', 'payments'])
                 ->where(function($q) {
                     $q->whereNotNull('discount_status')
@@ -46,7 +71,7 @@ class DiscountApprovalController extends Controller
         }
 
         // Convention bookings with discounts
-        if ($typeFilter === 'all' || $typeFilter === 'convention') {
+        if ($hasConvDiscountCols && ($typeFilter === 'all' || $typeFilter === 'convention')) {
             $conventionQuery = ConventionBooking::with(['createdBy', 'discountRequestedBy', 'discountApprovedBy', 'conventionHall', 'payments'])
                 ->where(function($q) {
                     $q->whereNotNull('discount_status')
@@ -65,7 +90,7 @@ class DiscountApprovalController extends Controller
         $allBookings = $roomBookings->concat($conventionBookings)->sortByDesc('created_at');
 
         // Stats (always all types)
-        $allRoom = Booking::where(function($q) {
+        $allRoom = $hasRoomDiscountCols ? Booking::where(function($q) {
             $q->whereNotNull('discount_status')
               ->orWhere(function($sq) {
                   $sq->where(function($sqq) {
@@ -75,11 +100,13 @@ class DiscountApprovalController extends Controller
                           });
                   })->whereNull('discount_status');
               });
-        })->get();
-        $allConv = ConventionBooking::where(function($q) {
+        })->get() : collect([]);
+
+        $allConv = $hasConvDiscountCols ? ConventionBooking::where(function($q) {
             $q->whereNotNull('discount_status')
               ->orWhere(function($sq) { $sq->where('discount', '>', 0)->whereNull('discount_status'); });
-        })->get();
+        })->get() : collect([]);
+
         $allForStats = $allRoom->concat($allConv);
 
         $pendingCount = $allForStats->where('discount_status', 'pending')->count();
@@ -134,6 +161,11 @@ class DiscountApprovalController extends Controller
             return redirect()->back()->with('error', 'You do not have permission to approve discounts.');
         }
 
+        $table = $type === 'room' ? 'bookings' : 'convention_bookings';
+        if (!Schema::hasColumn($table, 'discount_status')) {
+            return redirect()->back()->with('error', 'Database migration required. Please run php artisan migrate.');
+        }
+
         if ($type === 'room') {
             $booking = Booking::findOrFail($id);
         } else {
@@ -154,6 +186,11 @@ class DiscountApprovalController extends Controller
         $user = Auth::user();
         if (!$user->canApproveDiscounts()) {
             return redirect()->back()->with('error', 'You do not have permission to reject discounts.');
+        }
+
+        $table = $type === 'room' ? 'bookings' : 'convention_bookings';
+        if (!Schema::hasColumn($table, 'discount_status')) {
+            return redirect()->back()->with('error', 'Database migration required. Please run php artisan migrate.');
         }
 
         if ($type === 'room') {

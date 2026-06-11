@@ -20,6 +20,15 @@
         </div>
     </div>
 
+    @if($needsMigration ?? false)
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
+        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-2"></i>
+        <h3 class="text-red-800 font-bold text-lg">Database Migration Required</h3>
+        <p class="text-red-600 text-sm mt-1">The discount approval columns are missing. Please run the following command on your server:</p>
+        <code class="block bg-red-100 text-red-800 rounded-lg px-4 py-2 mt-3 font-mono text-sm">php artisan migrate</code>
+    </div>
+    @endif
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
