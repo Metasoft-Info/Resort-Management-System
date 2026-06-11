@@ -221,7 +221,7 @@ class SettingsController extends Controller {
         }
 
         $resortInfo->save();
-        return back()->with('success', 'লোগো সফলভাবে আপডেট হয়েছে!');
+        return back()->with('success', 'Logo updated successfully!');
     }
 
     public function deleteLogo(Request $request, $type) {
@@ -235,7 +235,7 @@ class SettingsController extends Controller {
             }
         }
 
-        return back()->with('success', 'লোগো মুছে ফেলা হয়েছে!');
+        return back()->with('success', 'Logo deleted successfully!');
     }
 
     // Admin Menu Settings
@@ -248,12 +248,12 @@ class SettingsController extends Controller {
         // System menus are always active
         AdminMenuSetting::where('is_system', true)->update(['is_active' => true]);
 
-        return back()->with('success', 'মেনু সেটিংস আপডেট হয়েছে!');
+        return back()->with('success', 'Menu settings updated!');
     }
 
     public function seedMenus() {
         AdminMenuSetting::seedDefaultMenus();
-        return back()->with('success', 'ডিফল্ট মেনু লোড হয়েছে!');
+        return back()->with('success', 'Default menu loaded!');
     }
 
     // Reset Room Bookings Only

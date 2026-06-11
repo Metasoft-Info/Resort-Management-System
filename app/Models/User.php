@@ -149,6 +149,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is owner
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /**
+     * Check if user can approve discounts
+     */
+    public function canApproveDiscounts(): bool
+    {
+        return in_array($this->role, ['owner', 'superadmin', 'admin']);
+    }
+
+    /**
      * Check if user has permission to access a menu
      */
     public function hasMenuPermission(string $menuKey): bool

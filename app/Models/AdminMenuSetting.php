@@ -53,8 +53,8 @@ class AdminMenuSetting extends Model
             ->orderBy('order')
             ->get();
 
-        // Superadmin, admin, and owner see all active menus
-        if (in_array($user->role, ['superadmin', 'admin', 'owner'])) {
+        // Superadmin and admin see all active menus
+        if (in_array($user->role, ['superadmin', 'admin'])) {
             return $activeMenus->groupBy('group_name');
         }
 
@@ -80,7 +80,9 @@ class AdminMenuSetting extends Model
             
             ['menu_key' => 'search_book_room', 'menu_label' => 'Search & Book', 'menu_icon' => 'fas fa-search-plus', 'route_name' => 'admin.premium-booking.index', 'route_pattern' => 'admin.premium-booking.*', 'group_name' => 'Room Bookings', 'order' => 20, 'is_system' => false],
             ['menu_key' => 'all_bookings', 'menu_label' => 'All Bookings', 'menu_icon' => 'fas fa-list', 'route_name' => 'admin.bookings.index', 'route_pattern' => 'admin.bookings.*', 'group_name' => 'Room Bookings', 'order' => 21, 'is_system' => false],
-            
+            ['menu_key' => 'customers', 'menu_label' => 'Resort Customers', 'menu_icon' => 'fas fa-users', 'route_name' => 'admin.customers.index', 'route_pattern' => 'admin.customers.*', 'group_name' => 'Customers', 'order' => 22, 'is_system' => false],
+            ['menu_key' => 'convention_customers', 'menu_label' => 'Convention Customers', 'menu_icon' => 'fas fa-users', 'route_name' => 'admin.customers.convention', 'route_pattern' => 'admin.customers.convention', 'group_name' => 'Customers', 'order' => 23, 'is_system' => false],
+
             ['menu_key' => 'search_book_hall', 'menu_label' => 'Search & Book Hall', 'menu_icon' => 'fas fa-search-plus', 'route_name' => 'admin.premium-convention.index', 'route_pattern' => 'admin.premium-convention.*', 'group_name' => 'Convention Halls', 'order' => 30, 'is_system' => false],
             ['menu_key' => 'all_hall_bookings', 'menu_label' => 'All Hall Bookings', 'menu_icon' => 'fas fa-list', 'route_name' => 'admin.convention-bookings.index', 'route_pattern' => 'admin.convention-bookings.*', 'group_name' => 'Convention Halls', 'order' => 31, 'is_system' => false],
             ['menu_key' => 'manage_halls', 'menu_label' => 'Manage Halls', 'menu_icon' => 'fas fa-building', 'route_name' => 'admin.convention-halls.index', 'route_pattern' => 'admin.convention-halls.*', 'group_name' => 'Convention Halls', 'order' => 32, 'is_system' => false],
@@ -96,6 +98,8 @@ class AdminMenuSetting extends Model
             ['menu_key' => 'unpaid_reports', 'menu_label' => 'Unpaid Checked-in Report', 'menu_icon' => 'fas fa-exclamation-triangle', 'route_name' => 'admin.reports.unpaid-checked-in', 'route_pattern' => 'admin.reports.unpaid-checked-in', 'group_name' => 'Room Reports', 'order' => 62, 'is_system' => false],
             ['menu_key' => 'combined_reports', 'menu_label' => 'Combined Report', 'menu_icon' => 'fas fa-layer-group', 'route_name' => 'admin.reports.combined', 'route_pattern' => 'admin.reports.combined', 'group_name' => 'Room Reports', 'order' => 63, 'is_system' => false],
             ['menu_key' => 'convention_reports', 'menu_label' => 'Convention Bookings Report', 'menu_icon' => 'fas fa-chart-bar', 'route_name' => 'admin.reports.convention-bookings', 'route_pattern' => 'admin.reports.convention-bookings', 'group_name' => 'Convention Reports', 'order' => 64, 'is_system' => false],
+
+            ['menu_key' => 'discount_approval', 'menu_label' => 'Approval Discount', 'menu_icon' => 'fas fa-check-double', 'route_name' => 'admin.discount-approval.index', 'route_pattern' => 'admin.discount-approval.*', 'group_name' => 'Owner', 'order' => 68, 'is_system' => false],
             ['menu_key' => 'police_station_report', 'menu_label' => 'Report for Police Station', 'menu_icon' => 'fas fa-shield-alt', 'route_name' => 'admin.reports.police-station', 'route_pattern' => 'admin.reports.police-station', 'group_name' => 'Room Reports', 'order' => 65, 'is_system' => false],
             ['menu_key' => 'guest_extra_charges_report', 'menu_label' => 'Guest Extra Charge Report', 'menu_icon' => 'fas fa-tags', 'route_name' => 'admin.reports.guest-extra-charges', 'route_pattern' => 'admin.reports.guest-extra-charges', 'group_name' => 'Room Reports', 'order' => 66, 'is_system' => false],
             

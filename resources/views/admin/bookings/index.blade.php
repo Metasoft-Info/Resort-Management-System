@@ -7,7 +7,7 @@
 <!-- Filters Section -->
 <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
  <form method="GET" action="{{ route('admin.bookings.index') }}" class="space-y-4">
- <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+ <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
  <!-- Search -->
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Search</label>
@@ -43,6 +43,18 @@
  <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Partial</option>
  <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
  <option value="refunded" {{ request('payment_status') == 'refunded' ? 'selected' : '' }}>Refunded</option>
+ </select>
+ </div>
+
+ <!-- Discount Approval Status Filter -->
+ <div>
+ <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Discount Status</label>
+ <select name="discount_status" class="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+ <option value="all" {{ request('discount_status') == 'all' ? 'selected' : '' }}>All</option>
+ <option value="has_discount" {{ request('discount_status') == 'has_discount' ? 'selected' : '' }}>Has Discount</option>
+ <option value="pending" {{ request('discount_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+ <option value="approved" {{ request('discount_status') == 'approved' ? 'selected' : '' }}>Approved</option>
+ <option value="rejected" {{ request('discount_status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
  </select>
  </div>
 
@@ -154,7 +166,33 @@
  N/A
  @endif
  </div>
- <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+ <div class="flex items-center justify-between mt-2">
+ <div class="text-[10px] text-gray-500">
+  @if($booking->discount_reference)
+   Ref: {{ Str::limit($booking->discount_reference, 15) }}
+  @elseif($booking->reference_name)
+   Ref: {{ Str::limit($booking->reference_name, 15) }}
+  @endif
+ </div>
+ <div class="text-[10px] text-gray-500">
+  @php
+   $mCreatorName = $booking->createdBy?->name ?? 'System';
+  @endphp
+  By: {{ Str::limit($mCreatorName, 12) }}
+ </div>
+ </div>
+ @if(($booking->discount_amount ?? 0) > 0 || ($booking->discount_type === 'percentage' && ($booking->discount_percentage ?? 0) > 0))
+ <div class="mt-1">
+  @if($booking->discount_status === 'approved')
+   <span class="text-[10px] font-bold text-emerald-600">Approved{{ $booking->discountApprovedBy ? ' by ' . Str::limit($booking->discountApprovedBy->name, 10) : '' }}</span>
+  @elseif($booking->discount_status === 'pending')
+   <span class="text-[10px] font-bold text-amber-600">Pending{{ $booking->discountRequestedBy ? ' by ' . Str::limit($booking->discountRequestedBy->name, 10) : '' }}</span>
+  @elseif($booking->discount_status === 'rejected')
+   <span class="text-[10px] font-bold text-red-600">Rejected{{ $booking->discountApprovedBy ? ' by ' . Str::limit($booking->discountApprovedBy->name, 10) : '' }}</span>
+  @endif
+ </div>
+ @endif
+ <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
  <div class="text-xs text-gray-500">
  {{ $booking->check_in_date->format('d M') }} - {{ $booking->check_out_date->format('d M Y') }}
  </div>
@@ -192,6 +230,7 @@
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Reference</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Created By</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Status</th>
+ <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Discount Status</th>
  <th class="px-3 lg:px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Action</th>
  </tr>
  </thead>
@@ -241,7 +280,9 @@
  @endif
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
- @if($booking->reference_name)
+ @if($booking->discount_reference)
+ <div class="font-medium text-gray-800 text-sm truncate max-w-[100px]" title="{{ $booking->discount_reference }}">{{ $booking->discount_reference }}</div>
+ @elseif($booking->reference_name)
  <div class="font-medium text-gray-800 text-sm truncate max-w-[100px]">{{ $booking->reference_name }}</div>
  @if($booking->reference_phone)
  <div class="text-xs text-gray-500">{{ $booking->reference_phone }}</div>
@@ -251,14 +292,13 @@
  @endif
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
- @if($booking->createdBy)
- <div class="font-medium text-gray-800 text-sm truncate max-w-[80px]">{{ $booking->createdBy->name }}</div>
- @else
- <span class="text-gray-400">-</span>
- @endif
+ @php
+ $creatorName = $booking->createdBy?->name ?? ($booking->created_by_id ? 'User #' . $booking->created_by_id : 'System');
+ @endphp
+ <div class="font-medium text-gray-800 text-sm truncate max-w-[80px]" title="{{ $creatorName }}">{{ $creatorName }}</div>
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
- <span class="px-2 py-1 text-xs font-semibold rounded-full 
+ <span class="px-2 py-1 text-xs font-semibold rounded-full
  @if($booking->status == 'confirmed') bg-blue-100 text-blue-800
  @elseif($booking->status == 'pending') bg-yellow-100 text-yellow-800
  @elseif($booking->status == 'checked_in') bg-green-100 text-green-800
@@ -274,6 +314,30 @@
  </span>
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
+ @if(($booking->discount_amount ?? 0) > 0 || ($booking->discount_type === 'percentage' && ($booking->discount_percentage ?? 0) > 0))
+ @if($booking->discount_status === 'approved')
+ <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">Approved</span>
+ @if($booking->discountApprovedBy)
+ <div class="text-[10px] text-emerald-600 mt-0.5">by {{ $booking->discountApprovedBy->name }}</div>
+ @endif
+ @elseif($booking->discount_status === 'pending')
+ <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Pending</span>
+ @if($booking->discountRequestedBy)
+ <div class="text-[10px] text-amber-600 mt-0.5">by {{ $booking->discountRequestedBy->name }}</div>
+ @endif
+ @elseif($booking->discount_status === 'rejected')
+ <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">Rejected</span>
+ @if($booking->discountApprovedBy)
+ <div class="text-[10px] text-red-600 mt-0.5">by {{ $booking->discountApprovedBy->name }}</div>
+ @endif
+ @else
+ <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">-</span>
+ @endif
+ @else
+ <span class="text-gray-400 text-xs">-</span>
+ @endif
+ </td>
+ <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
  <div class="flex gap-2">
  <a href="{{ route('admin.bookings.show', $booking) }}" class="text-indigo-600 hover:text-indigo-800 transition" title="View">
  <i class="fas fa-eye"></i>
@@ -286,7 +350,7 @@
  </tr>
  @empty
  <tr>
- <td colspan="10" class="px-6 py-8 text-center text-gray-500">
+ <td colspan="11" class="px-6 py-8 text-center text-gray-500">
  <i class="fas fa-inbox text-4xl mb-2 text-gray-300"></i>
  <div>No bookings found</div>
  </td>

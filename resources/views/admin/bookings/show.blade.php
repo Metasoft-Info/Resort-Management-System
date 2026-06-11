@@ -84,6 +84,18 @@
  <i class="fas fa-user"></i>
  <span>Customer Profile</span>
  </a>
+ @if($booking->status === 'confirmed')
+ <button onclick="updateStatus({{ $booking->id }}, 'checked_in')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
+ <i class="fas fa-sign-in-alt"></i>
+ <span>Check In</span>
+ </button>
+ @endif
+ @if($booking->status === 'checked_in')
+ <button onclick="updateStatus({{ $booking->id }}, 'checked_out')" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">
+ <i class="fas fa-sign-out-alt"></i>
+ <span>Check Out</span>
+ </button>
+ @endif
  <div class="relative">
  <select onchange="updateStatus({{ $booking->id }}, this.value)" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition cursor-pointer appearance-none pr-10">
  <option value="">Change Status</option>
@@ -1325,17 +1337,26 @@ function closeVatModal() {
 // Update status
 async function updateStatus(bookingId, status) {
  if (!status) return;
- 
+
  const statusLabels = {
- 'pending': 'Pending',
- 'confirmed': 'Confirmed',
- 'checked_in': 'Check-In',
- 'checked_out': 'Check-Out',
- 'cancelled': 'Cancelled'
+  'pending': 'Pending',
+  'confirmed': 'Confirmed',
+  'checked_in': 'Check-In',
+  'checked_out': 'Check-Out',
+  'cancelled': 'Cancelled'
  };
  const statusLabel = statusLabels[status] || status.replace('_', ' ').toUpperCase();
- 
- showConfirmModal(`Do you want to change status to "${statusLabel}" change?`, async function() {
+
+ let confirmMsg = `Do you want to change status to "${statusLabel}"?`;
+ if (status === 'checked_in') {
+  confirmMsg = 'Check in this guest now? The room will be marked as occupied.';
+ } else if (status === 'checked_out') {
+  confirmMsg = 'Check out this guest now? The room will be freed up.';
+ } else if (status === 'cancelled') {
+  confirmMsg = 'Cancel this booking? This action cannot be undone.';
+ }
+
+ showConfirmModal(confirmMsg, async function() {
  try {
  const response = await fetch(`/admin/bookings/${bookingId}/update-status`, {
  method: 'POST',
@@ -1347,8 +1368,8 @@ async function updateStatus(bookingId, status) {
  });
 
  if (response.ok) {
- showGlobalModal('success', 'Status updated!');
- setTimeout(() => location.reload(), 1500);
+ showGlobalModal('success', `Status updated to ${statusLabel}!`);
+ setTimeout(() => location.reload(), 1200);
  } else {
  showGlobalModal('error', 'Failed to update status!');
  }

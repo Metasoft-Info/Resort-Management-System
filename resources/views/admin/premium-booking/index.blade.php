@@ -391,6 +391,7 @@
  </div>
  <div class="col-span-2 lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-3 sm:p-4">
  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+ <input type="hidden" id="base_amount" value="0">
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-primary-700 mb-1 sm:mb-2">Total *</label>
  <input type="number" id="total_amount" step="0.01" required readonly
@@ -1053,65 +1054,67 @@ function updateExtraChargesSummary() {
 // Calculations
 function recalculateAmount() {
  if (selectedRooms.length === 0) return;
- 
+
  const discountType = document.getElementById('discount_type').value;
  document.getElementById('discount_percentage_div').classList.toggle('hidden', discountType !== 'percentage');
  document.getElementById('discount_amount_div').classList.toggle('hidden', discountType !== 'flat');
- 
- // Calculate base amount for all selected rooms
+
+ // Calculate base amount for all selected rooms (pure room rent)
  const baseAmount = selectedRooms.reduce((sum, room) => sum + (room.nights * room.pricePerNight), 0);
  document.getElementById('baseAmount').value = baseAmount.toFixed(2);
- 
- // total_amount stores only the base room rent (VAT is calculated dynamically in display)
- document.getElementById('total_amount').value = baseAmount.toFixed(2);
- 
- // VAT (stored separately, calculated dynamically in display)
+ document.getElementById('base_amount').value = baseAmount.toFixed(2);
+
+ // VAT
  const vatEnabled = document.getElementById('vat_enabled').checked;
  const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
  document.getElementById('vat_amount').value = vatAmount.toFixed(2);
- 
- // Calculate display grand total for UI only
- let displayTotal = baseAmount;
- if (vatEnabled) displayTotal += vatAmount;
- 
+
+ // Calculate grand total (base + vat - discount + extra)
+ let grandTotal = baseAmount + vatAmount;
+
  // Discount
+ let discountAmount = 0;
  if (discountType === 'percentage') {
- const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
- const discountAmount = (displayTotal * discountPercentage) / 100;
- displayTotal -= discountAmount;
+  const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+  discountAmount = (grandTotal * discountPercentage) / 100;
+  grandTotal -= discountAmount;
  } else if (discountType === 'flat') {
- const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
- displayTotal -= discountAmount;
+  discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+  grandTotal -= discountAmount;
  }
- 
+
  // Extra charges
  const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
- displayTotal += extraCharges;
- 
+ grandTotal += extraCharges;
+
+ // total_amount shows the GRAND TOTAL to user
+ document.getElementById('total_amount').value = grandTotal.toFixed(2);
+
  calculateRemaining();
 }
 
 function calculateRemaining() {
- const baseAmount = parseFloat(document.getElementById('total_amount').value) || 0;
+ // Read base room rent from hidden base_amount field
+ const baseAmount = parseFloat(document.getElementById('base_amount').value) || 0;
  const vatEnabled = document.getElementById('vat_enabled').checked;
  const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
- 
+
  let grandTotal = baseAmount + vatAmount;
- 
+
  // Apply discount
  const discountType = document.getElementById('discount_type').value;
  if (discountType === 'percentage') {
- const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
- grandTotal -= (grandTotal * discountPercentage) / 100;
+  const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+  grandTotal -= (grandTotal * discountPercentage) / 100;
  } else if (discountType === 'flat') {
- const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
- grandTotal -= discountAmount;
+  const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+  grandTotal -= discountAmount;
  }
- 
+
  // Add extra charges
  const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
  grandTotal += extraCharges;
- 
+
  const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
  document.getElementById('remaining_payment').value = (grandTotal - advance).toFixed(2);
 }
@@ -1276,8 +1279,8 @@ async function submitBooking(e) {
  formData.append('status', document.getElementById('status').value);
  formData.append('notes', document.getElementById('notes').value);
  
- // Payment - full amounts for single booking
- formData.append('total_amount', document.getElementById('total_amount').value);
+ // Payment - send base_amount as total_amount to backend (backend expects base room rent)
+ formData.append('total_amount', document.getElementById('base_amount').value);
  formData.append('vat_enabled', document.getElementById('vat_enabled').checked ? '1' : '0');
  formData.append('vat_amount', document.getElementById('vat_amount').value);
  formData.append('discount_type', document.getElementById('discount_type').value);
@@ -1324,14 +1327,22 @@ async function submitBooking(e) {
  showGlobalModal('success', `Booking created successfully with ${roomCount} room${roomCount > 1 ? 's' : ''}!`);
  setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
  } else {
- showGlobalModal('error', data.message || 'Booking failed!');
+ // Show detailed error including validation errors
+ let errorMsg = data.message || 'Booking failed!';
+ if (data.errors && typeof data.errors === 'object') {
+  const errList = Object.values(data.errors).flat();
+  if (errList.length > 0) {
+   errorMsg += ':\n• ' + errList.join('\n• ');
+  }
+ }
+ showGlobalModal('error', errorMsg);
  submitBtn.innerHTML = originalText;
  submitBtn.disabled = false;
  isSubmitting = false;
  }
  } catch (error) {
  console.error('Booking error:', error);
- showGlobalModal('error', 'Error creating booking');
+ showGlobalModal('error', 'Booking failed. Please check console for details.');
  submitBtn.innerHTML = originalText;
  submitBtn.disabled = false;
  isSubmitting = false;

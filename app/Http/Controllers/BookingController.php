@@ -19,7 +19,7 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::with('room.roomType', 'createdBy');
+        $query = Booking::with('room.roomType', 'createdBy', 'discountApprovedBy', 'discountRequestedBy');
         
         // Status filter - hide checked_out by default
         if ($request->filled('status')) {
@@ -35,6 +35,21 @@ class BookingController extends Controller
         // Payment status filter
         if ($request->filled('payment_status') && $request->payment_status !== 'all') {
             $query->where('payment_status', $request->payment_status);
+        }
+
+        // Discount approval status filter
+        if ($request->filled('discount_status') && $request->discount_status !== 'all') {
+            if ($request->discount_status === 'has_discount') {
+                $query->where(function($q) {
+                    $q->whereNotNull('discount_status')
+                      ->orWhere('discount_amount', '>', 0)
+                      ->orWhere(function($sq) {
+                          $sq->where('discount_type', 'percentage')->where('discount_percentage', '>', 0);
+                      });
+                });
+            } else {
+                $query->where('discount_status', $request->discount_status);
+            }
         }
         
         // Guest search functionality
@@ -321,6 +336,16 @@ class BookingController extends Controller
         if ($paymentDiscountAmount > 0) {
             $updateData['discount_amount'] = ($booking->discount_amount ?? 0) + $paymentDiscountAmount;
             $updateData['discount_type'] = 'flat';
+
+            // Set discount approval status
+            if (Auth::user()->canApproveDiscounts()) {
+                $updateData['discount_status'] = 'approved';
+                $updateData['discount_approved_by'] = Auth::id();
+                $updateData['discount_approved_at'] = now();
+            } else {
+                $updateData['discount_status'] = 'pending';
+                $updateData['discount_requested_by'] = Auth::id();
+            }
         }
 
         // Update booking payments

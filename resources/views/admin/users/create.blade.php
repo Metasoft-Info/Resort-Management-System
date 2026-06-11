@@ -26,6 +26,7 @@
  <select name="role" id="roleSelect" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" onchange="togglePermissions()">
  <option value="superadmin">Super Admin</option>
  <option value="admin" selected>Admin</option>
+ <option value="owner">Owner</option>
  <option value="manager">Manager</option>
  <option value="receptionist">Receptionist</option>
  <option value="staff">Staff</option>
@@ -110,6 +111,13 @@ function togglePermissions() {
  section.classList.add('hidden');
  } else {
  section.classList.remove('hidden');
+ }
+ // Pre-select Approval Discount for owner by default
+ if (role === 'owner') {
+  document.querySelectorAll('.permission-checkbox').forEach(cb => {
+   cb.checked = (cb.value === 'discount_approval');
+   updateCheckboxStyle(cb);
+  });
  }
 }
 

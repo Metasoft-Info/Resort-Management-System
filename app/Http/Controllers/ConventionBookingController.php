@@ -283,6 +283,19 @@ class ConventionBookingController extends Controller
         $validated['vat_percentage'] = $validated['vat_percentage'] ?? 0;
         $validated['created_by_id'] = auth()->id();
 
+        // Set discount approval status
+        $hasDiscount = ($validated['discount'] ?? 0) > 0;
+        if ($hasDiscount) {
+            if (\Illuminate\Support\Facades\Auth::user()->canApproveDiscounts()) {
+                $validated['discount_status'] = 'approved';
+                $validated['discount_approved_by'] = \Illuminate\Support\Facades\Auth::id();
+                $validated['discount_approved_at'] = now();
+            } else {
+                $validated['discount_status'] = 'pending';
+                $validated['discount_requested_by'] = \Illuminate\Support\Facades\Auth::id();
+            }
+        }
+
         $totals = $this->calculateTotals($validated);
         $validated = array_merge($validated, $totals);
         $validated['status'] = $request->status ?? 'confirmed';

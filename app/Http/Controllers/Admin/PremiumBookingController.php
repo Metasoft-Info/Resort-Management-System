@@ -277,6 +277,19 @@ class PremiumBookingController extends Controller
             $validated['food_package_cost'] = 0;
             $validated['addons_cost'] = 0;
 
+            // Set discount approval status
+            $hasDiscount = ($validated['discount_type'] !== 'none' && ($validated['discount_amount'] > 0 || $validated['discount_percentage'] > 0));
+            if ($hasDiscount) {
+                if (Auth::user()->canApproveDiscounts()) {
+                    $validated['discount_status'] = 'approved';
+                    $validated['discount_approved_by'] = Auth::id();
+                    $validated['discount_approved_at'] = now();
+                } else {
+                    $validated['discount_status'] = 'pending';
+                    $validated['discount_requested_by'] = Auth::id();
+                }
+            }
+
             // Set payment status
             $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 
                                            ($validated['advance_payment'] > 0 ? 'partial' : 'pending');

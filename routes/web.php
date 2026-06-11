@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\PremiumBookingController;
 use App\Http\Controllers\Admin\PremiumConventionController;
 use App\Http\Controllers\Admin\ExtraChargeCategoryController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DiscountApprovalController;
 use App\Http\Controllers\NotificationController;
 
 // Public Website Routes
@@ -134,6 +135,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Today's Summary
     Route::get('/todays-summary', [TodaysSummaryController::class, 'index'])->name('todays-summary');
     
+    // Discount Approval
+    Route::get('/discount-approval', [DiscountApprovalController::class, 'index'])->name('discount-approval.index');
+    Route::get('/discount-approval/{type}/{id}', [DiscountApprovalController::class, 'show'])->name('discount-approval.show');
+    Route::post('/discount-approval/{type}/{id}/approve', [DiscountApprovalController::class, 'approve'])->name('discount-approval.approve');
+    Route::post('/discount-approval/{type}/{id}/reject', [DiscountApprovalController::class, 'reject'])->name('discount-approval.reject');
+
     // Reports
     Route::get('/reports/room-bookings', [ReportController::class, 'roomBookings'])->name('reports.room-bookings');
     Route::get('/reports/room-bookings/export', [ReportController::class, 'exportRoomBookings'])->name('reports.room-bookings.export');
@@ -150,6 +157,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Customers
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/convention', [CustomerController::class, 'conventionCustomers'])->name('customers.convention');
     Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::get('/customers/{phone}', [CustomerController::class, 'show'])->name('customers.show');
 });

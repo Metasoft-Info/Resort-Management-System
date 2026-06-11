@@ -49,6 +49,45 @@ class CustomerController extends Controller
         return view('admin.customers.index', compact('customers', 'totalCustomers', 'totalRevenue', 'totalDue'));
     }
 
+    public function conventionCustomers(Request $request)
+    {
+        // Get unique convention customer phones first with aggregates
+        $query = ConventionBooking::select(
+            'customer_phone',
+            DB::raw('MAX(customer_name) as customer_name'),
+            DB::raw('MAX(customer_email) as customer_email'),
+            DB::raw('MAX(customer_address) as customer_address'),
+            DB::raw('MAX(customer_nid) as customer_nid'),
+            DB::raw('COUNT(*) as booking_count'),
+            DB::raw('SUM(total_amount) as total_spent'),
+            DB::raw('SUM(advance_payment) as total_paid'),
+            DB::raw('SUM(remaining_payment) as total_due'),
+            DB::raw('MAX(created_at) as last_booking')
+        );
+
+        // Apply search filter
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_phone', 'like', "%{$search}%")
+                  ->orWhere('customer_email', 'like', "%{$search}%");
+            });
+        }
+
+        $customers = $query->groupBy('customer_phone')
+            ->orderByDesc('last_booking')
+            ->paginate(20);
+
+        // Stats
+        $totalCustomers = ConventionBooking::distinct()->count('customer_phone');
+        $totalRevenue = ConventionBooking::sum('total_amount');
+        $totalDue = ConventionBooking::sum('remaining_payment');
+
+        $isConvention = true;
+        return view('admin.customers.index', compact('customers', 'totalCustomers', 'totalRevenue', 'totalDue', 'isConvention'));
+    }
+
     public function show($phone)
     {
         // Decode URL-encoded phone
