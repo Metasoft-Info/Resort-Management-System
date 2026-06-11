@@ -14,6 +14,7 @@ class Booking extends Model
         'total_amount', 'advance_payment', 'remaining_payment', 'payment_method', 'payment_status', 
         'status', 'extra_charges', 'extra_charges_description', 'extra_charges_data',
         'discount_amount', 'discount_percentage', 'discount_type', 'discount_reference',
+        'discount_status', 'discount_requested_by', 'discount_approved_by', 'discount_approved_at',
         'food_package_id', 'food_package_guests', 'food_package_cost', 'selected_addons', 'addons_cost', 
         'extras', 'additional_guests', 'notes', 'ac_preference', 'vat_enabled', 'vat_amount', 
         'bkash_number', 'bank_name', 'created_by_id',
@@ -172,6 +173,16 @@ class Booking extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function discountRequestedBy()
+    {
+        return $this->belongsTo(User::class, 'discount_requested_by');
+    }
+
+    public function discountApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'discount_approved_by');
     }
 
     public function additionalGuests()

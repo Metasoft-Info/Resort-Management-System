@@ -153,6 +153,12 @@
  'groups' => ['Rooms Management', 'Room Bookings', 'Services'],
  'color' => 'emerald'
  ],
+ 'customers_section' => [
+ 'title' => 'Customers',
+ 'icon' => 'fas fa-users',
+ 'groups' => ['Customers'],
+ 'color' => 'blue'
+ ],
  'convention' => [
  'title' => 'Convention Halls',
  'icon' => 'fas fa-building-columns',
@@ -176,6 +182,12 @@
  'icon' => 'fas fa-building-columns',
  'groups' => ['Convention Reports'],
  'color' => 'violet'
+ ],
+ 'owner' => [
+ 'title' => 'Owner',
+ 'icon' => 'fas fa-crown',
+ 'groups' => ['Owner'],
+ 'color' => 'amber'
  ],
  'system' => [
  'title' => 'System',
@@ -272,6 +284,11 @@
  </button>
  <h2 class="text-lg lg:text-xl font-bold text-gray-800 truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
  <div class="flex items-center space-x-3">
+ <!-- Bangladesh Time Clock -->
+ <div class="hidden md:flex items-center bg-gradient-to-r from-slate-50 to-gray-50 rounded-full px-3 py-1.5 shadow-sm border border-slate-200">
+ <i class="fas fa-clock text-indigo-500 mr-2 text-sm"></i>
+ <span id="bdClock" class="text-sm font-semibold text-gray-700 tabular-nums"></span>
+ </div>
  <div class="relative" id="notificationWrapper">
  <button onclick="toggleNotifications()" class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
  <i class="fas fa-bell text-xl"></i>
@@ -341,6 +358,21 @@
  document.getElementById('sidebar').classList.add('sidebar-collapsed');
  document.getElementById('mainWrapper').classList.add('sidebar-collapsed');
  }
+
+ // Bangladesh Time Clock (12-hour format)
+ function updateBangladeshClock() {
+ const now = new Date();
+ const options = { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+ const timeString = now.toLocaleTimeString('en-US', options);
+ const dateOptions = { timeZone: 'Asia/Dhaka', day: '2-digit', month: 'short', year: 'numeric' };
+ const dateString = now.toLocaleDateString('en-US', dateOptions);
+ const clockEl = document.getElementById('bdClock');
+ if (clockEl) {
+ clockEl.textContent = dateString + ' ' + timeString;
+ }
+ }
+ updateBangladeshClock();
+ setInterval(updateBangladeshClock, 1000);
  
  // Restore section collapse states
  const sectionStates = JSON.parse(localStorage.getItem('sidebarSections') || '{}');

@@ -14,6 +14,7 @@ class ConventionBooking extends Model
         'hall_rent', 'discount', 'discount_type', 'discount_value', 'vat_amount', 'vat_percentage',
         'total_amount', 'advance_payment', 'remaining_payment', 'payment_method', 'payment_status',
         'status', 'program_status', 'notes', 'created_by_id',
+        'discount_status', 'discount_requested_by', 'discount_approved_by', 'discount_approved_at',
     ];
 
     protected function casts(): array
@@ -49,6 +50,16 @@ class ConventionBooking extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function discountRequestedBy()
+    {
+        return $this->belongsTo(User::class, 'discount_requested_by');
+    }
+
+    public function discountApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'discount_approved_by');
     }
 
     public function payments()

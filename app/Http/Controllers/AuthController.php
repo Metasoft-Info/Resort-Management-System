@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Models\ResortInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,8 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('admin.dashboard');
         }
-        return view('admin.login');
+        $resortInfo = ResortInfo::first();
+        return view('admin.login', compact('resortInfo'));
     }
 
     public function login(Request $request)

@@ -100,7 +100,7 @@ class DashboardController extends Controller
             'convention_revenue' => $conventionRevenue,
         ];
 
-        $recentBookings = Booking::with('room')->latest()->take(10)->get();
+        $recentBookings = Booking::with(['room', 'bookingRooms.room'])->latest()->take(10)->get();
         $recentConventionBookings = ConventionBooking::with('conventionHall')->latest()->take(10)->get();
         $allRooms = Room::with('roomType')->get();
         $allHalls = ConventionHall::all();

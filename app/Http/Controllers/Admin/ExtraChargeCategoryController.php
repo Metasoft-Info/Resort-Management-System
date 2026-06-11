@@ -35,7 +35,7 @@ class ExtraChargeCategoryController extends Controller
         ExtraChargeCategory::create($validated);
 
         return redirect()->route('admin.extra-charge-categories.index')
-            ->with('success', 'অতিরিক্ত চার্জ ক্যাটাগরি তৈরি হয়েছে!');
+            ->with('success', 'Extra charge category created successfully!');
     }
 
     public function edit(ExtraChargeCategory $extraChargeCategory)
@@ -59,14 +59,14 @@ class ExtraChargeCategoryController extends Controller
         $extraChargeCategory->update($validated);
 
         return redirect()->route('admin.extra-charge-categories.index')
-            ->with('success', 'অতিরিক্ত চার্জ ক্যাটাগরি আপডেট হয়েছে!');
+            ->with('success', 'Extra charge category updated successfully!');
     }
 
     public function destroy(ExtraChargeCategory $extraChargeCategory)
     {
         $extraChargeCategory->delete();
         return redirect()->route('admin.extra-charge-categories.index')
-            ->with('success', 'অতিরিক্ত চার্জ ক্যাটাগরি মুছে ফেলা হয়েছে!');
+            ->with('success', 'Extra charge category deleted successfully!');
     }
 
     // API endpoint for getting active categories

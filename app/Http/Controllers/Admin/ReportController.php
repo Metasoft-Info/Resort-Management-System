@@ -42,6 +42,19 @@ class ReportController extends Controller {
         if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
         if($request->room_id) $query->where('room_id', $request->room_id);
         if($request->payment_status) $query->where('payment_status', $request->payment_status);
+        if($request->discount_status) {
+            if($request->discount_status === 'has_discount') {
+                $query->where(function($q) {
+                    $q->whereNotNull('discount_status')
+                      ->orWhere('discount_amount', '>', 0)
+                      ->orWhere(function($sq) {
+                          $sq->where('discount_type', 'percentage')->where('discount_percentage', '>', 0);
+                      });
+                });
+            } else {
+                $query->where('discount_status', $request->discount_status);
+            }
+        }
         if($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('customer_name', 'like', "%{$request->search}%")

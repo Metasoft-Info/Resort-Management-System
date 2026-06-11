@@ -546,7 +546,7 @@
  <div class="text-xs text-gray-500 mt-1">{{ $booking->customer_phone }}</div>
  <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
  <div class="text-xs text-gray-500">
- <i class="fas fa-bed mr-1"></i>{{ $booking->room ? $booking->room->room_number : 'N/A' }}
+ <i class="fas fa-bed mr-1"></i>{{ $booking->getAllRooms()->pluck('room_number')->implode(', ') ?: 'N/A' }}
  <span class="mx-2">•</span>
  <i class="fas fa-calendar mr-1"></i>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M') }}
  </div>
@@ -578,7 +578,7 @@
  <div class="text-sm font-medium text-gray-900 truncate max-w-[150px]">{{ $booking->customer_name }}</div>
  <div class="text-xs text-gray-500">{{ $booking->customer_phone }}</div>
  </td>
- <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ $booking->room ? $booking->room->room_number : 'N/A' }}</td>
+ <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ $booking->getAllRooms()->pluck('room_number')->implode(', ') ?: 'N/A' }}</td>
  <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M Y') }}</td>
  <td class="px-4 lg:px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{{ number_format($booking->getCalculatedTotal()) }}</td>
  <td class="px-4 lg:px-6 py-4 whitespace-nowrap">
