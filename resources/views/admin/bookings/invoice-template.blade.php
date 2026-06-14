@@ -180,7 +180,7 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  </tr>
  <tr style="color: #060;">
  <td style="padding: 2px 4px; text-align: right;">Total Paid:</td>
- <td style="padding: 2px 4px; text-align: right;">{{ number_format($booking->advance_payment, 0) }}/-</td>
+ <td style="padding: 2px 4px; text-align: right;">{{ number_format($invoiceTotalDeposited, 0) }}/-</td>
  </tr>
  <tr style="font-weight: bold; color: #c00;">
  <td style="padding: 2px 4px; text-align: right;"><strong>Due Amount:</strong></td>
