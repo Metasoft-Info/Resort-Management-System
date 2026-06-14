@@ -178,8 +178,8 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <td style="padding: 2px 5px; text-align: right; border-top: 1px solid #000;">{{ number_format($grandTotal, 0) }}</td>
  </tr>
  <tr style="color: #060;">
- <td style="padding: 2px 5px; text-align: right;">Advance Paid:</td>
- <td style="padding: 2px 5px; text-align: right;">{{ number_format($booking->advance_payment, 0) }}</td>
+ <td style="padding: 2px 5px; text-align: right;">Total Paid:</td>
+ <td style="padding: 2px 5px; text-align: right;">{{ number_format($totalDeposited, 0) }}</td>
  </tr>
  <tr style="font-weight: bold; color: #c00;">
  <td style="padding: 2px 5px; text-align: right;">Due Amount:</td>

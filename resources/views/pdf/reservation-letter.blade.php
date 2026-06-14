@@ -173,8 +173,8 @@
         <tr>
             <td style="text-align: right;">
                 <strong>Total Amount:</strong> ৳{{ number_format($booking->getCalculatedTotal(), 0) }} | 
-                <strong>Advance Paid:</strong> <span style="color: green;">৳{{ number_format($booking->advance_payment, 0) }}</span> | 
-                <strong>Due:</strong> <span style="color: red;">৳{{ number_format($booking->remaining_payment, 0) }}</span>
+                <strong>Total Paid:</strong> <span style="color: green;">৳{{ number_format($booking->getTotalDeposited(), 0) }}</span> | 
+                <strong>Due:</strong> <span style="color: red;">৳{{ number_format(max(0, $booking->getCalculatedRemaining()), 0) }}</span>
             </td>
         </tr>
     </table>
