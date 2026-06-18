@@ -146,12 +146,18 @@
                         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
                         $totalNights += $nights;
                         $roomRent = $booking->getCalculatedTotal();
-                        $baseRentPerNight = 0;
+
+                        // Build individual room rent display
+                        $roomRentDisplay = '-';
                         if ($booking->bookingRooms->count() > 0) {
-                            $baseRentPerNight = $booking->bookingRooms->first()->price_per_night ?? 0;
+                            $roomRentDisplay = $booking->bookingRooms->map(function($br) {
+                                $rent = $br->price_per_night ?? 0;
+                                return '<div class="whitespace-nowrap">' . ($br->room->room_number ?? '?') . ': ' . number_format($rent, 0) . '</div>';
+                            })->join('');
                         } elseif ($booking->room) {
-                            $baseRentPerNight = $booking->room->room_type->base_price ?? $booking->room->price_per_night ?? 0;
+                            $roomRentDisplay = number_format($booking->room->room_type->base_price ?? $booking->room->price_per_night ?? 0, 0);
                         }
+
                         $grandTotal = $booking->getGrandTotal();
                         $sumGrandTotal += $grandTotal;
                         $totalDeposited = $booking->getTotalDeposited();
@@ -164,7 +170,7 @@
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-gray-600 whitespace-nowrap">{{ $baseRentPerNight > 0 ? number_format($baseRentPerNight, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-gray-600 text-[10px]">{!! $roomRentDisplay !!}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
