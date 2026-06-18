@@ -207,7 +207,7 @@
                                 </div>
                                 <span class="text-xs">{{ $booking->discountApprovedBy->name }}</span>
                             </div>
-                            <div class="text-[10px] text-gray-400">{{ $booking->discount_approved_at ? \Carbon\Carbon::parse($booking->discount_approved_at)->format('d-m-Y H:i') : '' }}</div>
+                            <div class="text-[10px] text-gray-400">{{ $booking->discount_approved_at ? \Carbon\Carbon::parse($booking->discount_approved_at)->format('d-m-Y h:i A') : '' }}</div>
                             @else
                             <span class="text-gray-300 text-xs">-</span>
                             @endif

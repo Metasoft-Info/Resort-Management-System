@@ -14,6 +14,7 @@ class ReportController extends Controller {
         // - currently checked-in guests
         // - guests checked-out today (or within selected date window)
         // - guests with check-in/check-out activity in selected window
+        // - cancelled bookings within the date range
         // This keeps pure advance-only bookings out of this report by default.
         if ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
@@ -26,6 +27,11 @@ class ReportController extends Controller {
                       $qq->whereDate('check_in_date', '<=', $end)
                          ->whereDate('check_out_date', '>=', $start)
                          ->where('status', 'checked_in');
+                  })
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->where('status', 'cancelled')
+                         ->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_in_date', '>=', $start);
                   });
             });
         } else {
@@ -34,6 +40,10 @@ class ReportController extends Controller {
                   ->orWhere(function ($qq) use ($today) {
                       $qq->where('status', 'checked_out')
                          ->whereDate('check_out_date', $today);
+                  })
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'cancelled')
+                         ->whereDate('check_in_date', '>=', $today);
                   });
             });
         }

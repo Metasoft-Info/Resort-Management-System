@@ -111,20 +111,41 @@ class DashboardController extends Controller
             // Determine if room is currently occupied using merged occupied room IDs
             $isOccupied = in_array($room->id, $occupiedRoomIds);
 
-            // Keep current booking detail for legacy direct relation display
+            // Find current booking - check legacy direct relation first
             $currentBooking = Booking::where('room_id', $room->id)
                 ->whereIn('status', ['confirmed', 'checked_in'])
                 ->where('check_in_date', '<=', $today)
                 ->where('check_out_date', '>', $today)
                 ->first();
-            
-            // Check upcoming bookings - legacy
+
+            // If no legacy booking, check booking_rooms pivot table
+            if (!$currentBooking) {
+                $currentBooking = Booking::whereHas('bookingRooms', function($q) use ($room) {
+                        $q->where('room_id', $room->id);
+                    })
+                    ->whereIn('status', ['confirmed', 'checked_in'])
+                    ->where('check_in_date', '<=', $today)
+                    ->where('check_out_date', '>', $today)
+                    ->first();
+            }
+
+            // Check upcoming bookings - legacy and pivot
             $upcomingBooking = Booking::where('room_id', $room->id)
                 ->whereIn('status', ['confirmed', 'pending'])
                 ->where('check_in_date', '>', $today)
                 ->orderBy('check_in_date')
                 ->first();
-            
+
+            if (!$upcomingBooking) {
+                $upcomingBooking = Booking::whereHas('bookingRooms', function($q) use ($room) {
+                        $q->where('room_id', $room->id);
+                    })
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->where('check_in_date', '>', $today)
+                    ->orderBy('check_in_date')
+                    ->first();
+            }
+
             $roomsWithStatus[] = [
                 'room' => $room,
                 'status' => $isOccupied ? 'occupied' : 'available',
