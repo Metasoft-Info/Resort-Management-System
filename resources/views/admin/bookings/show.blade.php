@@ -35,6 +35,16 @@
  $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
  $totalDeposited = $booking->getTotalDeposited();
 $remainingPayment = max(0, $grandTotal - $totalDeposited);
+
+ // Date & status logic
+ $today = \Carbon\Carbon::now()->startOfDay();
+ $checkInDate = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
+ $checkOutDate = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
+ $isCheckInDayOrPast = $checkInDate->lte($today);
+ $canCheckIn = $booking->status === 'confirmed' && $isCheckInDayOrPast;
+ $canCancel = !in_array($booking->status, ['checked_out', 'cancelled']);
+ $canRefund = $totalDeposited > 0 && $booking->status !== 'checked_out';
+ $isEarlyDeparture = $booking->status === 'checked_in' && $checkOutDate->gt($today);
  @endphp
 
  <!-- Action Buttons (Screen Only) -->
@@ -61,10 +71,12 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <i class="fas fa-money-bill"></i>
  <span>Add Payment</span>
  </button>
- <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2" @if($totalDeposited <= 0) disabled @endif>
+ @if($canRefund)
+ <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2">
  <i class="fas fa-undo"></i>
  <span>Process Refund</span>
  </button>
+ @endif
  <button onclick="openVatModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
  <i class="fas fa-percentage"></i>
  <span>{{ $booking->vat_enabled ? 'Disable' : 'Enable' }} VAT</span>
@@ -85,7 +97,7 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <i class="fas fa-user"></i>
  <span>Customer Profile</span>
  </a>
- @if($booking->status === 'confirmed')
+ @if($canCheckIn)
  <button onclick="updateStatus({{ $booking->id }}, 'checked_in')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
  <i class="fas fa-sign-in-alt"></i>
  <span>Check In</span>
@@ -100,11 +112,31 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <div class="relative">
  <select onchange="updateStatus({{ $booking->id }}, this.value)" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition cursor-pointer appearance-none pr-10">
  <option value="">Change Status</option>
+
+ {{-- Pending can become confirmed or cancelled --}}
+ @if(in_array($booking->status, ['pending', 'confirmed', 'checked_in']))
  <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>Pending</option>
+ @endif
+
+ {{-- Confirmed can become pending, checked_in (on date), or cancelled --}}
+ @if(in_array($booking->status, ['pending', 'confirmed', 'checked_in']))
  <option value="confirmed" {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+ @endif
+
+ {{-- Checked In only shown when check-in date arrived AND current status is confirmed or checked_in --}}
+ @if($isCheckInDayOrPast && in_array($booking->status, ['confirmed', 'checked_in']))
  <option value="checked_in" {{ $booking->status === 'checked_in' ? 'selected' : '' }}>Checked In</option>
+ @endif
+
+ {{-- Checked Out only shown when currently checked_in --}}
+ @if($booking->status === 'checked_in')
  <option value="checked_out" {{ $booking->status === 'checked_out' ? 'selected' : '' }}>Checked Out</option>
+ @endif
+
+ {{-- Cancelled shown for all except checked_out and already cancelled --}}
+ @if($canCancel)
  <option value="cancelled" {{ $booking->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+ @endif
  </select>
  <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-white pointer-events-none"></i>
  </div>
@@ -461,7 +493,7 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <tbody class="divide-y">
  @foreach($booking->payments as $payment)
  <tr>
- <td class="p-2">{{ $payment->created_at->format('d/m/Y H:i') }}</td>
+ <td class="p-2">{{ $payment->created_at->format('d/m/Y h:i A') }}</td>
  <td class="p-2">
  <span class="px-2 py-1 rounded text-xs font-semibold
  @if($payment->type === 'advance') bg-primary-100 text-primary-800

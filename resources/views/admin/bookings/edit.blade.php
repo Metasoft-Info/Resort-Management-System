@@ -1,21 +1,29 @@
 @extends('layouts.admin')
+@php
+$canEditDates = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay()->lte(\Carbon\Carbon::now()->startOfDay());
+@endphp
 @section('content')
 <div class="p-6">
  <div class="mb-8"><h1 class="text-3xl font-bold text-gray-800">Booking Edit #{{ $booking->id }}</h1></div>
- 
+
  @if(session('success'))
  <div class="bg-primary-100 border border-primary-400 text-primary-700 px-4 py-3 rounded-lg mb-6">{{ session('success') }}</div>
  @endif
  @if(session('error'))
  <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">{{ session('error') }}</div>
  @endif
- 
+
  <div class="bg-white rounded-xl shadow-lg p-8">
  <form action="{{ route('admin.bookings.update', $booking) }}" method="POST">
  @csrf @method('PUT')
- 
+
  <!-- Room & Dates -->
  <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2"><i class="fas fa-bed mr-2 text-primary-600"></i>Room & Dates</h3>
+ @if(!$canEditDates)
+ <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg mb-4 text-sm">
+ <i class="fas fa-info-circle mr-1"></i>Check-In / Check-Out date auto-activate hobe booking date asar por. Ager date edit kora jabe na.
+ </div>
+ @endif
  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Room *</label>
@@ -27,11 +35,11 @@
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Check-In Date *</label>
- <input type="date" name="check_in_date" value="{{ old('check_in_date', $booking->check_in_date ? $booking->check_in_date->format('Y-m-d') : '') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="date" name="check_in_date" value="{{ old('check_in_date', $booking->check_in_date ? $booking->check_in_date->format('Y-m-d') : '') }}" required {{ $canEditDates ? '' : 'readonly' }} class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 {{ $canEditDates ? '' : 'bg-gray-100 text-gray-500 cursor-not-allowed' }}">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Check-Out Date *</label>
- <input type="date" name="check_out_date" value="{{ old('check_out_date', $booking->check_out_date ? $booking->check_out_date->format('Y-m-d') : '') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="date" name="check_out_date" value="{{ old('check_out_date', $booking->check_out_date ? $booking->check_out_date->format('Y-m-d') : '') }}" required {{ $canEditDates ? '' : 'readonly' }} class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 {{ $canEditDates ? '' : 'bg-gray-100 text-gray-500 cursor-not-allowed' }}">
  </div>
  </div>
 

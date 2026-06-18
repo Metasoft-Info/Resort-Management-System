@@ -183,7 +183,26 @@ class BookingController extends Controller
         ]);
 
         $oldStatus = $booking->status;
-        $booking->update(['status' => $validated['status'], 'updated_by_id' => Auth::id()]);
+        $newStatus = $validated['status'];
+        $today = Carbon::now()->startOfDay();
+        $checkInDate = Carbon::parse($booking->check_in_date)->startOfDay();
+
+        // Prevent check-in before check-in date
+        if ($newStatus === 'checked_in' && $checkInDate->gt($today)) {
+            return response()->json(['message' => 'Check-in not allowed before ' . $checkInDate->format('d M Y')], 422);
+        }
+
+        // Prevent cancel after check-out
+        if ($newStatus === 'cancelled' && $oldStatus === 'checked_out') {
+            return response()->json(['message' => 'Cannot cancel a checked-out booking'], 422);
+        }
+
+        // Prevent any status change after check-out (except keeping checked_out)
+        if ($oldStatus === 'checked_out' && $newStatus !== 'checked_out') {
+            return response()->json(['message' => 'Cannot modify a checked-out booking'], 422);
+        }
+
+        $booking->update(['status' => $newStatus, 'updated_by_id' => Auth::id()]);
 
         // Free up room(s) when checking out
         if ($validated['status'] === 'checked_out' && $oldStatus !== 'checked_out') {
@@ -496,6 +515,11 @@ class BookingController extends Controller
             'method' => 'required|in:cash,card,mfs',
             'note' => 'nullable|string',
         ]);
+
+        // Prevent refund after check-out
+        if ($booking->status === 'checked_out') {
+            return response()->json(['message' => 'Refund not allowed after check-out'], 422);
+        }
 
         $totalDeposited = $booking->getTotalDeposited();
         if ($validated['amount'] > $totalDeposited) {

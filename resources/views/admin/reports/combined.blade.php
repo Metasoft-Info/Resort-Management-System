@@ -9,23 +9,33 @@
 
     @if(!request('print'))
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 print:hidden">
-        <form method="GET" action="{{ route('admin.reports.combined') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">শুরুর তারিখ</label>
-                <input type="date" name="start_date" value="{{ request('start_date', date('Y-m-01')) }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">শেষ তারিখ</label>
-                <input type="date" name="end_date" value="{{ request('end_date', date('Y-m-d')) }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">রুমের ধরন</label>
-                <select name="room_type_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">সব</option>
-                    @foreach($roomTypes as $rt)
-                        <option value="{{ $rt->id }}">{{ $rt->name }}</option>
-                    @endforeach
-                </select>
+        <form method="GET" action="{{ route('admin.reports.combined') }}">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">শুরুর তারিখ</label>
+                    <input type="date" name="start_date" value="{{ request('start_date', date('Y-m-01')) }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">শেষ তারিখ</label>
+                    <input type="date" name="end_date" value="{{ request('end_date', date('Y-m-d')) }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">রুমের ধরন</label>
+                    <select name="room_type_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">সব</option>
+                        @foreach($roomTypes as $rt)
+                            <option value="{{ $rt->id }}" {{ request('room_type_id') == $rt->id ? 'selected' : '' }}>{{ $rt->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex items-end gap-2">
+                    <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
+                        <i class="fas fa-filter mr-2"></i>ফিল্টার
+                    </button>
+                    <a href="{{ route('admin.reports.combined') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
             </div>
         </form>
     </div>
@@ -136,7 +146,7 @@
                             </span>
                         </td>
                         <td class="border border-gray-300 px-2 py-1">
-                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700') }}">
+                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : ($b->status == 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700')) }}">
                                 {{ ucfirst($b->status) }}
                             </span>
                         </td>
@@ -218,7 +228,7 @@
                             </span>
                         </td>
                         <td class="border border-gray-300 px-2 py-1">
-                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700') }}">
+                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : ($b->status == 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700')) }}">
                                 {{ ucfirst($b->status) }}
                             </span>
                         </td>
@@ -301,7 +311,7 @@
                             </span>
                         </td>
                         <td class="border border-gray-300 px-2 py-1">
-                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700') }}">
+                            <span class="px-2 py-1 rounded text-xs {{ $b->status == 'confirmed' ? 'bg-blue-100 text-blue-700' : ($b->status == 'checked_in' ? 'bg-green-100 text-green-700' : ($b->status == 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700')) }}">
                                 {{ ucfirst($b->status) }}
                             </span>
                         </td>

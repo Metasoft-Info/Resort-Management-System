@@ -153,7 +153,7 @@
         </div>
 
         <div class="p-4 text-center text-xs text-gray-500 border-t print:block">
-            <p>প্রিন্ট/রিপোর্ট সময়: {{ now()->format('d-m-Y H:i') }}</p>
+            <p>প্রিন্ট/রিপোর্ট সময়: {{ now()->format('d-m-Y h:i A') }}</p>
             @if($resortInfo)
                 <p>{{ $resortInfo->name }} | {{ $resortInfo->phone }}</p>
             @endif

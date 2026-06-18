@@ -503,7 +503,22 @@
  @endif
  </div>
  </div>
- <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
+
+ <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity z-0"></div>
+
+ @if($rs['status'] == 'occupied' && $rs['current_booking'])
+ <!-- Hover Tooltip (below card) -->
+ <div class="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-60 bg-white rounded-xl shadow-2xl p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="text-gray-800 text-xs relative">
+ <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $rs['current_booking']->customer_name }}</p>
+ <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $rs['current_booking']->customer_phone }}</p>
+ <p class="mb-0.5"><i class="fas fa-sign-in-alt text-green-500 mr-1 w-3"></i>In: {{ \Carbon\Carbon::parse($rs['current_booking']->check_in_date)->format('d M') }}</p>
+ <p class="mb-0.5"><i class="fas fa-sign-out-alt text-orange-500 mr-1 w-3"></i>Out: {{ \Carbon\Carbon::parse($rs['current_booking']->check_out_date)->format('d M') }}</p>
+ <p class="text-emerald-600 font-semibold mt-1"><i class="fas fa-calendar-check mr-1 w-3"></i>Available: {{ \Carbon\Carbon::parse($rs['available_from'])->format('d M Y') }}</p>
+ </div>
+ </div>
+ @endif
  </div>
  @endforeach
  </div>

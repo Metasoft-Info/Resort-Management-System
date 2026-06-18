@@ -26,6 +26,7 @@
                         <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
                         <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>চেক-ইন</option>
                         <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>চেক-আউট</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>বাতিল</option>
                     </select>
                 </div>
                 <div>
@@ -133,6 +134,7 @@
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ইন</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">আউট</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">রাত</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">স্ট্যাটাস</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">ডিসকাউন্ট স্ট্যাটাস</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden whitespace-nowrap">অ্যাকশন</th>
                     </tr>
@@ -174,6 +176,25 @@
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">{{ $nights }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
+                            @if($booking->status == 'checked_in')
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">চেক-ইন</span>
+                            @elseif($booking->status == 'checked_out')
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">চেক-আউট</span>
+                            @elseif($booking->status == 'confirmed')
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">নিশ্চিত</span>
+                            @elseif($booking->status == 'pending')
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700">পেন্ডিং</span>
+                            @elseif($booking->status == 'cancelled')
+                                @php $refundAmount = $booking->payments->where('type', 'refund')->sum('amount'); @endphp
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">বাতিল</span>
+                                @if($refundAmount > 0)
+                                <div class="text-[9px] text-red-500 mt-0.5">রিফান্ড: {{ number_format($refundAmount) }}</div>
+                                @endif
+                            @else
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">{{ ucfirst($booking->status) }}</span>
+                            @endif
+                        </td>
+                        <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
                             @if(($booking->discount_amount ?? 0) > 0)
                                 @if($booking->discount_status === 'approved')
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">অনুমোদিত</span>
@@ -195,7 +216,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="18" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="19" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
@@ -217,6 +238,7 @@
                         <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($bookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDeposited()), 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-center">{{ $totalNights }}</td>
+                        <td class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 print:hidden"></td>
                     </tr>
