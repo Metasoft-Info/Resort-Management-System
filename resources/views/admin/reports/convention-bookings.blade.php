@@ -529,6 +529,7 @@ function showConventionInfo(bookingId) {
                     <!-- Print Footer -->
                     <div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
                         <p>প্রিন্ট তারিখ: ${new Date().toLocaleDateString('bn-BD')} | Developed by Mir Javed Jeetu | 01811480222</p>
+                        <p style="margin-top: 2px;">TUFAN RESORT | +88 01958-216728</p>
                     </div>
                 </div>
             `;
