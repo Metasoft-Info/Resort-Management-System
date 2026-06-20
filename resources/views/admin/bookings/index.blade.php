@@ -196,8 +196,29 @@
  <div class="text-xs text-gray-500">
  {{ $booking->check_in_date->format('d M') }} - {{ $booking->check_out_date->format('d M Y') }}
  </div>
- @php $calculatedTotal = $booking->getCalculatedTotal(); @endphp
- <div class="text-sm font-bold text-gray-800">{{ number_format($calculatedTotal) }}</div>
+ @php
+ $mCalculatedTotal = $booking->getCalculatedTotal();
+ $mDiscount = 0;
+ if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
+     $mDiscount = ($mCalculatedTotal * $booking->discount_percentage) / 100;
+ } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
+     $mDiscount = $booking->discount_amount;
+ }
+ $mPaid = $booking->getTotalDeposited();
+ $mDue = $booking->getCalculatedRemaining();
+ @endphp
+ <div class="text-right">
+  <div class="text-sm font-bold text-gray-800">{{ number_format($mCalculatedTotal) }}</div>
+  @if($mDiscount > 0)
+  <div class="text-[10px] text-orange-600">- {{ number_format($mDiscount) }}</div>
+  @endif
+  @if($mPaid > 0)
+  <div class="text-[10px] text-emerald-600">Paid {{ number_format($mPaid) }}</div>
+  @endif
+  @if($mDue > 0)
+  <div class="text-[10px] text-red-600">Due {{ number_format($mDue) }}</div>
+  @endif
+ </div>
  </div>
  <div class="flex gap-3 mt-3">
  <a href="{{ route('admin.bookings.show', $booking) }}" class="flex-1 text-center py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-medium">
@@ -272,9 +293,21 @@
  $calculatedTotal = $booking->getCalculatedTotal();
  $calculatedRemaining = $booking->getCalculatedRemaining();
  @endphp
- <div class="font-bold text-gray-800">{{ number_format($calculatedTotal) }}</div>
- @if($booking->advance_payment > 0)
- <div class="text-xs text-indigo-600">Advance: {{ number_format($booking->advance_payment) }}</div>
+ <div class="font-bold text-gray-800">Total: {{ number_format($calculatedTotal) }}</div>
+ @php
+ $discountDisplay = 0;
+ if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
+     $discountDisplay = ($calculatedTotal * $booking->discount_percentage) / 100;
+ } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
+     $discountDisplay = $booking->discount_amount;
+ }
+ $totalDeposited = $booking->getTotalDeposited();
+ @endphp
+ @if($discountDisplay > 0)
+ <div class="text-xs text-orange-600">Discount: -{{ number_format($discountDisplay) }}</div>
+ @endif
+ @if($totalDeposited > 0)
+ <div class="text-xs text-emerald-600">Paid: {{ number_format($totalDeposited) }}</div>
  @endif
  @if($calculatedRemaining > 0)
  <div class="text-xs text-red-600">Due: {{ number_format($calculatedRemaining) }}</div>

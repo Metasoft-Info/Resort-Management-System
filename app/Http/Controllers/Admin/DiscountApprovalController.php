@@ -172,10 +172,14 @@ class DiscountApprovalController extends Controller
             $booking = ConventionBooking::findOrFail($id);
         }
 
+        // Recalculate payment status after discount approval
+        $remaining = max(0, $booking->getCalculatedRemaining());
         $booking->update([
             'discount_status' => 'approved',
             'discount_approved_by' => $user->id,
             'discount_approved_at' => now(),
+            'remaining_payment' => $remaining,
+            'payment_status' => $remaining <= 0 ? 'paid' : ($booking->getTotalDeposited() > 0 ? 'partial' : 'pending'),
         ]);
 
         return redirect()->back()->with('success', 'Discount approved successfully.');

@@ -188,5 +188,23 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         }
         return '<pre style="font-family:monospace;padding:20px">' . implode("\n", $output) . '</pre>';
     })->name('run-migrations');
+
+    // Fix payment_status for existing bookings where discount makes them paid
+    Route::get('/fix-payment-status', function () {
+        $fixed = 0;
+        $bookings = \App\Models\Booking::all();
+        foreach ($bookings as $booking) {
+            $remaining = max(0, $booking->getCalculatedRemaining());
+            $newStatus = $remaining <= 0 ? 'paid' : ($booking->getTotalDeposited() > 0 ? 'partial' : 'pending');
+            if ($booking->payment_status !== $newStatus || (float)$booking->remaining_payment !== (float)$remaining) {
+                $booking->update([
+                    'remaining_payment' => $remaining,
+                    'payment_status' => $newStatus,
+                ]);
+                $fixed++;
+            }
+        }
+        return '<pre>Fixed ' . $fixed . ' booking(s)</pre>';
+    });
 });
 

@@ -129,8 +129,17 @@ class BookingController extends Controller
 
         $validated['created_by_id'] = Auth::id();
         $validated['updated_by_id'] = Auth::id();
-        $validated['remaining_payment'] = $validated['total_amount'] - $validated['advance_payment'];
-        $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
+
+        // Calculate discount at creation time for correct remaining/payment_status
+        $discountAmount = 0;
+        if (($validated['discount_type'] ?? 'none') === 'percentage' && ($validated['discount_percentage'] ?? 0) > 0) {
+            $discountAmount = ($validated['total_amount'] * $validated['discount_percentage']) / 100;
+        } elseif (($validated['discount_type'] ?? 'none') === 'flat' && ($validated['discount_amount'] ?? 0) > 0) {
+            $discountAmount = $validated['discount_amount'];
+        }
+
+        $validated['remaining_payment'] = max(0, $validated['total_amount'] - $discountAmount - $validated['advance_payment']);
+        $validated['payment_status'] = $validated['remaining_payment'] <= 0 ? 'paid' : ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
 
         $booking = Booking::create($validated);
 
@@ -671,7 +680,19 @@ class BookingController extends Controller
 
             $advancePayment = isset($validated['advance_payment']) ? (float) $validated['advance_payment'] : (float) ($booking->advance_payment ?? 0);
             $validated['advance_payment'] = max(0, $advancePayment);
-            $validated['remaining_payment'] = max(0, (float) $validated['total_amount'] - (float) $validated['advance_payment']);
+
+            // Calculate discount from validated or existing booking
+            $discountType = $validated['discount_type'] ?? $booking->discount_type ?? 'none';
+            $discountAmount = $validated['discount_amount'] ?? $booking->discount_amount ?? 0;
+            $discountPercentage = $validated['discount_percentage'] ?? $booking->discount_percentage ?? 0;
+            $discountValue = 0;
+            if ($discountType === 'percentage' && $discountPercentage > 0) {
+                $discountValue = ((float) $validated['total_amount'] * $discountPercentage) / 100;
+            } elseif ($discountType === 'flat' && $discountAmount > 0) {
+                $discountValue = (float) $discountAmount;
+            }
+
+            $validated['remaining_payment'] = max(0, (float) $validated['total_amount'] - $discountValue - (float) $validated['advance_payment']);
 
             if (!isset($validated['payment_status']) || $validated['payment_status'] === null || $validated['payment_status'] === '') {
                 $validated['payment_status'] = $validated['remaining_payment'] <= 0
