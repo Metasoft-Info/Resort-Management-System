@@ -4,3 +4,5 @@
         <div>Developed by Mir Javed Jeetu | 01811480222</div>
     </div>
 </div>
+
+@include('admin.reports.partials.signature-section')

@@ -158,6 +158,8 @@
                 <p>{{ $resortInfo->name }} | {{ $resortInfo->phone }}</p>
             @endif
         </div>
+
+        @include('admin.reports.partials.signature-section')
     </div>
 </div>
 @endsection
