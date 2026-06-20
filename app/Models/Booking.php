@@ -46,7 +46,26 @@ class Booking extends Model
             'additional_guests' => 'array',
             'extra_charges_data' => 'array',
             'vat_enabled' => 'boolean',
+            'customer_photo' => 'array',
+            'customer_nid_document' => 'array',
+            'passport_document' => 'array',
+            'visiting_card' => 'array',
         ];
+    }
+
+    /**
+     * Get documents as array (handles old string data and new array data)
+     */
+    public function getDocuments(string $field): array
+    {
+        $value = $this->getAttribute($field);
+        if (is_string($value) && !empty($value)) {
+            return [$value];
+        }
+        if (is_array($value)) {
+            return array_values(array_filter($value));
+        }
+        return [];
     }
 
     public function room()

@@ -480,22 +480,45 @@ class BookingController extends Controller
             'passport_number'   => 'nullable|string|max:50',
             'reference_name'    => 'nullable|string|max:255',
             'reference_phone'   => 'nullable|string|max:20',
-            'customer_photo'        => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
-            'customer_nid_document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'passport_document'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'visiting_card'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'customer_photo.*'        => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'customer_nid_document.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'passport_document.*'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'visiting_card.*'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'remove_customer_photo'        => 'nullable|array',
+            'remove_customer_photo.*'      => 'string',
+            'remove_customer_nid_document' => 'nullable|array',
+            'remove_customer_nid_document.*' => 'string',
+            'remove_passport_document'     => 'nullable|array',
+            'remove_passport_document.*'   => 'string',
+            'remove_visiting_card'         => 'nullable|array',
+            'remove_visiting_card.*'     => 'string',
         ]);
 
         $updateData = collect($validated)->except([
-            'customer_photo','customer_nid_document','passport_document','visiting_card'
+            'customer_photo','customer_nid_document','passport_document','visiting_card',
+            'remove_customer_photo','remove_customer_nid_document','remove_passport_document','remove_visiting_card'
         ])->toArray();
 
-        // Handle file uploads
+        // Handle document fields: merge kept existing + new uploads
         foreach (['customer_photo','customer_nid_document','passport_document','visiting_card'] as $field) {
-            if ($request->hasFile($field)) {
-                $path = $request->file($field)->store('bookings/documents', 'public');
-                $updateData[$field] = $path;
+            $docs = $booking->getDocuments($field);
+            $removeKey = 'remove_' . $field;
+
+            // Remove selected existing documents
+            if ($request->has($removeKey)) {
+                $toRemove = $request->input($removeKey, []);
+                $docs = array_values(array_diff($docs, $toRemove));
             }
+
+            // Add newly uploaded files
+            if ($request->hasFile($field)) {
+                foreach ($request->file($field) as $file) {
+                    $path = $file->store('bookings/documents', 'public');
+                    $docs[] = $path;
+                }
+            }
+
+            $updateData[$field] = array_values(array_filter($docs));
         }
 
         $updateData['updated_by_id'] = Auth::id();
