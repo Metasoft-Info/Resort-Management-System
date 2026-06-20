@@ -939,7 +939,7 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  </div>
 
  <div class="flex gap-3 mt-5">
- <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-semibold">
+ <button type="submit" id="editCustomerSubmitBtn" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-semibold">
  <i class="fas fa-save mr-1"></i> Save Changes
  </button>
  <button type="button" onclick="closeEditCustomerModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
@@ -947,6 +947,21 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  </button>
  </div>
  </form>
+
+ <!-- Upload Progress Overlay -->
+ <div id="uploadProgressOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+ <div class="bg-white rounded-xl shadow-2xl p-6 w-80 text-center">
+ <div class="mb-3">
+ <i class="fas fa-cloud-upload-alt text-4xl text-primary-600 animate-bounce"></i>
+ </div>
+ <h3 class="text-lg font-bold text-gray-800 mb-1">Uploading Documents...</h3>
+ <p id="uploadPercentText" class="text-2xl font-bold text-primary-600 mb-3">0%</p>
+ <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+ <div id="uploadProgressBar" class="bg-primary-600 h-4 rounded-full transition-all duration-200" style="width: 0%"></div>
+ </div>
+ <p class="text-xs text-gray-500 mt-2">Please do not close this window</p>
+ </div>
+ </div>
  </div>
 </div>
 
@@ -1820,31 +1835,61 @@ document.querySelectorAll('[name^="remove_"]').forEach(cb => {
     });
 });
 
-async function submitEditCustomer(e) {
+function submitEditCustomer(e) {
  e.preventDefault();
  const form = document.getElementById('editCustomerForm');
  const formData = new FormData(form);
+ const overlay = document.getElementById('uploadProgressOverlay');
+ const progressBar = document.getElementById('uploadProgressBar');
+ const percentText = document.getElementById('uploadPercentText');
+ const submitBtn = document.getElementById('editCustomerSubmitBtn');
 
- try {
- const response = await fetch(`/admin/bookings/{{ $booking->id }}/update-customer`, {
- method: 'POST',
- headers: {
- 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
- },
- body: formData
+ // Show overlay and disable button
+ overlay.classList.remove('hidden');
+ overlay.classList.add('flex');
+ submitBtn.disabled = true;
+ submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+ const xhr = new XMLHttpRequest();
+
+ xhr.upload.addEventListener('progress', function(event) {
+ if (event.lengthComputable) {
+ const percent = Math.round((event.loaded / event.total) * 100);
+ progressBar.style.width = percent + '%';
+ percentText.textContent = percent + '%';
+ }
  });
 
- if (response.ok) {
+ xhr.addEventListener('load', function() {
+ overlay.classList.add('hidden');
+ overlay.classList.remove('flex');
+ submitBtn.disabled = false;
+ submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+ if (xhr.status >= 200 && xhr.status < 300) {
  showGlobalModal('success', 'Customer information updated!');
  setTimeout(() => location.reload(), 1500);
  } else {
- const data = await response.json().catch(() => ({}));
- showGlobalModal('error', data.message || 'Failed to update customer!');
+ let msg = 'Failed to update customer!';
+ try {
+ const data = JSON.parse(xhr.responseText);
+ msg = data.message || msg;
+ } catch (e) {}
+ showGlobalModal('error', msg);
  }
- } catch (error) {
- console.error('Error:', error);
+ });
+
+ xhr.addEventListener('error', function() {
+ overlay.classList.add('hidden');
+ overlay.classList.remove('flex');
+ submitBtn.disabled = false;
+ submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
  showGlobalModal('error', 'Failed to update customer!');
- }
+ });
+
+ xhr.open('POST', `/admin/bookings/{{ $booking->id }}/update-customer`);
+ xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
+ xhr.send(formData);
 }
 
 // Auto-print invoice if ?print=invoice parameter is present
