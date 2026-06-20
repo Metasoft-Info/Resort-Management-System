@@ -78,14 +78,14 @@ class PremiumBookingController extends Controller
 
     public function search(Request $request)
     {
-        $checkIn = Carbon::parse($request->checkIn);
-        $checkOut = Carbon::parse($request->checkOut);
+        $checkIn = Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
+        $checkOut = Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
         $roomTypeId = $request->roomTypeId;
         $excludeBookingId = $request->excludeBookingId; // Exclude this booking from conflict check
         $nights = $checkIn->diffInDays($checkOut);
 
         // Get all rooms
-        $query = Room::with('roomType')->where('status', 'available');
+        $query = Room::with('roomType');
         
         if ($roomTypeId) {
             $query->where('room_type_id', $roomTypeId);
@@ -93,26 +93,26 @@ class PremiumBookingController extends Controller
 
         $rooms = $query->get();
 
-        // Filter out rooms that are already booked for these dates
+        // Filter out rooms that are already booked for these dates/times
         // Check both legacy room_id and booking_rooms table
         $availableRooms = $rooms->filter(function ($room) use ($checkIn, $checkOut, $excludeBookingId) {
             // Check legacy bookings
             $legacyQuery = Booking::where('room_id', $room->id)
                 ->whereNotIn('status', ['cancelled', 'checked_out']);
             
-            // Exclude the current booking if adding rooms
             if ($excludeBookingId) {
                 $legacyQuery->where('id', '!=', $excludeBookingId);
             }
             
-            $hasLegacyConflict = $legacyQuery->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->where(function($q) use ($checkIn, $checkOut) {
-                        // Overlap: existing.start < new.end AND existing.end > new.start
-                        $q->where('check_in_date', '<', $checkOut)
-                          ->where('check_out_date', '>', $checkIn);
-                    });
-                })
-                ->exists();
+            $hasLegacyConflict = $legacyQuery
+                ->where('check_in_date', '<', $checkOut->toDateString())
+                ->where('check_out_date', '>', $checkIn->toDateString())
+                ->get()
+                ->some(function ($booking) use ($checkIn, $checkOut) {
+                    $existingCheckIn = $booking->getCheckInDateTime();
+                    $existingCheckOut = $booking->getCheckOutDateTime();
+                    return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                });
 
             if ($hasLegacyConflict) return false;
 
@@ -125,14 +125,17 @@ class PremiumBookingController extends Controller
                         $q->where('id', '!=', $excludeBookingId);
                     }
                     
-                    $q->where(function ($query) use ($checkIn, $checkOut) {
-                        // Overlap: existing.start < new.end AND existing.end > new.start
-                        $query->where('check_in_date', '<', $checkOut)
-                              ->where('check_out_date', '>', $checkIn);
-                    });
+                    $q->where('check_in_date', '<', $checkOut->toDateString())
+                      ->where('check_out_date', '>', $checkIn->toDateString());
                 });
                 
-            $hasMultiRoomConflict = $multiRoomQuery->exists();
+            $hasMultiRoomConflict = $multiRoomQuery->get()
+                ->some(function ($bookingRoom) use ($checkIn, $checkOut) {
+                    $booking = $bookingRoom->booking;
+                    $existingCheckIn = $booking->getCheckInDateTime();
+                    $existingCheckOut = $booking->getCheckOutDateTime();
+                    return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                });
 
             return !$hasMultiRoomConflict;
         });
@@ -293,7 +296,10 @@ class PremiumBookingController extends Controller
             // Set payment status
             $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 
                                            ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
+            $validated['check_in_time'] = $validated['check_in_time'] ?? '12:00';
+            $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
             $validated['created_by_id'] = Auth::id();
+            $validated['updated_by_id'] = Auth::id();
 
             // Extract additional guests data before creating booking
             $additionalGuestsData = $request->input('additional_guests', []);
@@ -312,28 +318,40 @@ class PremiumBookingController extends Controller
             DB::beginTransaction();
 
             // IMPORTANT: Validate rooms are actually available before creating booking
-            $checkIn = Carbon::parse($validated['check_in_date']);
-            $checkOut = Carbon::parse($validated['check_out_date']);
+            $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
+            $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
             $unavailableRooms = [];
             
             $roomIds = !empty($roomsData) ? collect($roomsData)->pluck('roomId')->toArray() : ($singleRoomId ? [$singleRoomId] : []);
             
             foreach ($roomIds as $roomId) {
-                // Check if room is already booked for these dates (in booking_rooms table)
+                // Check if room is already booked for these dates/times (in booking_rooms table)
                 $hasConflict = BookingRoom::where('room_id', $roomId)
                     ->whereHas('booking', function($q) use ($checkIn, $checkOut) {
                         $q->whereNotIn('status', ['cancelled', 'checked_out'])
-                          ->where('check_in_date', '<', $checkOut)
-                          ->where('check_out_date', '>', $checkIn);
-                    })->exists();
+                          ->where('check_in_date', '<', $checkOut->toDateString())
+                          ->where('check_out_date', '>', $checkIn->toDateString());
+                    })
+                    ->get()
+                    ->some(function ($bookingRoom) use ($checkIn, $checkOut) {
+                        $booking = $bookingRoom->booking;
+                        $existingCheckIn = $booking->getCheckInDateTime();
+                        $existingCheckOut = $booking->getCheckOutDateTime();
+                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                    });
                 
                 // Also check legacy room_id booking
                 if (!$hasConflict) {
                     $hasConflict = Booking::where('room_id', $roomId)
                         ->whereNotIn('status', ['cancelled', 'checked_out'])
-                        ->where('check_in_date', '<', $checkOut)
-                        ->where('check_out_date', '>', $checkIn)
-                        ->exists();
+                        ->where('check_in_date', '<', $checkOut->toDateString())
+                        ->where('check_out_date', '>', $checkIn->toDateString())
+                        ->get()
+                        ->some(function ($booking) use ($checkIn, $checkOut) {
+                            $existingCheckIn = $booking->getCheckInDateTime();
+                            $existingCheckOut = $booking->getCheckOutDateTime();
+                            return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                        });
                 }
                 
                 if ($hasConflict) {
@@ -464,6 +482,64 @@ class PremiumBookingController extends Controller
             $booking = Booking::findOrFail($bookingId);
             
             DB::beginTransaction();
+            
+            $checkIn = $booking->getCheckInDateTime();
+            $checkOut = $booking->getCheckOutDateTime();
+            $unavailableRooms = [];
+            
+            foreach ($roomsData as $roomData) {
+                $roomId = $roomData['roomId'];
+                
+                // Check if room is already in this booking
+                $exists = BookingRoom::where('booking_id', $bookingId)
+                    ->where('room_id', $roomId)
+                    ->exists();
+                    
+                if ($exists) continue;
+                
+                // Check conflict using datetime
+                $hasConflict = BookingRoom::where('room_id', $roomId)
+                    ->whereHas('booking', function($q) use ($bookingId, $checkIn, $checkOut) {
+                        $q->where('id', '!=', $bookingId)
+                          ->whereNotIn('status', ['cancelled', 'checked_out'])
+                          ->where('check_in_date', '<', $checkOut->toDateString())
+                          ->where('check_out_date', '>', $checkIn->toDateString());
+                    })
+                    ->get()
+                    ->some(function ($bookingRoom) use ($checkIn, $checkOut) {
+                        $other = $bookingRoom->booking;
+                        $existingCheckIn = $other->getCheckInDateTime();
+                        $existingCheckOut = $other->getCheckOutDateTime();
+                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                    });
+                
+                if (!$hasConflict) {
+                    $hasConflict = Booking::where('room_id', $roomId)
+                        ->where('id', '!=', $bookingId)
+                        ->whereNotIn('status', ['cancelled', 'checked_out'])
+                        ->where('check_in_date', '<', $checkOut->toDateString())
+                        ->where('check_out_date', '>', $checkIn->toDateString())
+                        ->get()
+                        ->some(function ($other) use ($checkIn, $checkOut) {
+                            $existingCheckIn = $other->getCheckInDateTime();
+                            $existingCheckOut = $other->getCheckOutDateTime();
+                            return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                        });
+                }
+                
+                if ($hasConflict) {
+                    $room = Room::find($roomId);
+                    $unavailableRooms[] = $room ? $room->room_number : $roomId;
+                }
+            }
+            
+            if (!empty($unavailableRooms)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Room(s) ' . implode(', ', $unavailableRooms) . ' already booked for this booking period.'
+                ], 409);
+            }
             
             // Add new rooms to booking_rooms table
             $addedRooms = [];
