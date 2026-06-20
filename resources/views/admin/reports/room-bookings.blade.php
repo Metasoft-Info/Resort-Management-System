@@ -708,12 +708,6 @@ function showGuestInfo(bookingId) {
                     </div>
                     ` : ''}
                     
-                    <!-- Print Footer -->
-                    <div class="mt-6 pt-4 border-t-2 border-gray-300 text-center text-xs text-gray-500">
-                        <p>প্রিন্ট তারিখ: ${new Date().toLocaleDateString('bn-BD')} | Tufan Convention Resort</p>
-                        <p class="mt-1">Developed by Mir Javed Jeetu | 01811480222</p>
-                    </div>
-
                     <!-- Signature Section -->
                     <div class="mt-8 pt-4 border-t-2 border-gray-800">
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center;">
@@ -738,6 +732,11 @@ function showGuestInfo(bookingId) {
                                 <p style="font-size: 10px; color: #666;">Signature</p>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Print Footer -->
+                    <div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
+                        <p>প্রিন্ট তারিখ: ${new Date().toLocaleDateString('bn-BD')} | Developed by Mir Javed Jeetu | 01811480222</p>
                     </div>
                 </div>
             `;
