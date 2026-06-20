@@ -152,10 +152,12 @@
             {{ $bookings->links() }}
         </div>
 
-        <div class="p-4 text-center text-xs text-gray-500 border-t print:block">
-            <p>প্রিন্ট/রিপোর্ট সময়: {{ now()->format('d-m-Y h:i A') }}</p>
+        @include('admin.reports.partials.signature-section')
+
+        <div class="p-3 text-center text-[10px] text-gray-500 border-t print:block">
+            <p>প্রিন্ট/রিপোর্ট সময়: {{ now()->format('d-m-Y h:i A') }} | Developed by Mir Javed Jeetu | 01811480222</p>
             @if($resortInfo)
-                <p>{{ $resortInfo->name }} | {{ $resortInfo->phone }}</p>
+                <p class="text-[10px]">{{ $resortInfo->name }} | {{ $resortInfo->phone }}</p>
             @endif
         </div>
     </div>
