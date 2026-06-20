@@ -152,7 +152,8 @@
                         if ($booking->bookingRooms->count() > 0) {
                             $roomRentDisplay = $booking->bookingRooms->map(function($br) {
                                 $rent = $br->price_per_night ?? 0;
-                                return '<div class="whitespace-nowrap">' . ($br->room->room_number ?? '?') . ': ' . number_format($rent, 0) . '</div>';
+                                $roomNum = e($br->room->room_number ?? '?');
+                                return '<div class="whitespace-nowrap">' . $roomNum . ': ' . number_format($rent, 0) . '</div>';
                             })->join('');
                         } elseif ($booking->room) {
                             $roomRentDisplay = number_format($booking->room->room_type->base_price ?? $booking->room->price_per_night ?? 0, 0);

@@ -411,66 +411,102 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  @endif
 
  <!-- Documents -->
- @if($booking->customer_photo || $booking->customer_nid_document || $booking->passport_document || $booking->visiting_card)
+ @php
+ $customerPhotos = $booking->getDocuments('customer_photo');
+ $nidDocs = $booking->getDocuments('customer_nid_document');
+ $passportDocs = $booking->getDocuments('passport_document');
+ $visitingCards = $booking->getDocuments('visiting_card');
+ $hasAnyDoc = !empty($customerPhotos) || !empty($nidDocs) || !empty($passportDocs) || !empty($visitingCards);
+ @endphp
+ @if($hasAnyDoc)
  <div class="bg-white rounded-xl shadow-lg p-6 print:hidden">
  <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
  <i class="fas fa-file text-primary-600"></i>
  Uploaded Documents
  </h2>
- <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
- @if($booking->customer_photo)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->customer_photo) }}" target="_blank" class="block">
- <img src="{{ Storage::url($booking->customer_photo) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-2 border">
- <p class="text-xs text-gray-700 font-semibold">Customer Photo</p>
- </a>
- </div>
- @endif
- @if($booking->customer_nid_document)
- <div class="bg-green-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->customer_nid_document) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($booking->customer_nid_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($booking->customer_nid_document) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">NID Document</p>
- </a>
- </div>
- @endif
- @if($booking->passport_document)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->passport_document) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($booking->passport_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($booking->passport_document) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">Passport</p>
- </a>
- </div>
- @endif
- @if($booking->visiting_card)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->visiting_card) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($booking->visiting_card), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($booking->visiting_card) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">Visiting Card</p>
- </a>
- </div>
- @endif
- </div>
- </div>
- @endif
+@if(!empty($customerPhotos))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-camera text-primary-600"></i> Customer Photos</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($customerPhotos as $idx => $doc)
+<div class="bg-primary-50 p-2 rounded-lg text-center hover:bg-primary-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+<img src="{{ Storage::url($doc) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-1 border">
+<p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($nidDocs))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-id-card text-green-600"></i> NID Documents</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($nidDocs as $idx => $doc)
+<div class="bg-green-50 p-2 rounded-lg text-center hover:bg-green-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-1">
+<i class="fas fa-file-pdf text-green-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">NID {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($passportDocs))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-passport text-blue-600"></i> Passport Documents</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($passportDocs as $idx => $doc)
+<div class="bg-blue-50 p-2 rounded-lg text-center hover:bg-blue-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-blue-100 rounded mb-1">
+<i class="fas fa-file-pdf text-blue-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">Passport {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($visitingCards))
+<div class="mb-2">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-address-card text-purple-600"></i> Visiting Cards</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($visitingCards as $idx => $doc)
+<div class="bg-purple-50 p-2 rounded-lg text-center hover:bg-purple-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-1">
+<i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">Card {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+</div>
+@endif
 
  <!-- Payment History -->
  @if($booking->payments && $booking->payments->count() > 0)
@@ -803,35 +839,101 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
 
  <!-- Documents -->
  <div class="mt-4 border-t pt-4">
- <h4 class="text-sm font-bold text-gray-700 mb-3">Documents (optional — leave blank to keep existing)</h4>
+ <h4 class="text-sm font-bold text-gray-700 mb-3">Documents (optional — check to remove, select new to add more)</h4>
  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ @php
+ $editPhotos = $booking->getDocuments('customer_photo');
+ $editNids = $booking->getDocuments('customer_nid_document');
+ $editPassports = $booking->getDocuments('passport_document');
+ $editCards = $booking->getDocuments('visiting_card');
+ @endphp
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-1">Photo</label>
- @if($booking->customer_photo)
- <a href="{{ asset('storage/'.$booking->customer_photo) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @if(!empty($editPhotos))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editPhotos as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_customer_photo[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
  @endif
- <input type="file" name="customer_photo" accept="image/*" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ <input type="file" name="customer_photo[]" accept="image/*" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-1">NID Document</label>
- @if($booking->customer_nid_document)
- <a href="{{ asset('storage/'.$booking->customer_nid_document) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @if(!empty($editNids))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editNids as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ @else
+ <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
  @endif
- <input type="file" name="customer_nid_document" accept="image/*,.pdf" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_customer_nid_document[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="customer_nid_document[]" accept="image/*,.pdf" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-1">Passport Document</label>
- @if($booking->passport_document)
- <a href="{{ asset('storage/'.$booking->passport_document) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @if(!empty($editPassports))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editPassports as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ @else
+ <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
  @endif
- <input type="file" name="passport_document" accept="image/*,.pdf" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_passport_document[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="passport_document[]" accept="image/*,.pdf" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-1">Visiting Card</label>
- @if($booking->visiting_card)
- <a href="{{ asset('storage/'.$booking->visiting_card) }}" target="_blank" class="text-xs text-blue-600 underline block mb-1">View current</a>
+ @if(!empty($editCards))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editCards as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ @else
+ <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
  @endif
- <input type="file" name="visiting_card" accept="image/*,.pdf" class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_visiting_card[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="visiting_card[]" accept="image/*,.pdf" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
  </div>
  </div>
  </div>
@@ -1703,6 +1805,20 @@ function closeEditCustomerModal() {
  document.getElementById('editCustomerModal').classList.add('hidden');
  document.getElementById('editCustomerModal').classList.remove('flex');
 }
+
+// Document remove checkbox visual feedback
+document.querySelectorAll('[name^="remove_"]').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const thumb = this.closest('.relative');
+        if (this.checked) {
+            thumb.style.opacity = '0.4';
+            thumb.querySelector('img, .w-16')?.classList.add('grayscale');
+        } else {
+            thumb.style.opacity = '1';
+            thumb.querySelector('img, .w-16')?.classList.remove('grayscale');
+        }
+    });
+});
 
 async function submitEditCustomer(e) {
  e.preventDefault();
