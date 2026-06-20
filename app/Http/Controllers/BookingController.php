@@ -124,7 +124,9 @@ class BookingController extends Controller
             'number_of_guests' => 'required|integer|min:1',
             'total_amount' => 'required|numeric',
             'advance_payment' => 'required|numeric',
-            'payment_method' => 'required|in:cash,card,mfs',
+            'payment_method' => 'required|in:cash,card,mfs,bkash',
+            'bkash_number' => 'nullable|string|max:20',
+            'bank_name' => 'nullable|string|max:100',
             'booking_purpose' => 'nullable|string|max:50',
         ]);
 
@@ -292,7 +294,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'nullable|numeric|min:0',
-            'method' => 'required|in:cash,card,mfs',
+            'method' => 'required|in:cash,card,mfs,bkash',
             'bkash_number' => 'nullable|string|max:20',
             'bank_name' => 'nullable|string|max:100',
             'discount_type' => 'nullable|in:none,flat,percentage',
