@@ -95,17 +95,25 @@ try {
     $output[] = 'VIEW ERROR: ' . $e->getMessage();
 }
 
-// Show last 10 log lines
+// Show last ERROR log lines only
 $logFile = $laravelRoot . '/storage/logs/laravel.log';
 $logLines = [];
 if (file_exists($logFile)) {
     $logContent = file_get_contents($logFile);
-    $logLines = array_slice(array_filter(explode("\n", $logContent)), -50);
+    $allLines = array_filter(explode("\n", $logContent));
+    // Filter only error lines (production.ERROR, local.ERROR, etc.)
+    $errorLines = array_filter($allLines, function($line) {
+        return strpos($line, '.ERROR') !== false || strpos($line, '.CRITICAL') !== false || strpos($line, '.WARNING') !== false;
+    });
+    $logLines = array_slice($errorLines, -30);
+    if (empty($logLines)) {
+        $logLines = array_slice($allLines, -30);
+    }
 }
 
 echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fix Production</title>';
-echo '<style>body{font-family:monospace;padding:20px;background:#1a1a1a;color:#0f0;}pre{background:#000;padding:15px;border-radius:5px;overflow:auto;}h2{color:#fff;border-bottom:1px solid #333;padding-bottom:10px;}</style></head><body>';
+echo '<style>body{font-family:monospace;padding:20px;background:#1a1a1a;color:#0f0;}pre{background:#000;padding:15px;border-radius:5px;overflow:auto;}h2{color:#fff;border-bottom:1px solid #333;padding-bottom:10px;} .error{color:#f00;}</style></head><body>';
 echo '<h2>Deployment Fix</h2><pre>' . implode("\n", $output) . '</pre>';
-echo '<h2>Last Log Lines</h2><pre>' . implode("\n", $logLines) . '</pre>';
+echo '<h2 class="error">Recent Errors/Warnings</h2><pre>' . implode("\n", $logLines) . '</pre>';
 echo '<p style="color:#f00;font-weight:bold;">DELETE THIS FILE (public/run.php) AFTER RUNNING!</p>';
 echo '</body></html>';
