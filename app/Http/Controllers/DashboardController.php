@@ -52,18 +52,8 @@ class DashboardController extends Controller
         $totalRooms = Room::count();
         $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
         
-        // Calculate total revenue including convention bookings (room revenue = total - discount + extras + vat)
-        $roomRevenue = Booking::where('status', '!=', 'cancelled')
-            ->select(DB::raw('SUM(
-                CASE
-                    WHEN discount_type = "percentage" AND discount_percentage > 0 THEN total_amount * (1 - discount_percentage / 100)
-                    WHEN discount_type = "flat" AND discount_amount > 0 THEN total_amount - discount_amount
-                    ELSE total_amount
-                END
-                + COALESCE(extra_charges, 0)
-                + COALESCE(vat_amount, 0)
-            ) as revenue'))
-            ->value('revenue');
+        // Calculate total revenue using model methods for accuracy (preserves agreed room prices)
+        $roomRevenue = Booking::where('status', '!=', 'cancelled')->get()->sum(fn($b) => $b->getGrandTotal());
         $conventionRevenue = ConventionBooking::where('status', '!=', 'cancelled')->sum('total_amount');
         $totalRevenue = $roomRevenue + $conventionRevenue;
         
@@ -237,16 +227,8 @@ class DashboardController extends Controller
             $revenueLabels[] = 'Week ' . (4 - $i);
             $weekRoomRevenue = Booking::whereBetween('created_at', [$weekStart, $weekEnd])
                 ->where('status', '!=', 'cancelled')
-                ->select(DB::raw('SUM(
-                    CASE
-                        WHEN discount_type = "percentage" AND discount_percentage > 0 THEN total_amount * (1 - discount_percentage / 100)
-                        WHEN discount_type = "flat" AND discount_amount > 0 THEN total_amount - discount_amount
-                        ELSE total_amount
-                    END
-                    + COALESCE(extra_charges, 0)
-                    + COALESCE(vat_amount, 0)
-                ) as revenue'))
-                ->value('revenue');
+                ->get()
+                ->sum(fn($b) => $b->getGrandTotal());
             $weekConventionRevenue = ConventionBooking::whereBetween('created_at', [$weekStart, $weekEnd])
                 ->where('status', '!=', 'cancelled')
                 ->sum('total_amount');

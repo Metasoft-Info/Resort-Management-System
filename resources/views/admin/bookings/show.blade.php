@@ -8,18 +8,8 @@
  $allRooms = $booking->getAllRooms();
  $bookingRooms = $booking->bookingRooms;
  
- // Calculate base amount from actual rooms (not stored total_amount)
- $baseAmount = 0;
- foreach($allRooms as $room) {
- $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
- $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
- $baseAmount += $roomPrice * $nights;
- }
- 
- // If no rooms found, fallback to stored total_amount
- if ($baseAmount == 0) {
- $baseAmount = $booking->total_amount;
- }
+ // Use model method for consistent base amount calculation
+ $baseAmount = $booking->getCalculatedTotal();
  
  $discountAmount = 0;
  
@@ -34,7 +24,7 @@
  $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
  $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
  $totalDeposited = $booking->getTotalDeposited();
-$remainingPayment = max(0, $grandTotal - $totalDeposited);
+$remainingPayment = $booking->getCalculatedRemaining();
 
  // Date & status logic
  $today = \Carbon\Carbon::now()->startOfDay();

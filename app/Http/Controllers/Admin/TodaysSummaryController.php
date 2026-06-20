@@ -41,8 +41,8 @@ class TodaysSummaryController extends Controller {
             'checkins_count' => $todayCheckins->count(),
             'checkouts_count' => $todayCheckouts->count(),
             'staying_count' => $currentlyStaying->count(),
-            'today_revenue' => $todayCheckins->sum('total_amount'),
-            'pending_payments' => $currentlyStaying->sum('remaining_payment'),
+            'today_revenue' => $todayCheckins->sum(fn($b) => $b->getGrandTotal()),
+            'pending_payments' => $currentlyStaying->sum(fn($b) => $b->getCalculatedRemaining()),
         ];
         
         // Convention stats

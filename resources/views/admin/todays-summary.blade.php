@@ -131,9 +131,9 @@
  <td class="px-4 py-3 text-slate-600">{{ $booking->customer_phone }}</td>
  <td class="px-4 py-3"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</span></td>
  <td class="px-4 py-3 text-slate-600">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
- <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($booking->total_amount) }}</td>
+ <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($booking->getCalculatedTotal()) }}</td>
  <td class="px-4 py-3 text-right font-semibold text-emerald-600">{{ number_format($booking->advance_payment) }}</td>
- <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ number_format($booking->remaining_payment) }}</td>
+ <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ number_format($booking->getCalculatedRemaining()) }}</td>
  <td class="px-4 py-3 text-center">
  @if($booking->status == 'checked_in')
  <span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Checked In</span>
@@ -187,9 +187,9 @@
  <td class="px-4 py-3 text-slate-600">{{ $booking->customer_phone }}</td>
  <td class="px-4 py-3"><span class="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-bold">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</span></td>
  <td class="px-4 py-3 text-slate-600">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
- <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($booking->total_amount) }}</td>
+ <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($booking->getCalculatedTotal()) }}</td>
  <td class="px-4 py-3 text-right font-semibold text-emerald-600">{{ number_format($booking->advance_payment) }}</td>
- <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ number_format($booking->remaining_payment) }}</td>
+ <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ number_format($booking->getCalculatedRemaining()) }}</td>
  </tr>
  @empty
  <tr><td colspan="8" class="px-6 py-10 text-center text-slate-400"><i class="fas fa-inbox text-4xl mb-2 block"></i>No Checked Out guests</td></tr>
@@ -237,8 +237,8 @@
  <td class="px-4 py-3 text-slate-600">{{ $booking->customer_phone }}</td>
  <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</span></td>
  <td class="px-4 py-3 text-slate-600">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
- <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($booking->total_amount) }}</td>
- <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ number_format($booking->remaining_payment) }}</td>
+ <td class="px-4 py-3 text-right font-bold text-slate-800">{{ number_format($booking->getCalculatedTotal()) }}</td>
+ <td class="px-4 py-3 text-right font-semibold text-rose-600">{{ number_format($booking->getCalculatedRemaining()) }}</td>
  <td class="px-4 py-3 text-center">
  @if($booking->status == 'checked_in')
  <span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Checked In</span>
