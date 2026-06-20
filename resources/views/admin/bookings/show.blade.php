@@ -424,60 +424,89 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <i class="fas fa-file text-primary-600"></i>
  Uploaded Documents
  </h2>
- <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
- @foreach($customerPhotos as $idx => $doc)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
- <img src="{{ Storage::url($doc) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-2 border">
- <p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
- </a>
- </div>
- @endforeach
- @foreach($nidDocs as $idx => $doc)
- <div class="bg-green-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($doc) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">NID {{ $idx + 1 }}</p>
- </a>
- </div>
- @endforeach
- @foreach($passportDocs as $idx => $doc)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">Passport {{ $idx + 1 }}</p>
- </a>
- </div>
- @endforeach
- @foreach($visitingCards as $idx => $doc)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">Card {{ $idx + 1 }}</p>
- </a>
- </div>
- @endforeach
- </div>
- </div>
- @endif
+@if(!empty($customerPhotos))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-camera text-primary-600"></i> Customer Photos</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($customerPhotos as $idx => $doc)
+<div class="bg-primary-50 p-2 rounded-lg text-center hover:bg-primary-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+<img src="{{ Storage::url($doc) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-1 border">
+<p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($nidDocs))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-id-card text-green-600"></i> NID Documents</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($nidDocs as $idx => $doc)
+<div class="bg-green-50 p-2 rounded-lg text-center hover:bg-green-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-1">
+<i class="fas fa-file-pdf text-green-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">NID {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($passportDocs))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-passport text-blue-600"></i> Passport Documents</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($passportDocs as $idx => $doc)
+<div class="bg-blue-50 p-2 rounded-lg text-center hover:bg-blue-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-blue-100 rounded mb-1">
+<i class="fas fa-file-pdf text-blue-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">Passport {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($visitingCards))
+<div class="mb-2">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-address-card text-purple-600"></i> Visiting Cards</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($visitingCards as $idx => $doc)
+<div class="bg-purple-50 p-2 rounded-lg text-center hover:bg-purple-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-1">
+<i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">Card {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+</div>
+@endif
 
  <!-- Payment History -->
  @if($booking->payments && $booking->payments->count() > 0)
