@@ -345,13 +345,13 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <div>
  <span class="font-semibold text-gray-600">Check-In:</span>
  <p class="text-gray-900">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M Y') }} 
- @if($booking->check_in_time) at {{ $booking->check_in_time }} @endif
+ @if($booking->check_in_time) at {{ \Carbon\Carbon::parse($booking->check_in_time)->format('h:i A') }} @endif
  </p>
  </div>
  <div>
  <span class="font-semibold text-gray-600">Check-Out:</span>
  <p class="text-gray-900">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d M Y') }} 
- @if($booking->check_out_time) at {{ $booking->check_out_time }} @endif
+ @if($booking->check_out_time) at {{ \Carbon\Carbon::parse($booking->check_out_time)->format('h:i A') }} @endif
  </p>
  </div>
  <div>
