@@ -58,13 +58,21 @@ class Booking extends Model
      */
     public function getDocuments(string $field): array
     {
-        $value = $this->getAttribute($field);
-        if (is_string($value) && !empty($value)) {
-            return [$value];
+        $rawValue = $this->getAttributes()[$field] ?? null;
+
+        if (is_string($rawValue) && !empty($rawValue)) {
+            $decoded = json_decode($rawValue, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter($decoded));
+            }
+            // Old single-path string (not valid JSON)
+            return [$rawValue];
         }
-        if (is_array($value)) {
-            return array_values(array_filter($value));
+
+        if (is_array($rawValue)) {
+            return array_values(array_filter($rawValue));
         }
+
         return [];
     }
 
