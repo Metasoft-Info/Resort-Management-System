@@ -100,7 +100,7 @@ $logFile = $laravelRoot . '/storage/logs/laravel.log';
 $logLines = [];
 if (file_exists($logFile)) {
     $logContent = file_get_contents($logFile);
-    $logLines = array_slice(array_filter(explode("\n", $logContent)), -15);
+    $logLines = array_slice(array_filter(explode("\n", $logContent)), -50);
 }
 
 echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fix Production</title>';
