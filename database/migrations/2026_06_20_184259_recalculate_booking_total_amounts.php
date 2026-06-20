@@ -11,42 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $bookings = \DB::table('bookings')->get();
+        $bookings = \App\Models\Booking::with(['bookingRooms', 'payments'])->get();
 
         foreach ($bookings as $booking) {
-            $nights = max(1, \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date)));
+            $correctTotal = $booking->getCalculatedTotal();
 
-            // Check if premium booking (has booking_rooms)
-            $bookingRooms = \DB::table('booking_rooms')
-                ->where('booking_id', $booking->id)
-                ->get();
-
-            $correctTotal = 0;
-
-            if ($bookingRooms->count() > 0) {
-                // Premium booking: sum stored room prices
-                foreach ($bookingRooms as $br) {
-                    $correctTotal += ($br->price_per_night ?? 0) * $nights;
-                }
-            } else {
-                // Legacy single-room booking: get room price
-                $room = \DB::table('rooms')
-                    ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
-                    ->where('rooms.id', $booking->room_id)
-                    ->select('rooms.price_per_night', 'room_types.base_price')
-                    ->first();
-
-                if ($room) {
-                    $price = $room->price_per_night ?? $room->base_price ?? 0;
-                    $correctTotal = $price * $nights;
-                }
-            }
-
-            // If we could calculate a valid total and it's different from stored, update it
+            // Only update if we got a valid total different from stored
             if ($correctTotal > 0 && $correctTotal != $booking->total_amount) {
-                \DB::table('bookings')
-                    ->where('id', $booking->id)
-                    ->update(['total_amount' => $correctTotal]);
+                $booking->total_amount = $correctTotal;
+
+                // Recalculate remaining payment using model methods
+                $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
+                $booking->payment_status = $booking->remaining_payment <= 0 ? 'paid' : ($booking->getTotalDeposited() > 0 ? 'partial' : 'pending');
+
+                $booking->save();
             }
         }
     }

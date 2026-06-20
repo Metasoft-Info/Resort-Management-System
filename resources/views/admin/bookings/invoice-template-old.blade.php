@@ -91,7 +91,7 @@
  <!-- Billing Details -->
  @php
  $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
- $invoiceBaseAmount = $booking->total_amount;
+ $invoiceBaseAmount = $booking->getCalculatedTotal();
  $invoiceDiscountAmount = 0;
  
  if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
@@ -165,7 +165,7 @@
  </tr>
  <tr class="text-red-600 font-bold">
  <td colspan="3" class="p-2 text-right">Remaining Payment:</td>
- <td class="text-right p-2">{{ number_format($booking->remaining_payment, 2) }}</td>
+ <td class="text-right p-2">{{ number_format($booking->getCalculatedRemaining(), 2) }}</td>
  </tr>
  </tbody>
  </table>

@@ -62,18 +62,8 @@
  $allRooms = $booking->getAllRooms();
  $bookingRooms = $booking->bookingRooms;
  
- // Calculate room total from actual rooms (not stored total_amount)
- $invoiceBaseAmount = 0;
- foreach($allRooms as $room) {
- $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
- $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
- $invoiceBaseAmount += $roomPrice * $invoiceNights;
- }
- 
- // If no rooms found, fallback to stored total_amount
- if ($invoiceBaseAmount == 0) {
- $invoiceBaseAmount = $booking->total_amount;
- }
+ // Use model method for consistent base amount calculation
+ $invoiceBaseAmount = $booking->getCalculatedTotal();
  
  $invoiceDiscountAmount = 0;
  
