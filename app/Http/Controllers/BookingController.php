@@ -132,6 +132,31 @@ class BookingController extends Controller
 
         $validated['created_by_id'] = Auth::id();
         $validated['updated_by_id'] = Auth::id();
+        $validated['check_in_time'] = $validated['check_in_time'] ?? '12:00';
+        $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
+        $validated['status'] = $validated['status'] ?? 'confirmed';
+
+        // Check room availability at given time
+        $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
+        $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
+
+        $hasConflict = Booking::where('room_id', $validated['room_id'])
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->where('check_in_date', '<', $checkOut->toDateString())
+            ->where('check_out_date', '>', $checkIn->toDateString())
+            ->get()
+            ->some(function ($booking) use ($checkIn, $checkOut) {
+                $existingCheckIn = $booking->getCheckInDateTime();
+                $existingCheckOut = $booking->getCheckOutDateTime();
+                return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+            });
+
+        if ($hasConflict) {
+            return back()
+                ->withErrors(['check_in_date' => 'এই রুমটি নির্বাচিত সময়ে আগে থেকেই বুকড আছে। অন্য রুম/তারিখ নির্বাচন করুন।'])
+                ->withInput()
+                ->with('error', 'এই রুমটি অলরেডি বুকড।');
+        }
 
         // Calculate discount at creation time for correct remaining/payment_status
         $discountAmount = 0;
@@ -215,6 +240,21 @@ class BookingController extends Controller
         }
 
         $booking->update(['status' => $newStatus, 'updated_by_id' => Auth::id()]);
+
+        // Mark room(s) as occupied when checking in
+        if ($validated['status'] === 'checked_in' && $oldStatus !== 'checked_in') {
+            $roomIds = [];
+            if ($booking->room_id) {
+                $roomIds[] = $booking->room_id;
+            }
+            foreach ($booking->bookingRooms as $bookingRoom) {
+                $roomIds[] = $bookingRoom->room_id;
+            }
+            $roomIds = array_unique($roomIds);
+            if (!empty($roomIds)) {
+                Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
+            }
+        }
 
         // Free up room(s) when checking out
         if ($validated['status'] === 'checked_out' && $oldStatus !== 'checked_out') {
@@ -657,10 +697,12 @@ class BookingController extends Controller
             ]);
 
             $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
-            $oldCheckIn = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
-            $oldCheckOut = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
-            $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->startOfDay();
-            $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->startOfDay();
+            $oldCheckIn = $booking->getCheckInDateTime();
+            $oldCheckOut = $booking->getCheckOutDateTime();
+            $newCheckInTime = $validated['check_in_time'] ?? $booking->check_in_time ?? '12:00';
+            $newCheckOutTime = $validated['check_out_time'] ?? $booking->check_out_time ?? '12:00';
+            $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($newCheckInTime);
+            $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($newCheckOutTime);
 
             $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
             $checkoutExtended = $newCheckOut->gt($oldCheckOut);
@@ -672,11 +714,16 @@ class BookingController extends Controller
                     ->where('id', '!=', $booking->id)
                     ->where('room_id', $validated['room_id'])
                     ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
-                    ->where(function ($query) use ($validated) {
-                        $query->where('check_in_date', '<', $validated['check_out_date'])
-                            ->where('check_out_date', '>', $validated['check_in_date']);
+                    ->where(function ($query) use ($newCheckIn, $newCheckOut) {
+                        $query->where('check_in_date', '<', $newCheckOut->toDateString())
+                            ->where('check_out_date', '>', $newCheckIn->toDateString());
                     })
-                    ->exists();
+                    ->get()
+                    ->some(function ($other) use ($newCheckIn, $newCheckOut) {
+                        $otherCheckIn = $other->getCheckInDateTime();
+                        $otherCheckOut = $other->getCheckOutDateTime();
+                        return $otherCheckIn->lt($newCheckOut) && $otherCheckOut->gt($newCheckIn);
+                    });
 
                 if ($hasConflict) {
                     return back()

@@ -16,38 +16,34 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $today = Carbon::today();
+        $now = Carbon::now('Asia/Dhaka');
+        $today = $now->copy()->startOfDay();
         
         // Determine user's access and current mode
         $hasResortAccess = $user->hasResortAccess();
         $hasConventionAccess = $user->hasConventionAccess();
         $currentMode = $user->getDashboardMode();
         
-        // Get rooms that are currently occupied (have active bookings for today)
-        // 1) Legacy single-room bookings from bookings.room_id
-        $occupiedRoomIdsLegacy = Booking::whereIn('status', ['confirmed', 'checked_in'])
-            ->where('check_in_date', '<=', $today)
-            ->where('check_out_date', '>', $today)
-            ->whereNotNull('room_id')
-            ->pluck('room_id')
-            ->toArray();
-
-        // 2) Multi-room bookings from booking_rooms pivot table
-        $activeBookingIds = Booking::whereIn('status', ['confirmed', 'checked_in'])
-            ->where('check_in_date', '<=', $today)
-            ->where('check_out_date', '>', $today)
-            ->pluck('id');
-
-        $occupiedRoomIdsFromBookingRooms = DB::table('booking_rooms')
-            ->whereIn('booking_id', $activeBookingIds)
-            ->pluck('room_id')
-            ->toArray();
-
-        // Merge both sources (unique room IDs)
-        $occupiedRoomIds = array_values(array_unique(array_merge(
-            $occupiedRoomIdsLegacy,
-            $occupiedRoomIdsFromBookingRooms
-        )));
+        // Get rooms that are currently occupied (status checked_in or confirmed with time passed)
+        $activeBookings = Booking::with(['bookingRooms', 'room'])
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->get();
+        
+        $occupiedRoomIds = [];
+        $activeBookingIds = [];
+        foreach ($activeBookings as $booking) {
+            if ($booking->isOccupyingAt($now)) {
+                $activeBookingIds[] = $booking->id;
+                if ($booking->room_id) {
+                    $occupiedRoomIds[] = $booking->room_id;
+                }
+                foreach ($booking->bookingRooms as $br) {
+                    $occupiedRoomIds[] = $br->room_id;
+                }
+            }
+        }
+        $occupiedRoomIds = array_values(array_unique($occupiedRoomIds));
         
         $totalRooms = Room::count();
         $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
@@ -60,14 +56,11 @@ class DashboardController extends Controller
         // Resort Stats
         $resortStats = [
             'total_bookings' => Booking::count(),
-            'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])
-                ->where('check_in_date', '<=', $today)
-                ->where('check_out_date', '>', $today)
-                ->count(),
+            'active_bookings' => Booking::where('status', 'checked_in')->count(),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
-            'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_in')->count(),
             'room_revenue' => $roomRevenue,
             'pending_bookings' => Booking::where('status', 'pending')->count(),
         ];
@@ -86,15 +79,12 @@ class DashboardController extends Controller
         // Combined stats for overview
         $stats = [
             'total_bookings' => Booking::count(),
-            'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])
-                ->where('check_in_date', '<=', $today)
-                ->where('check_out_date', '>', $today)
-                ->count(),
+            'active_bookings' => Booking::where('status', 'checked_in')->count(),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
             'convention_bookings' => ConventionBooking::count(),
-            'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_in')->count(),
             'total_revenue' => $totalRevenue,
             'room_revenue' => $roomRevenue,
             'convention_revenue' => $conventionRevenue,
@@ -111,22 +101,19 @@ class DashboardController extends Controller
             // Determine if room is currently occupied using merged occupied room IDs
             $isOccupied = in_array($room->id, $occupiedRoomIds);
 
-            // Find current booking - check legacy direct relation first
+            // Find current booking that is currently occupying this room
             $currentBooking = Booking::where('room_id', $room->id)
                 ->whereIn('status', ['confirmed', 'checked_in'])
-                ->where('check_in_date', '<=', $today)
-                ->where('check_out_date', '>', $today)
-                ->first();
+                ->get()
+                ->first(fn($b) => $b->isOccupyingAt($now));
 
-            // If no legacy booking, check booking_rooms pivot table
             if (!$currentBooking) {
                 $currentBooking = Booking::whereHas('bookingRooms', function($q) use ($room) {
                         $q->where('room_id', $room->id);
                     })
                     ->whereIn('status', ['confirmed', 'checked_in'])
-                    ->where('check_in_date', '<=', $today)
-                    ->where('check_out_date', '>', $today)
-                    ->first();
+                    ->get()
+                    ->first(fn($b) => $b->isOccupyingAt($now));
             }
 
             // Check upcoming bookings - legacy and pivot
@@ -146,12 +133,14 @@ class DashboardController extends Controller
                     ->first();
             }
 
+            $availableFrom = $currentBooking ? $currentBooking->getCheckOutDateTime() : $now;
+
             $roomsWithStatus[] = [
                 'room' => $room,
                 'status' => $isOccupied ? 'occupied' : 'available',
                 'current_booking' => $currentBooking,
                 'upcoming_booking' => $upcomingBooking,
-                'available_from' => $currentBooking ? $currentBooking->check_out_date : $today,
+                'available_from' => $availableFrom,
             ];
         }
 
@@ -299,47 +288,36 @@ class DashboardController extends Controller
 
     public function searchRoomAvailability(Request $request)
     {
-        $checkIn = $request->checkIn;
-        $checkOut = $request->checkOut;
+        $checkIn = \Carbon\Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
+        $checkOut = \Carbon\Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
 
-        // Get active (non-cancelled, non-checked-out) booking IDs that overlap the date range
-        // Proper hotel overlap: existing.check_in < new.check_out AND existing.check_out > new.check_in
-        $activeBookingIds = Booking::where('check_in_date', '<', $checkOut)
-            ->where('check_out_date', '>', $checkIn)
+        // Get active bookings and check actual datetime overlap using model helpers
+        $activeBookings = Booking::with(['bookingRooms', 'room'])
             ->whereNotIn('status', ['cancelled', 'checked_out'])
-            ->pluck('id');
-
-        // 1) Legacy single-room bookings
-        $bookedRoomIdsLegacy = Booking::whereIn('id', $activeBookingIds)
-            ->whereNotNull('room_id')
-            ->pluck('room_id')
-            ->toArray();
-
-        // 2) Multi-room bookings from booking_rooms pivot table
-        $bookedRoomIdsFromPivot = DB::table('booking_rooms')
-            ->whereIn('booking_id', $activeBookingIds)
-            ->pluck('room_id')
-            ->toArray();
-
-        $bookedRoomIds = array_values(array_unique(array_merge(
-            $bookedRoomIdsLegacy,
-            $bookedRoomIdsFromPivot
-        )));
-
-        $availableRooms = Room::whereNotIn('id', $bookedRoomIds)
-            ->where('status', 'available')
+            ->where('check_in_date', '<', $checkOut->toDateString())
+            ->where('check_out_date', '>', $checkIn->toDateString())
             ->get();
 
-        $roomBookings = Booking::with('room')
-            ->whereIn('id', $activeBookingIds)
-            ->where('check_in_date', '<', $checkOut)
-            ->where('check_out_date', '>', $checkIn)
-            ->whereNotIn('status', ['cancelled', 'checked_out'])
-            ->get();
+        $bookedRoomIds = [];
+        foreach ($activeBookings as $booking) {
+            $existingCheckIn = $booking->getCheckInDateTime();
+            $existingCheckOut = $booking->getCheckOutDateTime();
+            if ($existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn)) {
+                if ($booking->room_id) {
+                    $bookedRoomIds[] = $booking->room_id;
+                }
+                foreach ($booking->bookingRooms as $br) {
+                    $bookedRoomIds[] = $br->room_id;
+                }
+            }
+        }
+        $bookedRoomIds = array_values(array_unique($bookedRoomIds));
+
+        $availableRooms = Room::whereNotIn('id', $bookedRoomIds)->get();
 
         return response()->json([
             'availableRooms' => $availableRooms,
-            'roomBookings' => $roomBookings
+            'roomBookings' => []
         ]);
     }
 

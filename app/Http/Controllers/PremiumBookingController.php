@@ -21,13 +21,13 @@ class PremiumBookingController extends Controller
 
     public function search(Request $request)
     {
-        $checkIn = Carbon::parse($request->checkIn);
-        $checkOut = Carbon::parse($request->checkOut);
+        $checkIn = Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
+        $checkOut = Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
         $roomTypeId = $request->roomTypeId;
         $nights = $checkIn->diffInDays($checkOut);
 
         // Get all rooms
-        $query = Room::with('roomType')->where('status', 'available');
+        $query = Room::with('roomType');
         
         if ($roomTypeId) {
             $query->where('room_type_id', $roomTypeId);
@@ -35,19 +35,18 @@ class PremiumBookingController extends Controller
 
         $rooms = $query->get();
 
-        // Filter out rooms that are already booked for these dates
+        // Filter out rooms that are already booked for these dates/times
         $availableRooms = $rooms->filter(function ($room) use ($checkIn, $checkOut) {
             $hasConflict = Booking::where('room_id', $room->id)
                 ->whereNotIn('status', ['cancelled', 'checked_out'])
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->whereBetween('check_in_date', [$checkIn, $checkOut])
-                        ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
-                        ->orWhere(function ($q) use ($checkIn, $checkOut) {
-                            $q->where('check_in_date', '<=', $checkIn)
-                              ->where('check_out_date', '>=', $checkOut);
-                        });
-                })
-                ->exists();
+                ->where('check_in_date', '<', $checkOut->toDateString())
+                ->where('check_out_date', '>', $checkIn->toDateString())
+                ->get()
+                ->some(function ($booking) use ($checkIn, $checkOut) {
+                    $existingCheckIn = $booking->getCheckInDateTime();
+                    $existingCheckOut = $booking->getCheckOutDateTime();
+                    return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                });
 
             return !$hasConflict;
         });
@@ -111,9 +110,34 @@ class PremiumBookingController extends Controller
                 $validated['visiting_card'] = $request->file('visiting_card')->store('bookings', 'public');
             }
 
-            // Set payment status
+            // Set default times and created by
+            $validated['check_in_time'] = $validated['check_in_time'] ?? '12:00';
+            $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
             $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
             $validated['created_by_id'] = Auth::id();
+            $validated['updated_by_id'] = Auth::id();
+
+            // Check room availability at given time
+            $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
+            $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
+
+            $hasConflict = Booking::where('room_id', $validated['room_id'])
+                ->whereNotIn('status', ['cancelled', 'checked_out'])
+                ->where('check_in_date', '<', $checkOut->toDateString())
+                ->where('check_out_date', '>', $checkIn->toDateString())
+                ->get()
+                ->some(function ($booking) use ($checkIn, $checkOut) {
+                    $existingCheckIn = $booking->getCheckInDateTime();
+                    $existingCheckOut = $booking->getCheckOutDateTime();
+                    return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                });
+
+            if ($hasConflict) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'এই রুমটি নির্বাচিত সময়ে আগে থেকেই বুকড আছে।'
+                ], 422);
+            }
 
             $booking = Booking::create($validated);
 

@@ -6,7 +6,8 @@ use Carbon\Carbon;
 
 class TodaysSummaryController extends Controller {
     public function index() {
-        $today = Carbon::today();
+        $now = Carbon::now('Asia/Dhaka');
+        $today = $now->copy()->startOfDay();
         $user = auth()->user();
         
         // Determine user's access and current mode
@@ -17,23 +18,19 @@ class TodaysSummaryController extends Controller {
         // Today's Check-ins: check_in_date is today AND not yet checked_out
         $todayCheckins = Booking::with('room')
             ->whereDate('check_in_date', $today)
-            ->where('status', '!=', 'checked_out')
+            ->whereNotIn('status', ['checked_out', 'cancelled'])
             ->get();
         
-        // Today's Check-outs: check_out_date is today OR status is checked_out (updated today)
+        // Today's Check-outs: actually checked_out today
         $todayCheckouts = Booking::with('room')
-            ->where(function($query) use ($today) {
-                $query->whereDate('check_out_date', $today)
-                    ->orWhere(function($q) use ($today) {
-                        $q->where('status', 'checked_out')
-                          ->whereDate('updated_at', $today);
-                    });
-            })
+            ->where('status', 'checked_out')
+            ->whereDate('check_out_date', $today)
             ->get();
         
+        // Currently staying: actually checked_in
         $currentlyStaying = Booking::with('room')
-            ->where('check_in_date', '<=', $today)->where('check_out_date', '>=', $today)
-            ->whereIn('status', ['confirmed', 'checked_in'])->get();
+            ->where('status', 'checked_in')
+            ->get();
         $todayConventions = ConventionBooking::with('conventionHall')->whereDate('event_date', $today)->get();
         
         // Resort stats

@@ -87,6 +87,62 @@ class Booking extends Model
         return $this->hasMany(BookingRoom::class);
     }
 
+    // Default hotel check-in/check-out time
+    const DEFAULT_CHECK_TIME = '12:00';
+
+    public function getCheckInDateTime()
+    {
+        $date = $this->check_in_date ? \Carbon\Carbon::parse($this->check_in_date) : null;
+        if (!$date) return null;
+        $time = $this->check_in_time ?: self::DEFAULT_CHECK_TIME;
+        return $date->copy()->setTimeFromTimeString($time);
+    }
+
+    public function getCheckOutDateTime()
+    {
+        $date = $this->check_out_date ? \Carbon\Carbon::parse($this->check_out_date) : null;
+        if (!$date) return null;
+        $time = $this->check_out_time ?: self::DEFAULT_CHECK_TIME;
+        return $date->copy()->setTimeFromTimeString($time);
+    }
+
+    // Booking is confirmed and check-in time has passed
+    public function shouldBeCheckedIn($at = null)
+    {
+        if ($this->status !== 'confirmed') return false;
+        $at = $at ?: \Carbon\Carbon::now('Asia/Dhaka');
+        $checkIn = $this->getCheckInDateTime();
+        return $checkIn && $at->gte($checkIn);
+    }
+
+    // Booking is checked-in and check-out time has passed
+    public function shouldBeCheckedOut($at = null)
+    {
+        if ($this->status !== 'checked_in') return false;
+        $at = $at ?: \Carbon\Carbon::now('Asia/Dhaka');
+        $checkOut = $this->getCheckOutDateTime();
+        return $checkOut && $at->gte($checkOut);
+    }
+
+    // Booking is currently active (checked in, not checked out) regardless of time
+    public function isCurrentlyStaying()
+    {
+        return $this->status === 'checked_in';
+    }
+
+    // Booking occupies a room at a given time
+    public function isOccupyingAt($at = null)
+    {
+        $at = $at ?: \Carbon\Carbon::now('Asia/Dhaka');
+        $checkIn = $this->getCheckInDateTime();
+        $checkOut = $this->getCheckOutDateTime();
+        if (!$checkIn || !$checkOut) return false;
+
+        return in_array($this->status, ['confirmed', 'checked_in'])
+            && $at->gte($checkIn)
+            && $at->lt($checkOut);
+    }
+
     // Get all rooms for this booking (handles both legacy single room and new multi-room)
     public function getAllRooms()
     {
