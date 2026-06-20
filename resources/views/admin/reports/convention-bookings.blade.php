@@ -510,7 +510,7 @@ function showConventionInfo(bookingId) {
                             </div>
                             <div>
                                 <div style="height: 48px; border-bottom: 1px solid #666; margin-bottom: 8px;"></div>
-                                <p style="font-size: 12px; font-weight: bold; margin: 2px 0;">Accounts</p>
+                                <p style="font-size: 12px; font-weight: bold; margin: 2px 0;">Accountant</p>
                                 <p style="font-size: 10px; color: #666;">Signature</p>
                             </div>
                             <div>
@@ -520,7 +520,7 @@ function showConventionInfo(bookingId) {
                             </div>
                             <div>
                                 <div style="height: 48px; border-bottom: 1px solid #666; margin-bottom: 8px;"></div>
-                                <p style="font-size: 12px; font-weight: bold; margin: 2px 0;">Md</p>
+                                <p style="font-size: 12px; font-weight: bold; margin: 2px 0;">Authority</p>
                                 <p style="font-size: 10px; color: #666;">Signature</p>
                             </div>
                         </div>
