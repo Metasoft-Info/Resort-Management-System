@@ -279,13 +279,13 @@
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
  <div class="text-gray-700 text-sm">{{ $booking->check_in_date->format('d M Y') }}</div>
  @if($booking->check_in_time)
- <div class="text-xs text-gray-500">{{ $booking->check_in_time }}</div>
+ <div class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($booking->check_in_time)->format('h:i A') }}</div>
  @endif
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">
  <div class="text-gray-700 text-sm">{{ $booking->check_out_date->format('d M Y') }}</div>
  @if($booking->check_out_time)
- <div class="text-xs text-gray-500">{{ $booking->check_out_time }}</div>
+ <div class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($booking->check_out_time)->format('h:i A') }}</div>
  @endif
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">

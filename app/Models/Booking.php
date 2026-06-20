@@ -110,28 +110,26 @@ class Booking extends Model
         return collect([]);
     }
 
-    // Calculate actual total from rooms (not stored total_amount)
+    // Calculate actual total from rooms (use stored prices first, never recalculate from current room rates)
     public function getCalculatedTotal()
     {
         $nights = \Carbon\Carbon::parse($this->check_in_date)->diffInDays(\Carbon\Carbon::parse($this->check_out_date));
         $nights = max(1, $nights);
-        
-        $allRooms = $this->getAllRooms();
+
         $bookingRooms = $this->bookingRooms;
-        
-        $baseAmount = 0;
-        foreach($allRooms as $room) {
-            $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
-            $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
-            $baseAmount += $roomPrice * $nights;
+
+        // If bookingRooms exist with stored prices, use those (premium/multi-room bookings)
+        if ($bookingRooms && $bookingRooms->count() > 0) {
+            $baseAmount = 0;
+            foreach ($bookingRooms as $br) {
+                $baseAmount += ($br->price_per_night ?? 0) * $nights;
+            }
+            return $baseAmount > 0 ? $baseAmount : $this->total_amount;
         }
-        
-        // If no rooms found, fallback to stored total_amount
-        if ($baseAmount == 0) {
-            $baseAmount = $this->total_amount;
-        }
-        
-        return $baseAmount;
+
+        // For legacy single-room bookings, always use stored total_amount
+        // (room prices may change after booking - we must preserve agreed price)
+        return $this->total_amount ?? 0;
     }
 
     // Get total deposited amount (advance + all payment history)

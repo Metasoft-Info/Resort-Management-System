@@ -395,8 +395,8 @@ class BookingController extends Controller
         // Recalculate remaining using getTotalDeposited() (advance + all payments)
         $booking->refresh();
         $newRemainingPayment = max(0, $booking->getCalculatedRemaining());
-        
-        $updateData['total_amount'] = $baseAmount;
+
+        // Do NOT overwrite total_amount - it should stay as the originally agreed price
         $updateData['remaining_payment'] = $newRemainingPayment;
         $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : 'partial';
         $updateData['updated_by_id'] = Auth::id();

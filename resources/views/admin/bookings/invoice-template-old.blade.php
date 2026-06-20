@@ -64,8 +64,8 @@
  <div class="space-y-2 text-sm">
  <p><span class="font-semibold">Room:</span> {{ $booking->room->room_number }} - {{ $booking->room->roomType->name ?? 'N/A' }}</p>
  <p><span class="font-semibold">Type:</span> {{ $booking->room->roomType->name ?? 'N/A' }}</p>
- <p><span class="font-semibold">Check-In:</span> {{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }} @if($booking->check_in_time) at {{ $booking->check_in_time }} @endif</p>
- <p><span class="font-semibold">Check-Out:</span> {{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }} @if($booking->check_out_time) at {{ $booking->check_out_time }} @endif</p>
+ <p><span class="font-semibold">Check-In:</span> {{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }} @if($booking->check_in_time) at {{ \Carbon\Carbon::parse($booking->check_in_time)->format('h:i A') }} @endif</p>
+ <p><span class="font-semibold">Check-Out:</span> {{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }} @if($booking->check_out_time) at {{ \Carbon\Carbon::parse($booking->check_out_time)->format('h:i A') }} @endif</p>
  <p><span class="font-semibold">Total Guests:</span> {{ $booking->number_of_guests }}</p>
  <p><span class="font-semibold">Total Nights:</span> {{ \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date)) }}</p>
  </div>
