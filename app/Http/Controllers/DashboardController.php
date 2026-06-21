@@ -35,12 +35,7 @@ class DashboardController extends Controller
         foreach ($activeBookings as $booking) {
             if ($booking->isOccupyingAt($now)) {
                 $activeBookingIds[] = $booking->id;
-                if ($booking->room_id) {
-                    $occupiedRoomIds[] = $booking->room_id;
-                }
-                foreach ($booking->bookingRooms as $br) {
-                    $occupiedRoomIds[] = $br->room_id;
-                }
+                $occupiedRoomIds = array_merge($occupiedRoomIds, $booking->getAllRoomIds());
             }
         }
         $occupiedRoomIds = array_values(array_unique($occupiedRoomIds));
@@ -60,7 +55,7 @@ class DashboardController extends Controller
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
             'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_in')->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count(),
             'room_revenue' => $roomRevenue,
             'pending_bookings' => Booking::where('status', 'pending')->count(),
         ];
@@ -84,7 +79,7 @@ class DashboardController extends Controller
             'available_rooms' => $availableRoomsCount,
             'convention_bookings' => ConventionBooking::count(),
             'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_in')->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count(),
             'total_revenue' => $totalRevenue,
             'room_revenue' => $roomRevenue,
             'convention_revenue' => $conventionRevenue,
@@ -102,36 +97,18 @@ class DashboardController extends Controller
             $isOccupied = in_array($room->id, $occupiedRoomIds);
 
             // Find current booking that is currently occupying this room
-            $currentBooking = Booking::where('room_id', $room->id)
+            $currentBooking = Booking::with(['bookingRooms', 'room'])
                 ->whereIn('status', ['confirmed', 'checked_in'])
                 ->get()
-                ->first(fn($b) => $b->isOccupyingAt($now));
+                ->first(fn($b) => $b->isOccupyingAt($now) && in_array($room->id, $b->getAllRoomIds()));
 
-            if (!$currentBooking) {
-                $currentBooking = Booking::whereHas('bookingRooms', function($q) use ($room) {
-                        $q->where('room_id', $room->id);
-                    })
-                    ->whereIn('status', ['confirmed', 'checked_in'])
-                    ->get()
-                    ->first(fn($b) => $b->isOccupyingAt($now));
-            }
-
-            // Check upcoming bookings - legacy and pivot
-            $upcomingBooking = Booking::where('room_id', $room->id)
+            // Check upcoming bookings
+            $upcomingBooking = Booking::with(['bookingRooms', 'room'])
                 ->whereIn('status', ['confirmed', 'pending'])
                 ->where('check_in_date', '>', $today)
                 ->orderBy('check_in_date')
-                ->first();
-
-            if (!$upcomingBooking) {
-                $upcomingBooking = Booking::whereHas('bookingRooms', function($q) use ($room) {
-                        $q->where('room_id', $room->id);
-                    })
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->where('check_in_date', '>', $today)
-                    ->orderBy('check_in_date')
-                    ->first();
-            }
+                ->get()
+                ->first(fn($b) => in_array($room->id, $b->getAllRoomIds()));
 
             $availableFrom = $currentBooking ? $currentBooking->getCheckOutDateTime() : $now;
 
@@ -303,12 +280,7 @@ class DashboardController extends Controller
             $existingCheckIn = $booking->getCheckInDateTime();
             $existingCheckOut = $booking->getCheckOutDateTime();
             if ($existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn)) {
-                if ($booking->room_id) {
-                    $bookedRoomIds[] = $booking->room_id;
-                }
-                foreach ($booking->bookingRooms as $br) {
-                    $bookedRoomIds[] = $br->room_id;
-                }
+                $bookedRoomIds = array_merge($bookedRoomIds, $booking->getAllRoomIds());
             }
         }
         $bookedRoomIds = array_values(array_unique($bookedRoomIds));

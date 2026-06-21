@@ -53,7 +53,7 @@ class AutoCheckoutBookings extends Command
 
     private function markRoomsOccupied(Booking $booking)
     {
-        $roomIds = $this->getBookingRoomIds($booking);
+        $roomIds = $booking->getAllRoomIds();
         if (!empty($roomIds)) {
             Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
         }
@@ -61,21 +61,9 @@ class AutoCheckoutBookings extends Command
 
     private function markRoomsAvailable(Booking $booking)
     {
-        $roomIds = $this->getBookingRoomIds($booking);
+        $roomIds = $booking->getAllRoomIds();
         if (!empty($roomIds)) {
             Room::whereIn('id', $roomIds)->update(['status' => 'available']);
         }
-    }
-
-    private function getBookingRoomIds(Booking $booking): array
-    {
-        $roomIds = [];
-        if ($booking->room_id) {
-            $roomIds[] = $booking->room_id;
-        }
-        foreach ($booking->bookingRooms as $bookingRoom) {
-            $roomIds[] = $bookingRoom->room_id;
-        }
-        return array_unique($roomIds);
     }
 }

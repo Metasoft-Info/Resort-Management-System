@@ -37,12 +37,13 @@ class PremiumBookingController extends Controller
 
         // Filter out rooms that are already booked for these dates/times
         $availableRooms = $rooms->filter(function ($room) use ($checkIn, $checkOut) {
-            $hasConflict = Booking::where('room_id', $room->id)
+            $hasConflict = Booking::with('bookingRooms')
                 ->whereNotIn('status', ['cancelled', 'checked_out'])
                 ->where('check_in_date', '<', $checkOut->toDateString())
                 ->where('check_out_date', '>', $checkIn->toDateString())
                 ->get()
-                ->some(function ($booking) use ($checkIn, $checkOut) {
+                ->some(function ($booking) use ($checkIn, $checkOut, $room) {
+                    if (!in_array($room->id, array_map('intval', $booking->getAllRoomIds()))) return false;
                     $existingCheckIn = $booking->getCheckInDateTime();
                     $existingCheckOut = $booking->getCheckOutDateTime();
                     return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
@@ -121,12 +122,13 @@ class PremiumBookingController extends Controller
             $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
             $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
 
-            $hasConflict = Booking::where('room_id', $validated['room_id'])
+            $hasConflict = Booking::with('bookingRooms')
                 ->whereNotIn('status', ['cancelled', 'checked_out'])
                 ->where('check_in_date', '<', $checkOut->toDateString())
                 ->where('check_out_date', '>', $checkIn->toDateString())
                 ->get()
-                ->some(function ($booking) use ($checkIn, $checkOut) {
+                ->some(function ($booking) use ($checkIn, $checkOut, $validated) {
+                    if (!in_array((int)$validated['room_id'], array_map('intval', $booking->getAllRoomIds()))) return false;
                     $existingCheckIn = $booking->getCheckInDateTime();
                     $existingCheckOut = $booking->getCheckOutDateTime();
                     return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
