@@ -143,6 +143,16 @@ class Booking extends Model
             && $at->lt($checkOut);
     }
 
+    // Get all room IDs for this booking (uses bookingRooms if exist, else legacy room_id)
+    public function getAllRoomIds()
+    {
+        $bookingRoomIds = $this->bookingRooms->pluck('room_id')->toArray();
+        if (count($bookingRoomIds) > 0) {
+            return $bookingRoomIds;
+        }
+        return $this->room_id ? [$this->room_id] : [];
+    }
+
     // Get all rooms for this booking (handles both legacy single room and new multi-room)
     public function getAllRooms()
     {

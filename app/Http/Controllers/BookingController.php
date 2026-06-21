@@ -140,12 +140,13 @@ class BookingController extends Controller
         $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
         $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
 
-        $hasConflict = Booking::where('room_id', $validated['room_id'])
+        $hasConflict = Booking::with('bookingRooms')
             ->whereNotIn('status', ['cancelled', 'checked_out'])
             ->where('check_in_date', '<', $checkOut->toDateString())
             ->where('check_out_date', '>', $checkIn->toDateString())
             ->get()
-            ->some(function ($booking) use ($checkIn, $checkOut) {
+            ->some(function ($booking) use ($checkIn, $checkOut, $validated) {
+                if (!in_array((int)$validated['room_id'], array_map('intval', $booking->getAllRoomIds()))) return false;
                 $existingCheckIn = $booking->getCheckInDateTime();
                 $existingCheckOut = $booking->getCheckOutDateTime();
                 return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
@@ -243,14 +244,7 @@ class BookingController extends Controller
 
         // Mark room(s) as occupied when checking in
         if ($validated['status'] === 'checked_in' && $oldStatus !== 'checked_in') {
-            $roomIds = [];
-            if ($booking->room_id) {
-                $roomIds[] = $booking->room_id;
-            }
-            foreach ($booking->bookingRooms as $bookingRoom) {
-                $roomIds[] = $bookingRoom->room_id;
-            }
-            $roomIds = array_unique($roomIds);
+            $roomIds = $booking->getAllRoomIds();
             if (!empty($roomIds)) {
                 Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
             }
@@ -258,14 +252,7 @@ class BookingController extends Controller
 
         // Free up room(s) when checking out
         if ($validated['status'] === 'checked_out' && $oldStatus !== 'checked_out') {
-            $roomIds = [];
-            if ($booking->room_id) {
-                $roomIds[] = $booking->room_id;
-            }
-            foreach ($booking->bookingRooms as $bookingRoom) {
-                $roomIds[] = $bookingRoom->room_id;
-            }
-            $roomIds = array_unique($roomIds);
+            $roomIds = $booking->getAllRoomIds();
             if (!empty($roomIds)) {
                 Room::whereIn('id', $roomIds)->update(['status' => 'available']);
             }
@@ -710,16 +697,14 @@ class BookingController extends Controller
             $mustCheckAvailability = $roomChanged || !$newCheckIn->equalTo($oldCheckIn) || $checkoutExtended;
 
             if ($mustCheckAvailability) {
-                $hasConflict = Booking::query()
+                $hasConflict = Booking::with('bookingRooms')
                     ->where('id', '!=', $booking->id)
-                    ->where('room_id', $validated['room_id'])
                     ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
-                    ->where(function ($query) use ($newCheckIn, $newCheckOut) {
-                        $query->where('check_in_date', '<', $newCheckOut->toDateString())
-                            ->where('check_out_date', '>', $newCheckIn->toDateString());
-                    })
+                    ->where('check_in_date', '<', $newCheckOut->toDateString())
+                    ->where('check_out_date', '>', $newCheckIn->toDateString())
                     ->get()
-                    ->some(function ($other) use ($newCheckIn, $newCheckOut) {
+                    ->some(function ($other) use ($newCheckIn, $newCheckOut, $validated) {
+                        if (!in_array((int)$validated['room_id'], array_map('intval', $other->getAllRoomIds()))) return false;
                         $otherCheckIn = $other->getCheckInDateTime();
                         $otherCheckOut = $other->getCheckOutDateTime();
                         return $otherCheckIn->lt($newCheckOut) && $otherCheckOut->gt($newCheckIn);
