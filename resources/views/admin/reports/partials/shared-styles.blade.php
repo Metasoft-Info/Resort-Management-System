@@ -37,16 +37,21 @@
         margin: 0 !important;
     }
 
-    html,
+    html {
+        width: 297mm !important;
+        min-width: 297mm !important;
+        max-width: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     body {
         width: 297mm !important;
         min-width: 297mm !important;
         max-width: 297mm !important;
-        height: 210mm !important;
-        min-height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
     .main-content,
@@ -66,10 +71,11 @@
     }
 
     body {
-        font-size: 9px !important;
-        line-height: 1.15 !important;
-        color: #111827 !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+        color: #000000 !important;
         background: #ffffff !important;
+        font-weight: 600 !important;
     }
 
     .print\:hidden {
@@ -150,27 +156,31 @@
         width: 100% !important;
         table-layout: auto !important;
         border-collapse: collapse !important;
-        font-size: 8px !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: #000000 !important;
     }
 
     .report-table th,
     .report-table td,
     .report-table-wide th,
     .report-table-wide td {
-        border: 1px solid #6b7280 !important;
+        border: 1px solid #000000 !important;
         padding: 2px 4px !important;
         vertical-align: top !important;
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
         white-space: normal !important;
+        color: #000000 !important;
+        font-weight: 700 !important;
     }
 
     .report-table th,
     .report-table-wide th {
-        background: #e5e7eb !important;
-        color: #111827 !important;
-        font-size: 7.5px !important;
-        font-weight: 700 !important;
+        background: #d1d5db !important;
+        color: #000000 !important;
+        font-size: 9px !important;
+        font-weight: 800 !important;
         text-transform: uppercase !important;
         letter-spacing: .2px !important;
     }
@@ -227,6 +237,71 @@
         box-shadow: none !important;
         border-radius: 0 !important;
         border: 0 !important;
+    }
+
+    /* Report header: pure black, bold, larger */
+    .report-header-card h1,
+    .report-header-card h2,
+    .report-header-card p {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+
+    .report-header-card h1 {
+        font-size: 16px !important;
+    }
+
+    .report-header-card h2 {
+        font-size: 14px !important;
+    }
+
+    .report-header-card p {
+        font-size: 11px !important;
+    }
+
+    /* Signature section: ensure visible, pure black, bold */
+    .signature-block {
+        display: block !important;
+        visibility: visible !important;
+        page-break-inside: avoid !important;
+    }
+
+    .signature-block p {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 10px !important;
+    }
+
+    /* Ensure footer and signature are never hidden */
+    .signature-block,
+    .signature-block *,
+    .shared-footer,
+    .shared-footer * {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Footer: position at bottom of page, always visible */
+    .shared-footer {
+        margin-top: 4mm !important;
+        padding-top: 2mm !important;
+        page-break-inside: avoid !important;
+        page-break-before: auto !important;
+        text-align: center !important;
+        width: 100% !important;
+    }
+
+    .shared-footer div {
+        color: #6b7280 !important;
+        font-size: 9px !important;
+        font-weight: 500 !important;
+    }
+
+    /* All report text: ensure pure black */
+    .report-table-container,
+    .report-table-container * {
+        color: #000000 !important;
     }
 }
 </style>
