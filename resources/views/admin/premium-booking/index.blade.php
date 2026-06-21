@@ -211,22 +211,22 @@
  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Photo</label>
- <input type="file" id="customer_photo" accept="image/*"
+ <input type="file" id="customer_photo" accept="image/*" multiple
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID</label>
- <input type="file" id="customer_nid_document" accept="image/*,application/pdf"
+ <input type="file" id="customer_nid_document" accept="image/*,application/pdf" multiple
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
- <input type="file" id="passport_document" accept="image/*,application/pdf"
+ <input type="file" id="passport_document" accept="image/*,application/pdf" multiple
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">V. Card</label>
- <input type="file" id="visiting_card" accept="image/*"
+ <input type="file" id="visiting_card" accept="image/*" multiple
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
  </div>
  </div>
@@ -466,6 +466,21 @@
  @endif
  </div>
  </form>
+</div>
+
+<!-- Upload Progress Overlay -->
+<div id="bookingUploadOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+ <div class="bg-white rounded-xl shadow-2xl p-6 w-80 text-center">
+  <div class="mb-3">
+   <i class="fas fa-cloud-upload-alt text-4xl text-primary-600 animate-bounce"></i>
+  </div>
+  <h3 class="text-lg font-bold text-gray-800 mb-1" id="bookingUploadTitle">Creating Booking...</h3>
+  <p id="bookingUploadPercent" class="text-2xl font-bold text-primary-600 mb-3">0%</p>
+  <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+   <div id="bookingUploadBar" class="bg-primary-600 h-4 rounded-full transition-all duration-200" style="width: 0%"></div>
+  </div>
+  <p class="text-xs text-gray-500 mt-2">Please do not close this window</p>
+ </div>
 </div>
 
 <script>
@@ -1122,6 +1137,54 @@ function calculateRemaining() {
 // Prevent double submission
 let isSubmitting = false;
 
+// XHR with upload progress for booking submission
+function sendBookingXHR(formData, url, titleText) {
+ return new Promise((resolve, reject) => {
+  const overlay = document.getElementById('bookingUploadOverlay');
+  const progressBar = document.getElementById('bookingUploadBar');
+  const percentText = document.getElementById('bookingUploadPercent');
+  const titleTextEl = document.getElementById('bookingUploadTitle');
+  
+  titleTextEl.textContent = titleText;
+  progressBar.style.width = '0%';
+  percentText.textContent = '0%';
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  
+  const xhr = new XMLHttpRequest();
+  
+  xhr.upload.addEventListener('progress', function(e) {
+   if (e.lengthComputable) {
+    const percent = Math.round((e.loaded / e.total) * 100);
+    progressBar.style.width = percent + '%';
+    percentText.textContent = percent + '%';
+   }
+  });
+  
+  xhr.addEventListener('load', function() {
+   overlay.classList.add('hidden');
+   overlay.classList.remove('flex');
+   try {
+    const data = JSON.parse(xhr.responseText);
+    resolve(data);
+   } catch(e) {
+    reject(new Error('Invalid server response'));
+   }
+  });
+  
+  xhr.addEventListener('error', function() {
+   overlay.classList.add('hidden');
+   overlay.classList.remove('flex');
+   reject(new Error('Network error'));
+  });
+  
+  xhr.open('POST', url);
+  xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send(formData);
+ });
+}
+
 // Form Submission - Single booking with multiple rooms
 async function submitBooking(e) {
  e.preventDefault();
@@ -1220,15 +1283,7 @@ async function submitBooking(e) {
  formData.append('existing_booking_id', existingBookingId);
  
  // For existing booking, only send rooms data
- const response = await fetch('{{ route("admin.premium-booking.book") }}', {
- method: 'POST',
- headers: {
- 'X-CSRF-TOKEN': '{{ csrf_token() }}'
- },
- body: formData
- });
-
- const data = await response.json();
+ const data = await sendBookingXHR(formData, '{{ route("admin.premium-booking.book") }}', 'Adding Rooms...');
  
  if (data.success) {
  showGlobalModal('success', data.message);
@@ -1260,18 +1315,18 @@ async function submitBooking(e) {
  formData.append('reference_name', document.getElementById('reference_name').value);
  formData.append('reference_phone', document.getElementById('reference_phone').value);
  
- // Documents
- const customerPhoto = document.getElementById('customer_photo').files[0];
- if (customerPhoto) formData.append('customer_photo', customerPhoto);
+ // Documents - support multiple files
+ const photoFiles = document.getElementById('customer_photo').files;
+ for (let i = 0; i < photoFiles.length; i++) formData.append('customer_photo[]', photoFiles[i]);
  
- const customerNidDoc = document.getElementById('customer_nid_document').files[0];
- if (customerNidDoc) formData.append('customer_nid_document', customerNidDoc);
+ const nidFiles = document.getElementById('customer_nid_document').files;
+ for (let i = 0; i < nidFiles.length; i++) formData.append('customer_nid_document[]', nidFiles[i]);
  
- const passportDoc = document.getElementById('passport_document').files[0];
- if (passportDoc) formData.append('passport_document', passportDoc);
+ const passportFiles = document.getElementById('passport_document').files;
+ for (let i = 0; i < passportFiles.length; i++) formData.append('passport_document[]', passportFiles[i]);
  
- const visitingCard = document.getElementById('visiting_card').files[0];
- if (visitingCard) formData.append('visiting_card', visitingCard);
+ const cardFiles = document.getElementById('visiting_card').files;
+ for (let i = 0; i < cardFiles.length; i++) formData.append('visiting_card[]', cardFiles[i]);
  
  // Booking details
  formData.append('number_of_guests', document.getElementById('number_of_guests').value);
@@ -1312,15 +1367,7 @@ async function submitBooking(e) {
  formData.append('additional_guests', JSON.stringify(guestList));
  }
  
- const response = await fetch('{{ route("admin.premium-booking.book") }}', {
- method: 'POST',
- headers: {
- 'X-CSRF-TOKEN': '{{ csrf_token() }}'
- },
- body: formData
- });
-
- const data = await response.json();
+ const data = await sendBookingXHR(formData, '{{ route("admin.premium-booking.book") }}', 'Creating Booking...');
  
  if (data.success) {
  const roomCount = selectedRooms.length;
