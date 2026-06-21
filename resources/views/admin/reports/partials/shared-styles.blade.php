@@ -49,7 +49,6 @@
         width: 297mm !important;
         min-width: 297mm !important;
         max-width: 297mm !important;
-        min-height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
@@ -281,6 +280,22 @@
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
+    }
+
+    /* Footer: position at bottom of page, always visible */
+    .shared-footer {
+        margin-top: 4mm !important;
+        padding-top: 2mm !important;
+        page-break-inside: avoid !important;
+        page-break-before: auto !important;
+        text-align: center !important;
+        width: 100% !important;
+    }
+
+    .shared-footer div {
+        color: #6b7280 !important;
+        font-size: 9px !important;
+        font-weight: 500 !important;
     }
 
     /* All report text: ensure pure black */
