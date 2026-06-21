@@ -51,7 +51,7 @@ class DashboardController extends Controller
         // Resort Stats
         $resortStats = [
             'total_bookings' => Booking::count(),
-            'active_bookings' => Booking::where('status', 'checked_in')->count(),
+            'active_bookings' => count($activeBookingIds),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
             'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
@@ -74,7 +74,7 @@ class DashboardController extends Controller
         // Combined stats for overview
         $stats = [
             'total_bookings' => Booking::count(),
-            'active_bookings' => Booking::where('status', 'checked_in')->count(),
+            'active_bookings' => count($activeBookingIds),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
             'convention_bookings' => ConventionBooking::count(),
