@@ -27,10 +27,11 @@ class TodaysSummaryController extends Controller {
             ->whereDate('check_out_date', $today)
             ->get();
         
-        // Currently staying: actually checked_in
-        $currentlyStaying = Booking::with('room')
-            ->where('status', 'checked_in')
+        // Currently staying: anyone occupying a room right now (checked_in OR confirmed past check-in time)
+        $potentialStaying = Booking::with(['room', 'bookingRooms'])
+            ->whereIn('status', ['confirmed', 'checked_in'])
             ->get();
+        $currentlyStaying = $potentialStaying->filter(fn($b) => $b->isOccupyingAt($now));
         $todayConventions = ConventionBooking::with('conventionHall')->whereDate('event_date', $today)->get();
         
         // Resort stats
