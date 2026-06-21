@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Auto-checkout overdue bookings daily at midnight
-Schedule::command('bookings:auto-checkout')->daily();
+// Auto check-in/check-out bookings every minute based on actual time
+Schedule::command('bookings:auto-checkout')->everyMinute();
 
 // Auto-complete past convention events daily at 1 AM
 Schedule::command('conventions:update-statuses')->dailyAt('01:00');
