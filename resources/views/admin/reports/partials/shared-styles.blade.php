@@ -66,10 +66,11 @@
     }
 
     body {
-        font-size: 9px !important;
-        line-height: 1.15 !important;
-        color: #111827 !important;
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+        color: #000000 !important;
         background: #ffffff !important;
+        font-weight: 600 !important;
     }
 
     .print\:hidden {
@@ -150,27 +151,31 @@
         width: 100% !important;
         table-layout: auto !important;
         border-collapse: collapse !important;
-        font-size: 8px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #000000 !important;
     }
 
     .report-table th,
     .report-table td,
     .report-table-wide th,
     .report-table-wide td {
-        border: 1px solid #6b7280 !important;
-        padding: 2px 4px !important;
+        border: 1px solid #000000 !important;
+        padding: 3px 5px !important;
         vertical-align: top !important;
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
         white-space: normal !important;
+        color: #000000 !important;
+        font-weight: 700 !important;
     }
 
     .report-table th,
     .report-table-wide th {
-        background: #e5e7eb !important;
-        color: #111827 !important;
-        font-size: 7.5px !important;
-        font-weight: 700 !important;
+        background: #d1d5db !important;
+        color: #000000 !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
         text-transform: uppercase !important;
         letter-spacing: .2px !important;
     }
@@ -227,6 +232,39 @@
         box-shadow: none !important;
         border-radius: 0 !important;
         border: 0 !important;
+    }
+
+    /* Report header: pure black, bold, larger */
+    .report-header-card h1,
+    .report-header-card h2,
+    .report-header-card p {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+
+    .report-header-card h1 {
+        font-size: 16px !important;
+    }
+
+    .report-header-card h2 {
+        font-size: 14px !important;
+    }
+
+    .report-header-card p {
+        font-size: 11px !important;
+    }
+
+    /* Signature section: pure black, bold */
+    .signature-block p {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+    }
+
+    /* All report text: ensure pure black */
+    .report-table-container,
+    .report-table-container * {
+        color: #000000 !important;
     }
 }
 </style>

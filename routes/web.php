@@ -74,6 +74,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/premium-booking/search', [PremiumBookingController::class, 'search'])->name('premium-booking.search');
     Route::post('/premium-booking/book', [PremiumBookingController::class, 'book'])->name('premium-booking.book');
     Route::get('/premium-booking/search-customer', [PremiumBookingController::class, 'searchCustomer'])->name('premium-booking.search-customer');
+    Route::post('/premium-booking/upload-doc', [PremiumBookingController::class, 'uploadDoc'])->name('premium-booking.upload-doc');
     
     // Convention Halls
     Route::resource('convention-halls', ConventionHallController::class);

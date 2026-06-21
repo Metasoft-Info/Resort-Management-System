@@ -211,23 +211,27 @@
  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Photo</label>
- <input type="file" id="customer_photo" accept="image/*" multiple
+ <input type="file" id="customer_photo" accept="image/*" multiple onchange="autoUploadFiles(this, 'customer_photo')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="customer_photo_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID</label>
- <input type="file" id="customer_nid_document" accept="image/*,application/pdf" multiple
+ <input type="file" id="customer_nid_document" accept="image/*,application/pdf" multiple onchange="autoUploadFiles(this, 'customer_nid_document')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="customer_nid_document_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
- <input type="file" id="passport_document" accept="image/*,application/pdf" multiple
+ <input type="file" id="passport_document" accept="image/*,application/pdf" multiple onchange="autoUploadFiles(this, 'passport_document')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="passport_document_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">V. Card</label>
- <input type="file" id="visiting_card" accept="image/*" multiple
+ <input type="file" id="visiting_card" accept="image/*" multiple onchange="autoUploadFiles(this, 'visiting_card')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="visiting_card_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  </div>
  </div>
@@ -489,6 +493,90 @@ let selectedRooms = [];
 let currentSearchDates = {};
 let lastToggleTime = 0; // Debounce for toggle
 let lastSearchDates = ''; // Track date changes
+
+// Auto-upload: stores pre-uploaded file paths per field
+let uploadedDocs = {
+ customer_photo: [],
+ customer_nid_document: [],
+ passport_document: [],
+ visiting_card: [],
+};
+
+// Auto-upload files immediately when selected
+function autoUploadFiles(input, field) {
+ const files = input.files;
+ if (!files || files.length === 0) return;
+
+ const previewDiv = document.getElementById(field + '_preview');
+ const uploadUrl = '{{ route("admin.premium-booking.upload-doc") }}';
+
+ for (let i = 0; i < files.length; i++) {
+  const file = files[i];
+  const fileIdx = uploadedDocs[field].length; // track position
+
+  // Create preview item with progress
+  const itemDiv = document.createElement('div');
+  itemDiv.className = 'relative inline-block';
+  itemDiv.innerHTML = `
+   <div class="w-12 h-12 rounded border border-gray-300 overflow-hidden flex items-center justify-center bg-gray-50">
+    ${file.type.startsWith('image/') ? `<img src="${URL.createObjectURL(file)}" class="w-full h-full object-cover">` : `<i class="fas fa-file-pdf text-xl text-red-500"></i>`}
+   </div>
+   <div class="absolute inset-0 bg-black/40 flex items-center justify-center rounded">
+    <span class="text-white text-[10px] font-bold" data-progress="${field}_${fileIdx}">0%</span>
+   </div>
+  `;
+  previewDiv.appendChild(itemDiv);
+
+  const progressSpan = itemDiv.querySelector(`[data-progress="${field}_${fileIdx}"]`);
+
+  // Upload via XHR with progress
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('field', field);
+
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener('progress', function(e) {
+   if (e.lengthComputable) {
+    const percent = Math.round((e.loaded / e.total) * 100);
+    progressSpan.textContent = percent + '%';
+   }
+  });
+
+  xhr.addEventListener('load', function() {
+   try {
+    const data = JSON.parse(xhr.responseText);
+    if (data.success) {
+     uploadedDocs[field].push(data.path);
+     // Remove progress overlay, show green checkmark
+     itemDiv.querySelector('.absolute').classList.add('hidden');
+     const checkDiv = document.createElement('div');
+     checkDiv.className = 'absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-4 h-4 flex items-center justify-center';
+     checkDiv.innerHTML = '<i class="fas fa-check text-[8px]"></i>';
+     itemDiv.appendChild(checkDiv);
+    } else {
+     progressSpan.textContent = '!';
+     itemDiv.querySelector('.bg-black\\/40').classList.add('bg-red-500');
+    }
+   } catch(e) {
+    progressSpan.textContent = '!';
+   }
+  });
+
+  xhr.addEventListener('error', function() {
+   progressSpan.textContent = '!';
+   itemDiv.querySelector('.bg-black\\/40').classList.add('bg-red-500');
+  });
+
+  xhr.open('POST', uploadUrl);
+  xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send(formData);
+ }
+
+ // Clear the input so user can select more files if needed
+ input.value = '';
+}
 
 // Helper function - ALWAYS use this to compare room IDs
 function normalizeRoomId(id) {
@@ -1315,18 +1403,13 @@ async function submitBooking(e) {
  formData.append('reference_name', document.getElementById('reference_name').value);
  formData.append('reference_phone', document.getElementById('reference_phone').value);
  
- // Documents - support multiple files
- const photoFiles = document.getElementById('customer_photo').files;
- for (let i = 0; i < photoFiles.length; i++) formData.append('customer_photo[]', photoFiles[i]);
- 
- const nidFiles = document.getElementById('customer_nid_document').files;
- for (let i = 0; i < nidFiles.length; i++) formData.append('customer_nid_document[]', nidFiles[i]);
- 
- const passportFiles = document.getElementById('passport_document').files;
- for (let i = 0; i < passportFiles.length; i++) formData.append('passport_document[]', passportFiles[i]);
- 
- const cardFiles = document.getElementById('visiting_card').files;
- for (let i = 0; i < cardFiles.length; i++) formData.append('visiting_card[]', cardFiles[i]);
+ // Documents - send pre-uploaded paths (files already uploaded on select)
+ const docFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
+ docFields.forEach(function(field) {
+  if (uploadedDocs[field].length > 0) {
+   formData.append(field + '_paths', JSON.stringify(uploadedDocs[field]));
+  }
+ });
  
  // Booking details
  formData.append('number_of_guests', document.getElementById('number_of_guests').value);

@@ -38,6 +38,25 @@ class PremiumBookingController extends Controller
     }
 
     /**
+     * Pre-upload documents before booking creation (auto-upload on file select)
+     */
+    public function uploadDoc(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:5120',
+            'field' => 'required|string|in:customer_photo,customer_nid_document,passport_document,visiting_card',
+        ]);
+
+        $path = $request->file('file')->store('bookings', 'public');
+
+        return response()->json([
+            'success' => true,
+            'path' => $path,
+            'field' => $request->input('field'),
+        ]);
+    }
+
+    /**
      * Search for customer by phone, NID, or passport and return the most recently updated record
      */
     public function searchCustomer(Request $request)
@@ -215,10 +234,14 @@ class PremiumBookingController extends Controller
                 'payment_method' => 'required|in:cash,card,bkash',
                 'bkash_number' => 'nullable|string',
                 'bank_name' => 'nullable|string',
-                'customer_photo' => 'nullable|image|max:2048',
-                'customer_nid_document' => 'nullable|file|max:2048',
-                'passport_document' => 'nullable|file|max:2048',
-                'visiting_card' => 'nullable|image|max:2048',
+                'customer_photo' => 'nullable|array',
+                'customer_photo.*' => 'nullable|image|max:5120',
+                'customer_nid_document' => 'nullable|array',
+                'customer_nid_document.*' => 'nullable|file|max:5120',
+                'passport_document' => 'nullable|array',
+                'passport_document.*' => 'nullable|file|max:5120',
+                'visiting_card' => 'nullable|array',
+                'visiting_card.*' => 'nullable|image|max:5120',
                 'additional_guests' => 'nullable|array',
                 'additional_guests.*.name' => 'nullable|string',
                 'additional_guests.*.nid' => 'nullable|string',
@@ -226,18 +249,36 @@ class PremiumBookingController extends Controller
                 'additional_guests.*.company_name' => 'nullable|string',
             ]);
 
-            // Handle file uploads
-            if ($request->hasFile('customer_photo')) {
-                $validated['customer_photo'] = $request->file('customer_photo')->store('bookings', 'public');
-            }
-            if ($request->hasFile('customer_nid_document')) {
-                $validated['customer_nid_document'] = $request->file('customer_nid_document')->store('bookings', 'public');
-            }
-            if ($request->hasFile('passport_document')) {
-                $validated['passport_document'] = $request->file('passport_document')->store('bookings', 'public');
-            }
-            if ($request->hasFile('visiting_card')) {
-                $validated['visiting_card'] = $request->file('visiting_card')->store('bookings', 'public');
+            // Handle file uploads - support pre-uploaded paths and multiple files
+            $docFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
+            foreach ($docFields as $field) {
+                $paths = [];
+
+                // Pre-uploaded paths from auto-upload (JSON array string)
+                $prePaths = $request->input($field . '_paths');
+                if ($prePaths) {
+                    $decoded = json_decode($prePaths, true);
+                    if (is_array($decoded)) {
+                        $paths = array_merge($paths, $decoded);
+                    }
+                }
+
+                // Direct file uploads (fallback - multiple files)
+                if ($request->hasFile($field)) {
+                    $files = $request->file($field);
+                    if (!is_array($files)) {
+                        $files = [$files];
+                    }
+                    foreach ($files as $f) {
+                        if ($f && $f->isValid()) {
+                            $paths[] = $f->store('bookings', 'public');
+                        }
+                    }
+                }
+
+                if (!empty($paths)) {
+                    $validated[$field] = json_encode(array_values(array_unique($paths)));
+                }
             }
 
             // Set default values for advance/remaining
