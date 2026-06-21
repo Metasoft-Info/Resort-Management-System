@@ -10,10 +10,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Add 'occupied' to the rooms.status enum if not present
-        $currentEnum = \DB::select("SHOW COLUMNS FROM rooms WHERE Field = 'status'")[0]->Type ?? '';
-        if (strpos($currentEnum, 'occupied') === false) {
-            \DB::statement("ALTER TABLE rooms MODIFY status ENUM('available', 'booked', 'maintenance', 'occupied') NOT NULL DEFAULT 'available'");
+        // Add 'occupied' to the rooms.status enum if not present (MySQL only)
+        if (\DB::getDriverName() !== 'sqlite') {
+            $currentEnum = \DB::select("SHOW COLUMNS FROM rooms WHERE Field = 'status'")[0]->Type ?? '';
+            if (strpos($currentEnum, 'occupied') === false) {
+                \DB::statement("ALTER TABLE rooms MODIFY status ENUM('available', 'booked', 'maintenance', 'occupied') NOT NULL DEFAULT 'available'");
+            }
         }
 
         // Find all rooms currently occupied by active checked-in bookings

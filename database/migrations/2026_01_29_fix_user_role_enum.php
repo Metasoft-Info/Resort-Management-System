@@ -9,12 +9,33 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Change ENUM to VARCHAR to support all role types
-        DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'staff'");
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite doesn't support MODIFY COLUMN; recreate table
+            $users = DB::table('users')->get();
+            Schema::drop('users');
+            Schema::create('users', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('email')->unique();
+                $table->timestamp('email_verified_at')->nullable();
+                $table->string('password');
+                $table->string('role', 50)->default('staff');
+                $table->rememberToken();
+                $table->timestamps();
+            });
+            foreach ($users as $user) {
+                DB::table('users')->insert((array) $user);
+            }
+        } else {
+            // Change ENUM to VARCHAR to support all role types
+            DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'staff'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('owner', 'staff') DEFAULT 'staff'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('owner', 'staff') DEFAULT 'staff'");
+        }
     }
 };
