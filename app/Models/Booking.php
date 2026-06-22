@@ -295,4 +295,92 @@ class Booking extends Model
     {
         return $this->hasMany(BookingPayment::class)->orderBy('created_at', 'desc');
     }
+
+    /**
+     * Get the status of this booking as of a specific date.
+     * If the booking was checked_out after the filter date, show checked_in.
+     * If the booking was checked_in after the filter date, show confirmed/pending.
+     */
+    public function getStatusAsOfDate($date)
+    {
+        $currentStatus = $this->status;
+
+        // If cancelled, check if it was cancelled before or after the filter date
+        if ($currentStatus === 'cancelled') {
+            return 'cancelled';
+        }
+
+        // If currently checked_out and check_out_date is after the filter date,
+        // the booking was still checked_in at that point
+        $checkOutDate = \Carbon\Carbon::parse($this->check_out_date);
+        $filterDate = \Carbon\Carbon::parse($date);
+
+        if ($currentStatus === 'checked_out' && $checkOutDate->gt($filterDate)) {
+            // Check if check-in date is also after filter date
+            $checkInDate = \Carbon\Carbon::parse($this->check_in_date);
+            if ($checkInDate->gt($filterDate)) {
+                // Booking hadn't even started yet
+                return $this->status === 'confirmed' ? 'confirmed' : 'pending';
+            }
+            return 'checked_in';
+        }
+
+        // If currently checked_in and check_in_date is after filter date
+        if ($currentStatus === 'checked_in') {
+            $checkInDate = \Carbon\Carbon::parse($this->check_in_date);
+            if ($checkInDate->gt($filterDate)) {
+                return $this->status === 'confirmed' ? 'confirmed' : 'pending';
+            }
+        }
+
+        return $currentStatus;
+    }
+
+    /**
+     * Get total deposited amount up to a specific date.
+     * Only counts payments made on or before the given date.
+     */
+    public function getTotalDepositedUpToDate($date)
+    {
+        $payments = $this->payments()
+            ->where('type', '!=', 'refund')
+            ->whereDate('created_at', '<=', $date)
+            ->get();
+
+        $advanceRecord = $payments->first(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advanceRecordAmount = $advanceRecord ? (float) $advanceRecord->amount : 0;
+        $advanceInDb = (float) ($this->advance_payment ?? 0);
+
+        $extraPayments = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance')
+            ->sum('amount');
+
+        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
+            return $advanceInDb + (float) $extraPayments;
+        }
+
+        if ($advanceRecord) {
+            return $advanceRecordAmount + (float) $extraPayments;
+        }
+
+        // If no advance record in booking_payments but advance_payment is set,
+        // check if the booking was created before the filter date
+        $bookingDate = \Carbon\Carbon::parse($this->created_at);
+        $filterDate = \Carbon\Carbon::parse($date);
+
+        if ($bookingDate->lte($filterDate)) {
+            return $advanceInDb + (float) $extraPayments;
+        }
+
+        return (float) $extraPayments;
+    }
+
+    /**
+     * Get calculated remaining payment as of a specific date.
+     */
+    public function getCalculatedRemainingUpToDate($date)
+    {
+        $grandTotal = $this->getGrandTotal();
+        return $grandTotal - $this->getTotalDepositedUpToDate($date);
+    }
 }

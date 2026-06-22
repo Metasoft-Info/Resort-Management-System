@@ -78,15 +78,20 @@ class ReportController extends Controller {
         $totalBookings = $summaryBookings->count();
         $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
         $totalAdvance = $summaryBookings->sum('advance_payment');
-        $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
-        $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
+        
+        // Determine the filter end date for point-in-time calculations
+        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
+        
+        // Use date-filtered payment calculations for summary
+        $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDepositedUpToDate($filterEndDate));
+        $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemainingUpToDate($filterEndDate));
         
         $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
         $roomTypes = RoomType::all();
         $rooms = Room::orderBy('room_number')->get();
         $resortInfo = ResortInfo::first();
         
-        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalDeposited', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo'));
+        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalDeposited', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo', 'filterEndDate'));
     }
     
     public function exportRoomBookings(Request $request) {
@@ -129,9 +134,12 @@ class ReportController extends Controller {
         }
         
         $bookings = $query->orderBy('check_in_date', 'desc')->get();
+        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
         
-        $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Total Amount,Advance,Remaining,Payment Status,Status\n";
+        $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Total Amount,Advance,Deposited,Remaining,Payment Status,Status (As of {$filterEndDate})\n";
         foreach ($bookings as $b) {
+            $deposited = $b->getTotalDepositedUpToDate($filterEndDate);
+            $remaining = $b->getGrandTotal() - $deposited;
             $csvContent .= "\"{$b->id}\",";
             $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
             $csvContent .= "\"{$b->customer_phone}\",";
@@ -142,9 +150,10 @@ class ReportController extends Controller {
             $csvContent .= "\"{$b->check_out_date}\",";
             $csvContent .= "\"{$b->total_amount}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
-            $csvContent .= "\"{$b->remaining_payment}\",";
+            $csvContent .= "\"{$deposited}\",";
+            $csvContent .= "\"{$remaining}\",";
             $csvContent .= "\"{$b->payment_status}\",";
-            $csvContent .= "\"{$b->status}\"\n";
+            $csvContent .= "\"" . $b->getStatusAsOfDate($filterEndDate) . "\"\n";
         }
         
         $filename = 'room-bookings-report-' . date('Y-m-d') . '.csv';

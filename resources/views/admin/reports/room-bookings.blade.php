@@ -161,9 +161,10 @@
 
                         $grandTotal = $booking->getGrandTotal();
                         $sumGrandTotal += $grandTotal;
-                        $totalDeposited = $booking->getTotalDeposited();
+                        $totalDeposited = $booking->getTotalDepositedUpToDate($filterEndDate);
                         $sumDeposited += $totalDeposited;
                         $calculatedRemaining = $booking->getGrandTotal() - $totalDeposited;
+                        $pointInTimeStatus = $booking->getStatusAsOfDate($filterEndDate);
                     @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>
@@ -183,22 +184,22 @@
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">{{ $nights }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
-                            @if($booking->status == 'checked_in')
+                            @if($pointInTimeStatus == 'checked_in')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">চেক-ইন</span>
-                            @elseif($booking->status == 'checked_out')
+                            @elseif($pointInTimeStatus == 'checked_out')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">চেক-আউট</span>
-                            @elseif($booking->status == 'confirmed')
+                            @elseif($pointInTimeStatus == 'confirmed')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">নিশ্চিত</span>
-                            @elseif($booking->status == 'pending')
+                            @elseif($pointInTimeStatus == 'pending')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700">পেন্ডিং</span>
-                            @elseif($booking->status == 'cancelled')
+                            @elseif($pointInTimeStatus == 'cancelled')
                                 @php $refundAmount = $booking->payments->where('type', 'refund')->sum('amount'); @endphp
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">বাতিল</span>
                                 @if($refundAmount > 0)
                                 <div class="text-[9px] text-red-500 mt-0.5">রিফান্ড: {{ number_format($refundAmount) }}</div>
                                 @endif
                             @else
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">{{ ucfirst($booking->status) }}</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">{{ ucfirst($pointInTimeStatus) }}</span>
                             @endif
                         </td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
@@ -242,7 +243,7 @@
                         <td class="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">{{ number_format($sumGrandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($sumAdvance, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-emerald-700 whitespace-nowrap">{{ number_format($sumDeposited, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($bookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDeposited()), 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($sumGrandTotal - $sumDeposited, 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-center">{{ $totalNights }}</td>
                         <td class="border border-gray-400 px-2 py-2"></td>
