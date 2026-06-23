@@ -31,7 +31,8 @@ $remainingPayment = $booking->getCalculatedRemaining();
  $checkInDate = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
  $checkOutDate = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
  $isCheckInDayOrPast = $checkInDate->lte($today);
- $canCheckIn = $booking->status === 'confirmed' && $isCheckInDayOrPast;
+ $isExtendedStay = $booking->status === 'checked_out' && $checkOutDate->gt($today);
+ $canCheckIn = ($booking->status === 'confirmed' && $isCheckInDayOrPast) || $isExtendedStay;
  $canCancel = !in_array($booking->status, ['checked_out', 'cancelled']);
  $canRefund = $totalDeposited > 0 && $booking->status !== 'checked_out';
  $isEarlyDeparture = $booking->status === 'checked_in' && $checkOutDate->gt($today);
@@ -90,7 +91,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  @if($canCheckIn)
  <button onclick="updateStatus({{ $booking->id }}, 'checked_in')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
  <i class="fas fa-sign-in-alt"></i>
- <span>Check In</span>
+ <span>{{ $isExtendedStay ? 'Re-Check In' : 'Check In' }}</span>
  </button>
  @endif
  @if($booking->status === 'checked_in')
@@ -113,12 +114,14 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <option value="confirmed" {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
  @endif
 
- {{-- Checked In only shown when check-in date arrived AND current status is confirmed or checked_in --}}
+ {{-- Checked In shown when check-in date arrived AND current status is confirmed, checked_in, or extended checked_out --}}
  @if($isCheckInDayOrPast && in_array($booking->status, ['confirmed', 'checked_in']))
  <option value="checked_in" {{ $booking->status === 'checked_in' ? 'selected' : '' }}>Checked In</option>
+ @elseif($isExtendedStay)
+ <option value="checked_in">Re-Check In</option>
  @endif
 
- {{-- Checked Out only shown when currently checked_in --}}
+ {{-- Checked Out shown when currently checked_in --}}
  @if($booking->status === 'checked_in')
  <option value="checked_out" {{ $booking->status === 'checked_out' ? 'selected' : '' }}>Checked Out</option>
  @endif
