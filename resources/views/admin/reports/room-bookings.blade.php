@@ -288,124 +288,39 @@
 
 <style>
 @media print {
-    @page {
-        size: A4 landscape;
-        margin: 5mm;
+    /* Report-specific print overrides */
+    .report-table {
+        font-size: 8.5px !important;
     }
     
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    
-    body {
-        font-size: 10px !important;
-        margin: 0;
-        padding: 0;
-    }
-    
-    .print\:hidden {
-        display: none !important;
-    }
-    
-    .print\:block {
-        display: block !important;
-    }
-    
-    /* Hide sidebar, navbar, etc */
-    nav, header, aside, footer, 
-    .lg\:ml-64 > header, 
-    .lg\:ml-64 > footer,
-    #guestInfoModal,
-    .pagination {
-        display: none !important;
-    }
-    
-    /* Reset main content area */
-    .lg\:ml-64 {
-        margin-left: 0 !important;
-    }
-    
-    .p-6 {
-        padding: 2mm !important;
-    }
-    
-    /* Summary stats - make smaller for print */
-    .grid.grid-cols-2.md\:grid-cols-8 {
-        display: grid !important;
-        grid-template-columns: repeat(8, 1fr) !important;
-        gap: 2mm !important;
-        margin-bottom: 3mm !important;
-    }
-    
-    .grid.grid-cols-2.md\:grid-cols-8 > div {
-        padding: 2mm !important;
-        border-radius: 2px !important;
-    }
-    
-    .grid.grid-cols-2.md\:grid-cols-8 .text-xl {
-        font-size: 11px !important;
-        font-weight: bold;
-    }
-    
-    .grid.grid-cols-2.md\:grid-cols-8 .text-xs {
-        font-size: 8px !important;
-    }
-    
-    /* Table styling */
-    table {
-        width: 100% !important;
-        font-size: 9px !important;
-        border-collapse: collapse !important;
-        table-layout: auto !important;
-    }
-    
-    th, td {
-        padding: 2px 4px !important;
-        border: 1px solid #666 !important;
-        white-space: nowrap !important;
-    }
-    
-    th {
-        background-color: #e5e7eb !important;
-        font-weight: bold !important;
-        font-size: 8px !important;
+    .report-table th,
+    .report-table td {
+        padding: 1px 3px !important;
     }
     
     /* Allow name and company columns to wrap */
-    td:nth-child(3), td:nth-child(4) {
+    .report-table td:nth-child(3),
+    .report-table td:nth-child(4) {
         white-space: normal !important;
-        max-width: 100px !important;
+        max-width: 90px !important;
     }
     
-    /* Prevent table rows from breaking across pages */
-    tr {
-        page-break-inside: avoid !important;
+    /* Compact summary stats for print */
+    .grid.grid-cols-2.md\:grid-cols-8 {
+        gap: 1.5mm !important;
+        margin-bottom: 2mm !important;
     }
     
-    thead {
-        display: table-header-group !important;
+    .grid.grid-cols-2.md\:grid-cols-8 > div {
+        padding: 1.5mm !important;
     }
     
-    tfoot {
-        display: table-footer-group !important;
+    .grid.grid-cols-2.md\:grid-cols-8 .text-xl {
+        font-size: 10px !important;
     }
     
-    /* Print header styling */
-    .hidden.print\:block {
-        display: block !important;
-    }
-    
-    /* Hide screen elements */
-    .bg-white.rounded-lg.shadow {
-        box-shadow: none !important;
-        border-radius: 0 !important;
-    }
-    
-    /* Action column hide */
-    th:last-child.print\:hidden,
-    td:last-child.print\:hidden {
-        display: none !important;
+    .grid.grid-cols-2.md\:grid-cols-8 .text-xs {
+        font-size: 7px !important;
     }
 }
 

@@ -34,24 +34,25 @@
 @media print {
     @page {
         size: landscape !important;
-        margin: 0 !important;
+        margin: 5mm !important;
     }
 
     html {
-        width: 297mm !important;
-        min-width: 297mm !important;
-        max-width: 297mm !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
         margin: 0 !important;
         padding: 0 !important;
     }
 
     body {
-        width: 297mm !important;
-        min-width: 297mm !important;
-        max-width: 297mm !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
+        height: auto !important;
     }
 
     .main-content,
@@ -61,8 +62,10 @@
     .container,
     .p-6 {
         height: auto !important;
+        min-height: auto !important;
         max-height: none !important;
         overflow: visible !important;
+        page-break-before: auto !important;
     }
 
     * {
@@ -101,11 +104,12 @@
 
     .p-6 {
         width: 100% !important;
-        max-width: 297mm !important;
-        min-height: 210mm !important;
+        max-width: none !important;
+        min-height: auto !important;
         box-sizing: border-box !important;
         padding: 4mm 5mm !important;
         margin: 0 !important;
+        overflow: visible !important;
     }
 
     /* Horizontal flow: header at left, table/content at right */
