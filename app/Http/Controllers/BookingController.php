@@ -224,6 +224,7 @@ class BookingController extends Controller
         $newStatus = $validated['status'];
         $today = Carbon::now()->startOfDay();
         $checkInDate = Carbon::parse($booking->check_in_date)->startOfDay();
+        $checkOutDate = Carbon::parse($booking->check_out_date)->startOfDay();
 
         // Prevent check-in before check-in date
         if ($newStatus === 'checked_in' && $checkInDate->gt($today)) {
@@ -235,9 +236,14 @@ class BookingController extends Controller
             return response()->json(['message' => 'Cannot cancel a checked-out booking'], 422);
         }
 
-        // Prevent any status change after check-out (except keeping checked_out)
-        if ($oldStatus === 'checked_out' && $newStatus !== 'checked_out') {
+        // Prevent any status change after check-out, EXCEPT re-check-in for extended stays
+        // Extended stay = checked_out but checkout date is still in the future (date was extended)
+        $isExtendedStay = $oldStatus === 'checked_out' && $checkOutDate->gt($today);
+        if ($oldStatus === 'checked_out' && $newStatus !== 'checked_out' && !$isExtendedStay) {
             return response()->json(['message' => 'Cannot modify a checked-out booking'], 422);
+        }
+        if ($oldStatus === 'checked_out' && $isExtendedStay && $newStatus !== 'checked_in') {
+            return response()->json(['message' => 'Cannot modify a checked-out booking. Use Re-Check In for extended stays.'], 422);
         }
 
         $booking->update(['status' => $newStatus, 'updated_by_id' => Auth::id()]);
