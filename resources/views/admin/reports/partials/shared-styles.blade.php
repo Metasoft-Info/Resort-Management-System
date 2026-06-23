@@ -102,6 +102,31 @@
         margin-left: 0 !important;
     }
 
+    /* CRITICAL: Override layout containers that clip content in print */
+    .h-screen,
+    .overflow-hidden,
+    .overflow-y-auto,
+    .overflow-x-hidden {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+
+    .flex.h-screen,
+    .main-wrapper,
+    #mainWrapper,
+    main,
+    .main-content {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+
     .p-6 {
         width: 100% !important;
         max-width: none !important;
@@ -141,11 +166,17 @@
         margin-bottom: 3mm !important;
     }
 
-    .report-table-container {
+    .report-table-container,
+    .bg-white.rounded-lg.shadow,
+    .bg-white.rounded-xl.shadow-lg {
         overflow: visible !important;
         overflow-x: visible !important;
         overflow-y: visible !important;
         max-width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
     }
 
     .report-table-container::-webkit-scrollbar {
