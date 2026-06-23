@@ -690,6 +690,7 @@ class BookingController extends Controller
             ]);
 
             $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
+            $oldStatus = $booking->status;
             $oldCheckIn = $booking->getCheckInDateTime();
             $oldCheckOut = $booking->getCheckOutDateTime();
             $newCheckInTime = $validated['check_in_time'] ?? $booking->check_in_time ?? '12:00';
@@ -778,7 +779,21 @@ class BookingController extends Controller
 
             $booking->update($filteredValidated);
 
-            return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে');
+            // Auto re-check-in if checkout date was extended and booking was checked_out
+            if ($checkoutExtended && $oldStatus === 'checked_out') {
+                $newCheckOutDate = \Carbon\Carbon::parse($validated['check_out_date'])->startOfDay();
+                $today = Carbon::now()->startOfDay();
+                if ($newCheckOutDate->gt($today)) {
+                    $booking->update(['status' => 'checked_in', 'updated_by_id' => Auth::id()]);
+                    // Mark room(s) as occupied
+                    $roomIds = $booking->getAllRoomIds();
+                    if (!empty($roomIds)) {
+                        \App\Models\Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
+                    }
+                }
+            }
+
+            return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে' . ($checkoutExtended && $oldStatus === 'checked_out' ? ' — স্ট্যাটাস স্বয়ংক্রিয়ভাবে চেক-ইন এ আপডেট হয়েছে' : ''));
         } catch (\Throwable $e) {
             Log::error('Booking update failed', [
                 'booking_id' => $booking->id,
