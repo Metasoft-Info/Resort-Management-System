@@ -28,10 +28,13 @@ $remainingPayment = $booking->getCalculatedRemaining();
 
  // Date & status logic
  $today = \Carbon\Carbon::now()->startOfDay();
+ $now = \Carbon\Carbon::now('Asia/Dhaka');
  $checkInDate = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
  $checkOutDate = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
  $isCheckInDayOrPast = $checkInDate->lte($today);
- $isExtendedStay = $booking->status === 'checked_out' && $checkOutDate->gt($today);
+ $checkoutDateTime = $booking->getCheckOutDateTime();
+ $isBeforeCheckoutTime = $checkoutDateTime ? $now->lt($checkoutDateTime) : false;
+ $isExtendedStay = $booking->status === 'checked_out' && ($checkOutDate->gt($today) || ($checkOutDate->eq($today) && $isBeforeCheckoutTime));
  $canCheckIn = ($booking->status === 'confirmed' && $isCheckInDayOrPast) || $isExtendedStay;
  $canCancel = !in_array($booking->status, ['checked_out', 'cancelled']);
  $canRefund = $totalDeposited > 0 && $booking->status !== 'checked_out';
@@ -121,8 +124,8 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <option value="checked_in">Re-Check In</option>
  @endif
 
- {{-- Checked Out shown when currently checked_in --}}
- @if($booking->status === 'checked_in')
+ {{-- Checked Out shown when currently checked_in OR already checked_out --}}
+ @if(in_array($booking->status, ['checked_in', 'checked_out']))
  <option value="checked_out" {{ $booking->status === 'checked_out' ? 'selected' : '' }}>Checked Out</option>
  @endif
 
