@@ -431,7 +431,7 @@ class BookingController extends Controller
 
         // Do NOT overwrite total_amount - it should stay as the originally agreed price
         $updateData['remaining_payment'] = $newRemainingPayment;
-        $updateData['payment_status'] = $newRemainingPayment <= 0 ? 'paid' : 'partial';
+        $updateData['payment_status'] = $booking->getCalculatedPaymentStatus();
         $updateData['updated_by_id'] = Auth::id();
         
         $booking->update($updateData);
@@ -496,6 +496,7 @@ class BookingController extends Controller
             'extra_charges_description' => $newDescription,
             'extra_charges_data' => $existingData,
             'remaining_payment' => $newRemainingPayment,
+            'payment_status' => $booking->getCalculatedPaymentStatus(),
             'updated_by_id' => Auth::id(),
         ]);
 

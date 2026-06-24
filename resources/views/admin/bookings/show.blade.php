@@ -279,33 +279,34 @@ $remainingPayment = $booking->getCalculatedRemaining();
  </span>
  </div>
  
+ @php $calculatedPaymentStatus = $booking->getCalculatedPaymentStatus(); @endphp
  <!-- Payment Status -->
  <div class="border-2 rounded-lg p-4 text-center
- @if($booking->payment_status === 'paid') 
+ @if($calculatedPaymentStatus === 'paid') 
  border-primary-500 bg-green-50
- @elseif($booking->payment_status === 'partial') 
+ @elseif($calculatedPaymentStatus === 'partial') 
  border-yellow-500 bg-yellow-50
  @else 
  border-red-500 bg-red-50
  @endif">
  <i class="fas fa-money-bill-wave text-2xl mb-2
- @if($booking->payment_status === 'paid') 
+ @if($calculatedPaymentStatus === 'paid') 
  text-primary-600
- @elseif($booking->payment_status === 'partial') 
+ @elseif($calculatedPaymentStatus === 'partial') 
  text-yellow-600
  @else 
  text-red-600
  @endif"></i>
  <p class="text-xs font-semibold text-gray-600 mb-1">Payment Status</p>
  <span class="inline-block px-3 py-1 rounded-full text-xs font-bold
- @if($booking->payment_status === 'paid') 
+ @if($calculatedPaymentStatus === 'paid') 
  bg-green-500 text-white
- @elseif($booking->payment_status === 'partial') 
+ @elseif($calculatedPaymentStatus === 'partial') 
  bg-yellow-500 text-gray-900
  @else 
  bg-red-500 text-white
  @endif">
- {{ strtoupper($booking->payment_status) }}
+ {{ strtoupper($calculatedPaymentStatus) }}
  </span>
  @if($remainingPayment > 0)
  <p class="text-xs text-gray-600 mt-1">Due: {{ number_format($remainingPayment, 2) }}</p>
@@ -649,11 +650,11 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div class="flex justify-between items-center">
  <span>Payment Status:</span>
  <span class="px-3 py-1 rounded-full text-xs font-semibold
- @if($booking->payment_status === 'paid') bg-green-500 text-white
- @elseif($booking->payment_status === 'partial') bg-yellow-500 text-gray-900
+ @if($calculatedPaymentStatus === 'paid') bg-green-500 text-white
+ @elseif($calculatedPaymentStatus === 'partial') bg-yellow-500 text-gray-900
  @else bg-red-500 text-white
  @endif">
- {{ strtoupper($booking->payment_status) }}
+ {{ strtoupper($calculatedPaymentStatus) }}
  </span>
  </div>
  </div>

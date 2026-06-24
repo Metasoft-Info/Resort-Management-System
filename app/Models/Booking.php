@@ -236,6 +236,21 @@ class Booking extends Model
         return $grandTotal - $this->getTotalDeposited();
     }
 
+    // Get dynamically calculated payment status based on actual payments
+    public function getCalculatedPaymentStatus()
+    {
+        $remaining = $this->getCalculatedRemaining();
+        $deposited = $this->getTotalDeposited();
+
+        if ($remaining <= 0) {
+            return 'paid';
+        }
+        if ($deposited > 0) {
+            return 'partial';
+        }
+        return 'pending';
+    }
+
     // Get grand total (Room Rent + Extra - Discount + VAT)
     public function getGrandTotal()
     {
