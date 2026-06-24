@@ -398,4 +398,35 @@ class Booking extends Model
         $grandTotal = $this->getGrandTotal();
         return $grandTotal - $this->getTotalDepositedUpToDate($date);
     }
+
+    /**
+     * Get total deposited amount within a date range.
+     * Only counts payments made between start and end date (inclusive).
+     */
+    public function getTotalDepositedInRange($startDate, $endDate)
+    {
+        $payments = $this->payments()
+            ->where('type', '!=', 'refund')
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->get();
+
+        $advanceRecord = $payments->first(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advanceRecordAmount = $advanceRecord ? (float) $advanceRecord->amount : 0;
+        $advanceInDb = (float) ($this->advance_payment ?? 0);
+
+        $extraPayments = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance')
+            ->sum('amount');
+
+        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
+            return $advanceInDb + (float) $extraPayments;
+        }
+
+        if ($advanceRecord) {
+            return $advanceRecordAmount + (float) $extraPayments;
+        }
+
+        return $advanceInDb + (float) $extraPayments;
+    }
 }

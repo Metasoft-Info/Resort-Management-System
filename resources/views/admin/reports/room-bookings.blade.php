@@ -161,7 +161,7 @@
 
                         $grandTotal = $booking->getGrandTotal();
                         $sumGrandTotal += $grandTotal;
-                        $totalDeposited = $booking->getTotalDepositedUpToDate($filterEndDate);
+                        $totalDeposited = $booking->getTotalDepositedInRange($filterStartDate, $filterEndDate);
                         $sumDeposited += $totalDeposited;
                         $calculatedRemaining = $booking->getGrandTotal() - $totalDeposited;
                         $pointInTimeStatus = $booking->getStatusAsOfDate($filterEndDate);
