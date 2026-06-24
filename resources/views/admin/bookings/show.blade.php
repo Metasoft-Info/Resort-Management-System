@@ -1671,11 +1671,33 @@ async function submitTimeUpdate(e) {
  });
 
  if (response.ok) {
- showGlobalModal('success', 'Time updated!');
+ showGlobalModal('success', 'Date/Time updated!');
  setTimeout(() => location.reload(), 1500);
  } else {
  const data = await response.json();
- showGlobalModal('error', data.message || 'Time update failed!');
+ if (data.conflicts && data.conflicts.length > 0) {
+ let html = '<div class="text-center mb-4"><i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-2"></i>';
+ html += '<p class="text-lg font-bold text-gray-800">' + (data.message || 'এই তারিখে রুম অলরেডি বুকড।') + '</p></div>';
+ html += '<div class="space-y-3 max-h-60 overflow-y-auto">';
+ data.conflicts.forEach(function(c) {
+ const statusColors = {confirmed: 'bg-blue-100 text-blue-700', checked_in: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700'};
+ const statusColor = statusColors[c.status] || 'bg-gray-100 text-gray-700';
+ html += '<div class="border rounded-lg p-3 bg-gray-50">';
+ html += '<div class="flex justify-between items-start mb-1">';
+ html += '<span class="font-semibold text-gray-800">#' + c.id + ' - ' + c.customer_name + '</span>';
+ html += '<span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + statusColor + '">' + c.status.replace('_', ' ').toUpperCase() + '</span>';
+ html += '</div>';
+ html += '<div class="text-sm text-gray-600"><i class="fas fa-bed mr-1"></i>Room: ' + c.rooms + '</div>';
+ html += '<div class="text-sm text-gray-600"><i class="fas fa-calendar mr-1"></i>' + c.check_in + ' → ' + c.check_out + '</div>';
+ html += '<div class="text-sm text-gray-600"><i class="fas fa-phone mr-1"></i>' + c.customer_phone + '</div>';
+ html += '</div>';
+ });
+ html += '</div>';
+ html += '<p class="text-center text-sm text-gray-500 mt-3">অন্য তারিখ নির্বাচন করুন।</p>';
+ showGlobalModalHtml(html);
+ } else {
+ showGlobalModal('error', data.message || 'Date/Time update failed!');
+ }
  }
  } catch (error) {
  console.error('Error:', error);
