@@ -559,8 +559,7 @@ class PremiumBookingController extends Controller
                 $booking->notes = trim($booking->notes) . " [Rooms: {$allRoomNumbers}]";
                 
                 // Update payment status
-                $booking->payment_status = $booking->advance_payment >= $booking->total_amount ? 'paid' : 
-                                          ($booking->advance_payment > 0 ? 'partial' : 'pending');
+                $booking->payment_status = $booking->getCalculatedPaymentStatus();
                 $booking->save();
             }
             
