@@ -320,6 +320,45 @@ class BookingController extends Controller
             'check_out_date' => 'nullable|date|after_or_equal:check_in_date',
         ]);
 
+        // Determine new date/time values
+        $newCheckInDate = $validated['check_in_date'] ?? $booking->check_in_date?->format('Y-m-d');
+        $newCheckOutDate = $validated['check_out_date'] ?? $booking->check_out_date?->format('Y-m-d');
+        $newCheckInTime = $validated['check_in_time'] ?? $booking->check_in_time ?? '12:00';
+        $newCheckOutTime = $validated['check_out_time'] ?? $booking->check_out_time ?? '12:00';
+
+        $newCheckIn = Carbon::parse($newCheckInDate)->setTimeFromTimeString($newCheckInTime);
+        $newCheckOut = Carbon::parse($newCheckOutDate)->setTimeFromTimeString($newCheckOutTime);
+
+        $oldCheckIn = $booking->getCheckInDateTime();
+        $oldCheckOut = $booking->getCheckOutDateTime();
+
+        $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
+
+        // Check room availability if dates changed
+        if ($datesChanged) {
+            $roomIds = $booking->getAllRoomIds();
+            $hasConflict = Booking::with('bookingRooms')
+                ->where('id', '!=', $booking->id)
+                ->whereNotIn('status', ['cancelled', 'checked_out'])
+                ->where('check_in_date', '<', $newCheckOut->toDateString())
+                ->where('check_out_date', '>', $newCheckIn->toDateString())
+                ->get()
+                ->some(function ($other) use ($newCheckIn, $newCheckOut, $roomIds) {
+                    $otherRoomIds = array_map('intval', $other->getAllRoomIds());
+                    $hasOverlap = !empty(array_intersect($roomIds, $otherRoomIds));
+                    if (!$hasOverlap) return false;
+                    $otherCheckIn = $other->getCheckInDateTime();
+                    $otherCheckOut = $other->getCheckOutDateTime();
+                    return $otherCheckIn->lt($newCheckOut) && $otherCheckOut->gt($newCheckIn);
+                });
+
+            if ($hasConflict) {
+                return response()->json([
+                    'message' => 'এই তারিখে রুমটি অলরেডি বুকড। অন্য তারিখ নির্বাচন করুন।'
+                ], 422);
+            }
+        }
+
         $validated['updated_by_id'] = Auth::id();
         $booking->update($validated);
 
