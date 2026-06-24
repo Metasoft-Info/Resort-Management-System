@@ -32,6 +32,11 @@ class ReportController extends Controller {
                       $qq->where('status', 'cancelled')
                          ->whereDate('check_in_date', '<=', $end)
                          ->whereDate('check_in_date', '>=', $start);
+                  })
+                  ->orWhereHas('payments', function ($pq) use ($start, $end) {
+                      $pq->whereDate('created_at', '>=', $start)
+                         ->whereDate('created_at', '<=', $end)
+                         ->where('type', '!=', 'refund');
                   });
             });
         } else {
