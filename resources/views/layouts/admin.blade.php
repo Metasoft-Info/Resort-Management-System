@@ -602,6 +602,36 @@ function toggleSection(sectionKey) {
  }, 10);
  }
 
+ function showGlobalModalHtml(html) {
+ const modal = document.getElementById('globalModal');
+ const content = document.getElementById('modalContent');
+ 
+ // Hide all modal types
+ document.getElementById('successModal').classList.add('hidden');
+ document.getElementById('errorModal').classList.add('hidden');
+ document.getElementById('warningModal').classList.add('hidden');
+ document.getElementById('infoModal').classList.add('hidden');
+ document.getElementById('confirmModal').classList.add('hidden');
+ 
+ // Create or update custom modal content
+ let customModal = document.getElementById('customModal');
+ if (!customModal) {
+ customModal = document.createElement('div');
+ customModal.id = 'customModal';
+ content.appendChild(customModal);
+ }
+ customModal.innerHTML = '<div class="p-1">' + html + '<div class="text-center mt-5"><button onclick="closeGlobalModal()" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition shadow-lg"><i class="fas fa-times mr-2"></i>Close</button></div></div>';
+ customModal.classList.remove('hidden');
+ 
+ // Show modal with animation
+ modal.classList.remove('hidden');
+ modal.classList.add('flex');
+ setTimeout(() => {
+ content.classList.remove('scale-95', 'opacity-0');
+ content.classList.add('scale-100', 'opacity-100');
+ }, 10);
+ }
+
  function showConfirmModal(message, onConfirm) {
  const modal = document.getElementById('globalModal');
  const content = document.getElementById('modalContent');
@@ -637,6 +667,9 @@ function toggleSection(sectionKey) {
  const modal = document.getElementById('globalModal');
  const content = document.getElementById('modalContent');
  
+ const customModal = document.getElementById('customModal');
+ if (customModal) customModal.classList.add('hidden');
+
  content.classList.remove('scale-100', 'opacity-100');
  content.classList.add('scale-95', 'opacity-0');
  

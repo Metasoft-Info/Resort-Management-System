@@ -337,24 +337,37 @@ class BookingController extends Controller
         // Check room availability if dates changed
         if ($datesChanged) {
             $roomIds = $booking->getAllRoomIds();
-            $hasConflict = Booking::with('bookingRooms')
+            $conflicts = Booking::with(['room.roomType', 'bookingRooms.room'])
                 ->where('id', '!=', $booking->id)
                 ->whereNotIn('status', ['cancelled', 'checked_out'])
                 ->where('check_in_date', '<', $newCheckOut->toDateString())
                 ->where('check_out_date', '>', $newCheckIn->toDateString())
                 ->get()
-                ->some(function ($other) use ($newCheckIn, $newCheckOut, $roomIds) {
+                ->filter(function ($other) use ($newCheckIn, $newCheckOut, $roomIds) {
                     $otherRoomIds = array_map('intval', $other->getAllRoomIds());
-                    $hasOverlap = !empty(array_intersect($roomIds, $otherRoomIds));
-                    if (!$hasOverlap) return false;
+                    if (empty(array_intersect($roomIds, $otherRoomIds))) return false;
                     $otherCheckIn = $other->getCheckInDateTime();
                     $otherCheckOut = $other->getCheckOutDateTime();
                     return $otherCheckIn->lt($newCheckOut) && $otherCheckOut->gt($newCheckIn);
-                });
+                })
+                ->values();
 
-            if ($hasConflict) {
+            if ($conflicts->isNotEmpty()) {
+                $conflictData = $conflicts->map(function ($c) {
+                    $rooms = $c->getAllRooms()->pluck('room_number')->implode(', ');
+                    return [
+                        'id' => $c->id,
+                        'customer_name' => $c->customer_name,
+                        'customer_phone' => $c->customer_phone,
+                        'rooms' => $rooms,
+                        'check_in' => $c->check_in_date?->format('d M Y'),
+                        'check_out' => $c->check_out_date?->format('d M Y'),
+                        'status' => $c->status,
+                    ];
+                });
                 return response()->json([
-                    'message' => 'এই তারিখে রুমটি অলরেডি বুকড। অন্য তারিখ নির্বাচন করুন।'
+                    'message' => 'এই তারিখে রুম অলরেডি বুকড।',
+                    'conflicts' => $conflictData,
                 ], 422);
             }
         }
