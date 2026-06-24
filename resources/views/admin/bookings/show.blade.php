@@ -752,20 +752,32 @@ $remainingPayment = $booking->getCalculatedRemaining();
 <div id="timeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
  <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md my-8 mx-4 max-h-[90vh] overflow-y-auto">
  <div class="flex justify-between items-center mb-4">
- <h3 class="text-xl font-bold text-gray-800">Edit Check-In/Out Time</h3>
+ <h3 class="text-xl font-bold text-gray-800">Edit Check-In/Out Date & Time</h3>
  <button onclick="closeTimeModal()" class="text-gray-500 hover:text-gray-700">
  <i class="fas fa-times text-xl"></i>
  </button>
  </div>
  <form id="timeForm" onsubmit="submitTimeUpdate(event)">
  <div class="space-y-4">
+ <div class="grid grid-cols-2 gap-3">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Check-In Date</label>
+ <input type="date" name="check_in_date" value="{{ $booking->check_in_date?->format('Y-m-d') }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Check-In Time</label>
- <input type="time" name="check_in_time" value="{{ $booking->check_in_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="time" name="check_in_time" value="{{ $booking->check_in_time }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ </div>
+ <div class="grid grid-cols-2 gap-3">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Check-Out Date</label>
+ <input type="date" name="check_out_date" value="{{ $booking->check_out_date?->format('Y-m-d') }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Check-Out Time</label>
- <input type="time" name="check_out_time" value="{{ $booking->check_out_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="time" name="check_out_time" value="{{ $booking->check_out_time }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
  </div>
  <div class="flex gap-3">
  <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
@@ -1651,6 +1663,8 @@ async function submitTimeUpdate(e) {
  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
  },
  body: JSON.stringify({
+ check_in_date: formData.get('check_in_date'),
+ check_out_date: formData.get('check_out_date'),
  check_in_time: formData.get('check_in_time'),
  check_out_time: formData.get('check_out_time')
  })
