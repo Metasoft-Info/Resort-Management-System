@@ -316,11 +316,29 @@ class BookingController extends Controller
         $validated = $request->validate([
             'check_in_time' => 'nullable|date_format:H:i',
             'check_out_time' => 'nullable|date_format:H:i',
+            'check_in_date' => 'nullable|date',
+            'check_out_date' => 'nullable|date|after_or_equal:check_in_date',
         ]);
 
         $validated['updated_by_id'] = Auth::id();
         $booking->update($validated);
-        return response()->json(['message' => 'Time updated successfully']);
+
+        // If booking was checked_out but checkout date/time is now in the future, re-check-in
+        if ($booking->status === 'checked_out') {
+            $now = Carbon::now('Asia/Dhaka');
+            $checkOut = $booking->getCheckOutDateTime();
+            if ($checkOut && $now->lt($checkOut)) {
+                $booking->update(['status' => 'checked_in']);
+                // Mark rooms as occupied again
+                $roomIds = $booking->getAllRoomIds();
+                if (!empty($roomIds)) {
+                    \App\Models\Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
+                }
+                return response()->json(['message' => 'Date/Time updated. Booking re-checked-in as checkout time is in the future.']);
+            }
+        }
+
+        return response()->json(['message' => 'Date/Time updated successfully']);
     }
 
     public function addPayment(Request $request, Booking $booking)
