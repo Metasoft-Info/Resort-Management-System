@@ -1674,7 +1674,8 @@ async function submitTimeUpdate(e) {
  showGlobalModal('success', 'Time updated!');
  setTimeout(() => location.reload(), 1500);
  } else {
- showGlobalModal('error', 'Time update failed!');
+ const data = await response.json();
+ showGlobalModal('error', data.message || 'Time update failed!');
  }
  } catch (error) {
  console.error('Error:', error);
