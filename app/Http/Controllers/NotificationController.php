@@ -26,9 +26,9 @@ class NotificationController extends Controller
         foreach ($todayCheckins as $booking) {
             $notifications[] = [
                 'type' => 'checkin',
-                'title' => 'আজকের চেক-ইন',
+                'title' => "Today's Check-In",
                 'message' => $booking->customer_name . ' - ' . ($booking->room->room_number ?? 'N/A'),
-                'time' => 'আজ',
+                'time' => 'Today',
                 'link' => route('admin.bookings.show', $booking->id),
                 'read' => false,
                 'priority' => 1,
@@ -44,9 +44,9 @@ class NotificationController extends Controller
         foreach ($todayCheckouts as $booking) {
             $notifications[] = [
                 'type' => 'checkout',
-                'title' => 'আজকের চেক-আউট',
+                'title' => "Today's Check-Out",
                 'message' => $booking->customer_name . ' - ' . ($booking->room->room_number ?? 'N/A'),
-                'time' => 'আজ',
+                'time' => 'Today',
                 'link' => route('admin.bookings.show', $booking->id),
                 'read' => false,
                 'priority' => 2,
@@ -62,8 +62,8 @@ class NotificationController extends Controller
         foreach ($duePayments as $booking) {
             $notifications[] = [
                 'type' => 'due_payment',
-                'title' => 'বকেয়া পেমেন্ট (রুম)',
-                'message' => $booking->customer_name . ' - ৳' . number_format($booking->remaining_payment),
+                'title' => 'Outstanding Payment (Room)',
+                'message' => $booking->customer_name . ' - BDT ' . number_format($booking->remaining_payment),
                 'time' => Carbon::parse($booking->check_out_date)->diffForHumans(),
                 'link' => route('admin.bookings.show', $booking->id),
                 'read' => false,
@@ -80,12 +80,12 @@ class NotificationController extends Controller
             ->get();
         
         foreach ($todayEvents as $event) {
-            $slotText = $event->time_slot == 'morning' ? 'সকাল' : ($event->time_slot == 'night' ? 'রাত' : 'সারাদিন');
+            $slotText = $event->time_slot == 'morning' ? 'Morning' : ($event->time_slot == 'night' ? 'Night' : 'Full Day');
             $notifications[] = [
                 'type' => 'convention_today',
-                'title' => 'আজকের কনভেনশন ইভেন্ট',
+                'title' => "Today's Convention Event",
                 'message' => $event->customer_name . ' - ' . ($event->conventionHall->name ?? 'N/A') . ' (' . $slotText . ')',
-                'time' => 'আজ',
+                'time' => 'Today',
                 'link' => route('admin.convention-bookings.show', $event->id),
                 'read' => false,
                 'priority' => 1,
@@ -99,12 +99,12 @@ class NotificationController extends Controller
             ->get();
         
         foreach ($tomorrowEvents as $event) {
-            $slotText = $event->time_slot == 'morning' ? 'সকাল' : ($event->time_slot == 'night' ? 'রাত' : 'সারাদিন');
+            $slotText = $event->time_slot == 'morning' ? 'Morning' : ($event->time_slot == 'night' ? 'Night' : 'Full Day');
             $notifications[] = [
                 'type' => 'convention_upcoming',
-                'title' => 'আগামীকালের কনভেনশন ইভেন্ট',
+                'title' => "Tomorrow's Convention Event",
                 'message' => $event->customer_name . ' - ' . ($event->conventionHall->name ?? 'N/A') . ' (' . $slotText . ')',
-                'time' => 'আগামীকাল',
+                'time' => 'Tomorrow',
                 'link' => route('admin.convention-bookings.show', $event->id),
                 'read' => false,
                 'priority' => 3,
@@ -120,8 +120,8 @@ class NotificationController extends Controller
         foreach ($conventionDues as $event) {
             $notifications[] = [
                 'type' => 'due_payment',
-                'title' => 'বকেয়া পেমেন্ট (কনভেনশন)',
-                'message' => $event->customer_name . ' - ৳' . number_format($event->remaining_payment),
+                'title' => 'Outstanding Payment (Convention)',
+                'message' => $event->customer_name . ' - BDT ' . number_format($event->remaining_payment),
                 'time' => Carbon::parse($event->event_date)->diffForHumans(),
                 'link' => route('admin.convention-bookings.show', $event->id),
                 'read' => false,

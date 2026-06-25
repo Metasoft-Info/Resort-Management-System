@@ -41,7 +41,7 @@ class AddonServiceController extends Controller
         AddonService::create($validated);
 
         return redirect()->route('admin.addon-services.index')
-            ->with('success', 'অ্যাডঅন সার্ভিস সফলভাবে যোগ হয়েছে!');
+            ->with('success', 'Addon service added successfully!');
     }
 
     public function edit(AddonService $addonService)
@@ -66,7 +66,7 @@ class AddonServiceController extends Controller
         $addonService->update($validated);
 
         return redirect()->route('admin.addon-services.index')
-            ->with('success', 'অ্যাডঅন সার্ভিস সফলভাবে আপডেট হয়েছে!');
+            ->with('success', 'Addon service updated successfully!');
     }
 
     public function destroy(AddonService $addonService)
@@ -74,7 +74,7 @@ class AddonServiceController extends Controller
         $addonService->delete();
 
         return redirect()->route('admin.addon-services.index')
-            ->with('success', 'অ্যাডঅন সার্ভিস সফলভাবে মুছে ফেলা হয়েছে!');
+            ->with('success', 'Addon service deleted successfully!');
     }
 
     // API endpoint for fetching addons by type

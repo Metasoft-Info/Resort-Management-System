@@ -1,5 +1,5 @@
 @php
-    $reportTitle = $title ?? 'রিপোর্ট';
+    $reportTitle = $title ?? 'Report';
     $reportSubtitle = $subtitle ?? null;
 @endphp
 
@@ -37,10 +37,10 @@
 
         <p class="text-[10px] text-gray-600 leading-tight">
             @if(request('start_date') || request('end_date'))
-                তারিখ: {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'শুরু' }}
-                থেকে {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'শেষ' }}
+                Date: {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'Start' }}
+                to {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'End' }}
             @else
-                তারিখ: {{ date('d-m-Y') }}
+                Date: {{ date('d-m-Y') }}
             @endif
         </p>
     </div>

@@ -1677,7 +1677,7 @@ async function submitTimeUpdate(e) {
  const data = await response.json();
  if (data.conflicts && data.conflicts.length > 0) {
  let html = '<div class="text-center mb-4"><i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-2"></i>';
- html += '<p class="text-lg font-bold text-gray-800">' + (data.message || 'এই তারিখে রুম অলরেডি বুকড।') + '</p></div>';
+ html += '<p class="text-lg font-bold text-gray-800">' + (data.message || 'Room is already booked for this date.') + '</p></div>';
  html += '<div class="space-y-3 max-h-60 overflow-y-auto">';
  data.conflicts.forEach(function(c) {
  const statusColors = {confirmed: 'bg-blue-100 text-blue-700', checked_in: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700'};
@@ -1693,7 +1693,7 @@ async function submitTimeUpdate(e) {
  html += '</div>';
  });
  html += '</div>';
- html += '<p class="text-center text-sm text-gray-500 mt-3">অন্য তারিখ নির্বাচন করুন।</p>';
+ html += '<p class="text-center text-sm text-gray-500 mt-3">Please select a different date.</p>';
  showGlobalModalHtml(html);
  } else {
  showGlobalModal('error', data.message || 'Date/Time update failed!');

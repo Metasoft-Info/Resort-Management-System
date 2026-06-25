@@ -48,7 +48,7 @@ class ConventionHallController extends Controller
         ConventionHall::create($validated);
 
         return redirect()->route('admin.convention-halls.index')
-            ->with('success', 'কনভেনশন হল সফলভাবে যোগ হয়েছে!');
+            ->with('success', 'Convention hall added successfully!');
     }
 
     public function show(ConventionHall $conventionHall)
@@ -103,7 +103,7 @@ class ConventionHallController extends Controller
         $conventionHall->update($validated);
 
         return redirect()->route('admin.convention-halls.index')
-            ->with('success', 'কনভেনশন হল সফলভাবে আপডেট হয়েছে!');
+            ->with('success', 'Convention hall updated successfully!');
     }
 
     public function destroy(ConventionHall $conventionHall)
@@ -118,7 +118,7 @@ class ConventionHallController extends Controller
         $conventionHall->delete();
 
         return redirect()->route('admin.convention-halls.index')
-            ->with('success', 'কনভেনশন হল সফলভাবে মুছে ফেলা হয়েছে!');
+            ->with('success', 'Convention hall deleted successfully!');
     }
 }
 

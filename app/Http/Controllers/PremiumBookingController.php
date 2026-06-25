@@ -137,7 +137,7 @@ class PremiumBookingController extends Controller
             if ($hasConflict) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'এই রুমটি নির্বাচিত সময়ে আগে থেকেই বুকড আছে।'
+                    'message' => 'This room is already booked for the selected time.'
                 ], 422);
             }
 

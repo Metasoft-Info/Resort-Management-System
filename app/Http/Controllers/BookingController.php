@@ -154,9 +154,9 @@ class BookingController extends Controller
 
         if ($hasConflict) {
             return back()
-                ->withErrors(['check_in_date' => 'এই রুমটি নির্বাচিত সময়ে আগে থেকেই বুকড আছে। অন্য রুম/তারিখ নির্বাচন করুন।'])
+                ->withErrors(['check_in_date' => 'This room is already booked for the selected time. Please choose another room/date.'])
                 ->withInput()
-                ->with('error', 'এই রুমটি অলরেডি বুকড।');
+                ->with('error', 'This room is already booked.');
         }
 
         // Calculate discount at creation time for correct remaining/payment_status
@@ -303,9 +303,9 @@ class BookingController extends Controller
             return response()->json($response);
         }
         
-        $successMessage = 'স্ট্যাটাস সফলভাবে আপডেট হয়েছে';
+        $successMessage = 'Status updated successfully';
         if ($emailSent) {
-            $successMessage .= '. ইমেইল প্রেরিত হয়েছে।';
+            $successMessage .= '. Email sent.';
         }
         
         return back()->with('success', $successMessage);
@@ -366,7 +366,7 @@ class BookingController extends Controller
                     ];
                 });
                 return response()->json([
-                    'message' => 'এই তারিখে রুম অলরেডি বুকড।',
+                    'message' => 'Room is already booked for this date.',
                     'conflicts' => $conflictData,
                 ], 422);
             }
@@ -433,7 +433,7 @@ class BookingController extends Controller
         // Validate: payment + discount cannot exceed remaining balance
         $totalDeduction = $paymentAmount + $paymentDiscountAmount;
         if ($totalDeduction > $currentRemaining) {
-            return response()->json(['message' => 'পেমেন্ট ও ডিসকাউন্টের মোট বাকি টাকার চেয়ে বেশি হতে পারে না। বাকি আছে: ৳' . number_format($currentRemaining, 2)], 422);
+            return response()->json(['message' => 'Payment + discount cannot exceed remaining balance. Remaining: BDT ' . number_format($currentRemaining, 2)], 422);
         }
 
         // Calculate grand total (including VAT, existing discount, extra charges)
@@ -508,14 +508,14 @@ class BookingController extends Controller
 
         $paymentNote = $validated['note'] ?? '';
         if ($paymentDiscountAmount > 0) {
-            $paymentNote .= ' [Discount: ৳' . number_format($paymentDiscountAmount, 2) . ' - Ref: ' . ($validated['discount_reference'] ?? 'N/A') . ']';
+            $paymentNote .= ' [Discount: BDT ' . number_format($paymentDiscountAmount, 2) . ' - Ref: ' . ($validated['discount_reference'] ?? 'N/A') . ']';
         }
 
         $message = 'Payment recorded successfully';
         if ($paymentDiscountAmount > 0 && $paymentAmount <= 0) {
-            $message = 'Discount of ৳' . number_format($paymentDiscountAmount, 2) . ' applied successfully';
+            $message = 'Discount of BDT ' . number_format($paymentDiscountAmount, 2) . ' applied successfully';
         } elseif ($paymentDiscountAmount > 0) {
-            $message = 'Payment of ৳' . number_format($paymentAmount, 2) . ' with discount of ৳' . number_format($paymentDiscountAmount, 2) . ' recorded';
+            $message = 'Payment of BDT ' . number_format($paymentAmount, 2) . ' with discount of BDT ' . number_format($paymentDiscountAmount, 2) . ' recorded';
         }
 
         return response()->json(['message' => $message]);
@@ -790,9 +790,9 @@ class BookingController extends Controller
 
                 if ($hasConflict) {
                     return back()
-                        ->withErrors(['check_out_date' => 'এই রুমটি নির্বাচিত তারিখে আগে থেকেই বুকড আছে। অন্য রুম/তারিখ নির্বাচন করুন।'])
+                        ->withErrors(['check_out_date' => 'This room is already booked for the selected date. Please choose another room/date.'])
                         ->withInput()
-                        ->with('error', 'এই তারিখে রুমটি অলরেডি বুকড।');
+                        ->with('error', 'Room is already booked for this date.');
                 }
             }
 
@@ -864,7 +864,7 @@ class BookingController extends Controller
                 }
             }
 
-            return redirect()->route('admin.bookings.show', $booking)->with('success', 'বুকিং সফলভাবে আপডেট হয়েছে' . ($checkoutExtended && $oldStatus === 'checked_out' ? ' — স্ট্যাটাস স্বয়ংক্রিয়ভাবে চেক-ইন এ আপডেট হয়েছে' : ''));
+            return redirect()->route('admin.bookings.show', $booking)->with('success', 'Booking updated successfully' . ($checkoutExtended && $oldStatus === 'checked_out' ? ' — Status auto-updated to checked-in' : ''));
         } catch (\Throwable $e) {
             Log::error('Booking update failed', [
                 'booking_id' => $booking->id,
@@ -897,7 +897,7 @@ class BookingController extends Controller
                     $booking->update($minimalFiltered);
 
                     return redirect()->route('admin.bookings.show', $booking)
-                        ->with('success', 'বুকিং আংশিকভাবে আপডেট হয়েছে (production compatibility mode)।');
+                        ->with('success', 'Booking partially updated (production compatibility mode).');
                 }
             } catch (\Throwable $fallbackError) {
                 Log::error('Booking update fallback failed', [
