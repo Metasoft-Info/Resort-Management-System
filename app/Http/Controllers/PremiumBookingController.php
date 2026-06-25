@@ -99,16 +99,16 @@ class PremiumBookingController extends Controller
 
             // Handle file uploads
             if ($request->hasFile('customer_photo')) {
-                $validated['customer_photo'] = $request->file('customer_photo')->store('bookings', 'public');
+                $validated['customer_photo'] = [$request->file('customer_photo')->store('bookings/documents', 'public')];
             }
             if ($request->hasFile('customer_nid_document')) {
-                $validated['customer_nid_document'] = $request->file('customer_nid_document')->store('bookings', 'public');
+                $validated['customer_nid_document'] = [$request->file('customer_nid_document')->store('bookings/documents', 'public')];
             }
             if ($request->hasFile('passport_document')) {
-                $validated['passport_document'] = $request->file('passport_document')->store('bookings', 'public');
+                $validated['passport_document'] = [$request->file('passport_document')->store('bookings/documents', 'public')];
             }
             if ($request->hasFile('visiting_card')) {
-                $validated['visiting_card'] = $request->file('visiting_card')->store('bookings', 'public');
+                $validated['visiting_card'] = [$request->file('visiting_card')->store('bookings/documents', 'public')];
             }
 
             // Set default times and created by

@@ -65,6 +65,15 @@ class Booking extends Model
             if (is_array($decoded)) {
                 return array_values(array_filter($decoded));
             }
+            // Handle double-encoded JSON (string that is itself a JSON string)
+            if (is_string($decoded)) {
+                $innerDecoded = json_decode($decoded, true);
+                if (is_array($innerDecoded)) {
+                    return array_values(array_filter($innerDecoded));
+                }
+                // Single path stored as JSON string
+                return [$decoded];
+            }
             // Old single-path string (not valid JSON)
             return [$rawValue];
         }
