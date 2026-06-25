@@ -97,37 +97,37 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0;">Room Charges:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">৳{{ number_format($baseAmount, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">BDT {{ number_format($baseAmount, 0) }}</td>
                                 </tr>
                                 @if($vatAmount > 0)
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0;">VAT (15%):</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">৳{{ number_format($vatAmount, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">BDT {{ number_format($vatAmount, 0) }}</td>
                                 </tr>
                                 @endif
                                 @if($extraCharges > 0)
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0;">Extra Charges:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">৳{{ number_format($extraCharges, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">BDT {{ number_format($extraCharges, 0) }}</td>
                                 </tr>
                                 @endif
                                 @if($discountAmount > 0)
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; color: #dc2626;">Discount:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #dc2626;">- ৳{{ number_format($discountAmount, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #dc2626;">- BDT {{ number_format($discountAmount, 0) }}</td>
                                 </tr>
                                 @endif
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; font-weight: bold;">Grand Total:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; font-weight: bold;">৳{{ number_format($grandTotal, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; font-weight: bold;">BDT {{ number_format($grandTotal, 0) }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; color: #166534;">Advance Paid:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #166534;">৳{{ number_format($booking->advance_payment, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #166534;">BDT {{ number_format($booking->advance_payment, 0) }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 12px; font-weight: bold; color: #dc2626;">Due Amount:</td>
-                                    <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #dc2626;">৳{{ number_format($remainingPayment, 0) }}</td>
+                                    <td style="padding: 10px 12px; text-align: right; font-weight: bold; color: #dc2626;">BDT {{ number_format($remainingPayment, 0) }}</td>
                                 </tr>
                             </table>
 

@@ -118,7 +118,7 @@
                 <td><strong>{{ $room->room_number }}</strong></td>
                 <td>{{ $room->name }}</td>
                 <td>{{ $room->roomType->name ?? ucfirst($room->type) }}</td>
-                <td class="text-right">৳{{ number_format($room->price_per_night, 0) }}</td>
+                <td class="text-right">BDT {{ number_format($room->price_per_night, 0) }}</td>
                 <td class="text-center">{{ $room->max_guests }}</td>
                 <td class="text-center">{{ $room->number_of_beds }}</td>
                 <td class="text-center">{{ ucfirst($room->status) }}</td>

@@ -2,8 +2,8 @@
 @section('content')
 <div class="p-6">
     @include('admin.reports.partials.shared-header', [
-        'title' => 'অগ্রিম বুকিং রিপোর্ট',
-        'subtitle' => 'যেসব বুকিং-এর চেক-ইন তারিখ আজকের পর'
+        'title' => 'Advance Booking Report',
+        'subtitle' => 'Bookings with check-in date after today'
     ])
     @include('admin.reports.partials.shared-styles')
 
@@ -11,27 +11,27 @@
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 print:hidden">
         <form method="GET" action="{{ route('admin.reports.advance-bookings') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">শুরুর তারিখ</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
                 <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">শেষ তারিখ</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
                 <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">স্ট্যাটাস</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                 <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">সব</option>
-                    <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>নিশ্চিত</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
-                    <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>চেক-ইন</option>
-                    <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>চেক-আউট</option>
+                    <option value="">All</option>
+                    <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Check-In</option>
+                    <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>Check-Out</option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">রুম টাইপ</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Room Type</label>
                 <select name="room_type_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                    <option value="">সব</option>
+                    <option value="">All</option>
                     @foreach($roomTypes as $rt)
                         <option value="{{ $rt->id }}" {{ (string)request('room_type_id') === (string)$rt->id ? 'selected' : '' }}>{{ $rt->name }}</option>
                     @endforeach
@@ -39,7 +39,7 @@
             </div>
             <div class="flex items-end gap-2">
                 <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
-                    <i class="fas fa-filter mr-2"></i>ফিল্টার
+                    <i class="fas fa-filter mr-2"></i>Filter
                 </button>
                 <a href="{{ route('admin.reports.advance-bookings') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                     <i class="fas fa-times"></i>
@@ -52,10 +52,10 @@
     @if(!request('print'))
     <div class="flex gap-2 mb-6 print:hidden">
         <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-            <i class="fas fa-print mr-2"></i>প্রিন্ট
+            <i class="fas fa-print mr-2"></i>Print
         </button>
         <a href="{{ route('admin.reports.combined') }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-            Combined Report দেখুন
+            View Combined Report
         </a>
     </div>
     @endif
@@ -64,17 +64,17 @@
         <div class="report-table-container">
             <table class="report-table text-sm border border-gray-300">
                 <thead><tr class="bg-gray-100">
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">তারিখ</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">নাম</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">রুম</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">রুম টাইপ</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 whitespace-nowrap">চেক-ইন</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 whitespace-nowrap">চেক-আউট</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 text-right">রুম ভাড়া</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 text-right">অগ্রিম জমা</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 text-right">বাকি</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">পেমেন্ট</th>
-                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">স্ট্যাটাস</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Date</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Name</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Room</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Room Type</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 whitespace-nowrap">Check-In</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 whitespace-nowrap">Check-Out</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 text-right">Room Rent</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 text-right">Advance</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700 text-right">Remaining</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Payment</th>
+                    <th class="border border-gray-300 px-3 py-2 text-xs font-bold text-gray-700">Status</th>
                 </tr></thead>
                 <tbody>
                     @forelse($bookings as $booking)
@@ -92,9 +92,9 @@
                         <td class="border border-gray-300 px-3 py-2">{{ $booking->room?->roomType?->name ?? ($booking->bookingRooms->first()?->room?->roomType?->name ?? 'N/A') }}</td>
                         <td class="border border-gray-300 px-3 py-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>
                         <td class="border border-gray-300 px-3 py-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m-Y') }}</td>
-                        <td class="border border-gray-300 px-3 py-2 text-right">৳{{ number_format($roomRent) }}</td>
-                        <td class="border border-gray-300 px-3 py-2 text-right">৳{{ number_format($booking->advance_payment) }}</td>
-                        <td class="border border-gray-300 px-3 py-2 text-right font-bold {{ $remaining > 0 ? 'text-red-600' : 'text-green-600' }}">৳{{ number_format($remaining) }}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-right">BDT {{ number_format($roomRent) }}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-right">BDT {{ number_format($booking->advance_payment) }}</td>
+                        <td class="border border-gray-300 px-3 py-2 text-right font-bold {{ $remaining > 0 ? 'text-red-600' : 'text-green-600' }}">BDT {{ number_format($remaining) }}</td>
                         <td class="border border-gray-300 px-3 py-2">
                             <span class="px-2 py-1 rounded text-xs {{ $booking->payment_status == 'paid' ? 'bg-green-100 text-green-700' : ($booking->payment_status == 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
                                 {{ ucfirst($booking->payment_status) }}
@@ -107,7 +107,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="11" class="border border-gray-300 px-4 py-8 text-center text-gray-500">কোনো অগ্রিম বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="11" class="border border-gray-300 px-4 py-8 text-center text-gray-500">No advance bookings found</td></tr>
                     @endforelse
                 </tbody>
             </table>

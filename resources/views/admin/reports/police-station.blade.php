@@ -2,7 +2,7 @@
 @section('content')
 <div class="p-6">
     @include('admin.reports.partials.shared-header', [
-        'title' => 'পুলিশ স্টেশনের জন্য গেস্ট রিপোর্ট'
+        'title' => 'Guest Report for Police Station'
     ])
     @include('admin.reports.partials.shared-styles')
 
@@ -11,30 +11,30 @@
         <form method="GET" action="{{ route('admin.reports.police-station') }}">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">শুরুর তারিখ</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
                     <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">শেষ তারিখ</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
                     <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">স্ট্যাটাস</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                     <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        <option value="">সব</option>
-                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>নিশ্চিত</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
-                        <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>চেক-ইন</option>
-                        <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>চেক-আউট</option>
+                        <option value="">All</option>
+                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Check-In</option>
+                        <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>Check-Out</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">খুঁজুন</label>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="নাম / ফোন / রুম / এনআইডি" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Name / Phone / Room / NID" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="flex items-end gap-2">
                     <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
-                        <i class="fas fa-filter mr-2"></i>ফিল্টার
+                        <i class="fas fa-filter mr-2"></i>Filter
                     </button>
                     <a href="{{ route('admin.reports.police-station') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                         <i class="fas fa-times"></i>
@@ -51,9 +51,9 @@
     <div class="bg-white rounded-xl shadow-lg overflow-hidden print:shadow-none">
         <div class="p-4 bg-gray-50 border-b print:bg-white">
             <p class="text-sm text-gray-600">
-                <strong>মোট বুকিং:</strong> {{ $bookings->total() }}
+                <strong>Total Bookings:</strong> {{ $bookings->total() }}
                 @if(request('start_date') || request('end_date'))
-                    | <strong>তারিখ:</strong> {{ request('start_date') ?: 'শুরু' }} থেকে {{ request('end_date') ?: 'শেষ' }}
+                    | <strong>Date:</strong> {{ request('start_date') ?: 'Start' }} to {{ request('end_date') ?: 'End' }}
                 @endif
             </p>
         </div>
@@ -63,19 +63,19 @@
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-100">
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center">#</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">গেস্টের নাম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ফোন</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">এনআইডি/পাসপোর্ট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">কোম্পানী</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ঠিকানা</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ভ্রমণের উদ্দেশ্য</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">রেফারেন্স</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">রুম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">অতিথি সংখ্যা</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ইন</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">আউট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">স্ট্যাটাস</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">বুক করেছে</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Guest Name</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Phone</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">NID/Passport</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Company</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Address</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Travel Purpose</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Reference</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Room</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Guests</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">In</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Out</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Status</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Booked By</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -108,13 +108,13 @@
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m-Y') }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">
                             @if($booking->status == 'checked_in')
-                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">চেক-ইন</span>
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold">Check-In</span>
                             @elseif($booking->status == 'checked_out')
-                                <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-semibold">চেক-আউট</span>
+                                <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-semibold">Check-Out</span>
                             @elseif($booking->status == 'confirmed')
-                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold">নিশ্চিত</span>
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold">Confirmed</span>
                             @elseif($booking->status == 'pending')
-                                <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">পেন্ডিং</span>
+                                <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">Pending</span>
                             @else
                                 <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">{{ $booking->status }}</span>
                             @endif
@@ -124,7 +124,7 @@
                     @if($additionalGuestsList->count() > 0)
                     <tr class="bg-amber-50/50">
                         <td class="border border-gray-400 px-2 py-1 text-center text-xs text-gray-500" colspan="14">
-                            <strong>অতিরিক্ত অতিথি:</strong>
+                            <strong>Extra Guests:</strong>
                             @foreach($additionalGuestsList as $ag)
                                 {{ $ag->name }} {{ $ag->phone ? '(' . $ag->phone . ')' : '' }}{{ !$loop->last ? ', ' : '' }}
                             @endforeach
@@ -135,7 +135,7 @@
                     <tr>
                         <td colspan="14" class="border border-gray-400 px-6 py-10 text-center text-gray-500">
                             <i class="fas fa-inbox text-4xl mb-2 block text-gray-300"></i>
-                            কোনো বুকিং পাওয়া যায়নি
+                            No bookings found
                         </td>
                     </tr>
                     @endforelse
@@ -150,7 +150,7 @@
         @include('admin.reports.partials.signature-section')
 
         <div class="p-3 text-center text-[10px] text-gray-500 border-t print:block">
-            <p>প্রিন্ট/রিপোর্ট সময়: {{ now()->format('d-m-Y h:i A') }} | Developed by Mir Javed Jeetu | 01811480222</p>
+            <p>Print/Report Time: {{ now()->format('d-m-Y h:i A') }} | Developed by Mir Javed Jeetu | 01811480222</p>
             @if($resortInfo)
                 <p class="text-[10px]">{{ $resortInfo->name }} | {{ $resortInfo->phone }}</p>
             @endif

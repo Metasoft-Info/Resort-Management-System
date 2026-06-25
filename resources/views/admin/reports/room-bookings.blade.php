@@ -2,7 +2,7 @@
 @section('content')
 <div class="p-6">
     @include('admin.reports.partials.shared-header', [
-        'title' => 'রুম বুকিং রিপোর্ট'
+        'title' => 'Room Booking Report'
     ])
     @include('admin.reports.partials.shared-styles')
 
@@ -11,50 +11,50 @@
         <form method="GET" action="{{ route('admin.reports.room-bookings') }}">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">শুরুর তারিখ</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
                     <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">শেষ তারিখ</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
                     <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">স্ট্যাটাস</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                     <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        <option value="">সব</option>
-                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>নিশ্চিত</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
-                        <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>চেক-ইন</option>
-                        <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>চেক-আউট</option>
-                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>বাতিল</option>
+                        <option value="">All</option>
+                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Check-In</option>
+                        <option value="checked_out" {{ request('status') == 'checked_out' ? 'selected' : '' }}>Check-Out</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">পেমেন্ট স্ট্যাটাস</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Status</label>
                     <select name="payment_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        <option value="">সব</option>
-                        <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
-                        <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>আংশিক</option>
-                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>পরিশোধিত</option>
+                        <option value="">All</option>
+                        <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Partial</option>
+                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">ডিসকাউন্ট স্ট্যাটাস</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Status</label>
                     <select name="discount_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
-                        <option value="">সব</option>
-                        <option value="has_discount" {{ request('discount_status') == 'has_discount' ? 'selected' : '' }}>ডিসকাউন্ট আছে</option>
-                        <option value="pending" {{ request('discount_status') == 'pending' ? 'selected' : '' }}>পেন্ডিং</option>
-                        <option value="approved" {{ request('discount_status') == 'approved' ? 'selected' : '' }}>অনুমোদিত</option>
-                        <option value="rejected" {{ request('discount_status') == 'rejected' ? 'selected' : '' }}>বাতিল</option>
+                        <option value="">All</option>
+                        <option value="has_discount" {{ request('discount_status') == 'has_discount' ? 'selected' : '' }}>Has Discount</option>
+                        <option value="pending" {{ request('discount_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="approved" {{ request('discount_status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                        <option value="rejected" {{ request('discount_status') == 'rejected' ? 'selected' : '' }}>Cancelled</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">খুঁজুন</label>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="নাম / ফোন / রুম" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Search</label>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Name / Phone / Room" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                 </div>
                 <div class="flex items-end gap-2">
                     <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
-                        <i class="fas fa-filter mr-2"></i>ফিল্টার
+                        <i class="fas fa-filter mr-2"></i>Filter
                     </button>
                     <a href="{{ route('admin.reports.room-bookings') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                         <i class="fas fa-times"></i>
@@ -72,43 +72,43 @@
     @endphp
     <div class="grid grid-cols-2 md:grid-cols-8 gap-4 mb-6 print:grid-cols-8 print:gap-2 print:text-xs">
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
-            <p class="text-gray-600 text-xs">মোট বুকিং</p>
+            <p class="text-gray-600 text-xs">Total Bookings</p>
             <p class="text-xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
         </div>
         <div class="bg-blue-50 rounded-lg p-4 text-center border border-blue-200 print:p-2">
-            <p class="text-gray-600 text-xs">রুম ভাড়া</p>
-            <p class="text-xl font-bold text-blue-700 print:text-base">৳{{ number_format($summaryRoomRent, 0) }}</p>
+            <p class="text-gray-600 text-xs">Room Rent</p>
+            <p class="text-xl font-bold text-blue-700 print:text-base">BDT {{ number_format($summaryRoomRent, 0) }}</p>
         </div>
         <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200 print:p-2">
-            <p class="text-gray-600 text-xs">ডিসকাউন্ট</p>
-            <p class="text-xl font-bold text-orange-600 print:text-base">৳{{ number_format($summaryDiscount, 0) }}</p>
+            <p class="text-gray-600 text-xs">Discount</p>
+            <p class="text-xl font-bold text-orange-600 print:text-base">BDT {{ number_format($summaryDiscount, 0) }}</p>
         </div>
         <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200 print:p-2">
-            <p class="text-gray-600 text-xs">অতিরিক্ত চার্জ</p>
-            <p class="text-xl font-bold text-purple-700 print:text-base">৳{{ number_format($summaryExtra, 0) }}</p>
+            <p class="text-gray-600 text-xs">Extra Charges</p>
+            <p class="text-xl font-bold text-purple-700 print:text-base">BDT {{ number_format($summaryExtra, 0) }}</p>
         </div>
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
-            <p class="text-gray-600 text-xs">মোট বিল</p>
-            <p class="text-xl font-bold text-primary-700 print:text-base">৳{{ number_format($totalRevenue, 0) }}</p>
+            <p class="text-gray-600 text-xs">Total Bill</p>
+            <p class="text-xl font-bold text-primary-700 print:text-base">BDT {{ number_format($totalRevenue, 0) }}</p>
         </div>
         <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200 print:p-2">
-            <p class="text-gray-600 text-xs">অগ্রিম জমা</p>
-            <p class="text-xl font-bold text-green-600 print:text-base">৳{{ number_format($totalAdvance, 0) }}</p>
+            <p class="text-gray-600 text-xs">Advance</p>
+            <p class="text-xl font-bold text-green-600 print:text-base">BDT {{ number_format($totalAdvance, 0) }}</p>
         </div>
         <div class="bg-emerald-50 rounded-lg p-4 text-center border border-emerald-200 print:p-2">
-            <p class="text-gray-600 text-xs">মোট জমা</p>
-            <p class="text-xl font-bold text-emerald-700 print:text-base">৳{{ number_format($totalDeposited, 0) }}</p>
+            <p class="text-gray-600 text-xs">Total Deposited</p>
+            <p class="text-xl font-bold text-emerald-700 print:text-base">BDT {{ number_format($totalDeposited, 0) }}</p>
         </div>
         <div class="bg-red-50 rounded-lg p-4 text-center border border-red-200 print:p-2">
-            <p class="text-gray-600 text-xs">বাকি</p>
-            <p class="text-xl font-bold text-red-600 print:text-base">৳{{ number_format($totalRemaining, 0) }}</p>
+            <p class="text-gray-600 text-xs">Remaining</p>
+            <p class="text-xl font-bold text-red-600 print:text-base">BDT {{ number_format($totalRemaining, 0) }}</p>
         </div>
     </div>
 
     <!-- Action Buttons -->
     <div class="flex gap-2 mb-4 print:hidden">
         <button onclick="window.print()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
-            <i class="fas fa-print mr-2"></i>প্রিন্ট
+            <i class="fas fa-print mr-2"></i>Print
         </button>
     </div>
 
@@ -118,25 +118,25 @@
             <table class="report-table text-sm border border-gray-400">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">তারিখ</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">মোবাইল</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">নাম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">কোম্পানী</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">রুম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">রুম ভাড়া</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট ভাড়া</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">ছাড়</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অতিরিক্ত</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">অগ্রিম</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">মোট জমা</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">বাকি</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">ইন</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">আউট</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">রাত</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">স্ট্যাটাস</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">ডিসকাউন্ট স্ট্যাটাস</th>
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden whitespace-nowrap">অ্যাকশন</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Date</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Mobile</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">Name</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">Company</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Room</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Room Rent</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Total Rent</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Discount</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Extra</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Total</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Advance</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Total Deposited</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-right whitespace-nowrap">Remaining</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">In</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Out</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">Nights</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">Status</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 text-center whitespace-nowrap">Discount Status</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 print:hidden whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -185,18 +185,18 @@
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">{{ $nights }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
                             @if($pointInTimeStatus == 'checked_in')
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">চেক-ইন</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Check-In</span>
                             @elseif($pointInTimeStatus == 'checked_out')
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">চেক-আউট</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">Check-Out</span>
                             @elseif($pointInTimeStatus == 'confirmed')
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">নিশ্চিত</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">Confirmed</span>
                             @elseif($pointInTimeStatus == 'pending')
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700">পেন্ডিং</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700">Pending</span>
                             @elseif($pointInTimeStatus == 'cancelled')
                                 @php $refundAmount = $booking->payments->where('type', 'refund')->sum('amount'); @endphp
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">বাতিল</span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Cancelled</span>
                                 @if($refundAmount > 0)
-                                <div class="text-[9px] text-red-500 mt-0.5">রিফান্ড: {{ number_format($refundAmount) }}</div>
+                                <div class="text-[9px] text-red-500 mt-0.5">Refund: {{ number_format($refundAmount) }}</div>
                                 @endif
                             @else
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">{{ ucfirst($pointInTimeStatus) }}</span>
@@ -205,11 +205,11 @@
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
                             @if(($booking->discount_amount ?? 0) > 0)
                                 @if($booking->discount_status === 'approved')
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">অনুমোদিত</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">Approved</span>
                                 @elseif($booking->discount_status === 'pending')
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">পেন্ডিং</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">Pending</span>
                                 @elseif($booking->discount_status === 'rejected')
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">বাতিল</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Cancelled</span>
                                 @else
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600">-</span>
                                 @endif
@@ -224,7 +224,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="19" class="border border-gray-400 px-4 py-8 text-center text-gray-500">কোনো বুকিং পাওয়া যায়নি</td></tr>
+                    <tr><td colspan="19" class="border border-gray-400 px-4 py-8 text-center text-gray-500">No bookings found</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
@@ -235,7 +235,7 @@
                         $sumAdvance = $bookings->sum('advance_payment');
                     @endphp
                     <tr class="bg-gray-200 font-bold">
-                        <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">মোট:</td>
+                        <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">Total:</td>
                         <td class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-blue-600 whitespace-nowrap">{{ number_format($sumRoomRent, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-orange-600 whitespace-nowrap">{{ number_format($sumDiscount, 0) }}</td>
@@ -264,10 +264,10 @@
 <div id="guestInfoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl my-8 mx-4 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
-            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-file-invoice mr-2 text-primary-600"></i>বুকিং বিবরণী / ইনভয়েস</h3>
+            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-file-invoice mr-2 text-primary-600"></i>Booking Details / Invoice</h3>
             <div class="flex gap-2">
                 <button onclick="printInvoice()" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">
-                    <i class="fas fa-print mr-1"></i>ইনভয়েস প্রিন্ট
+                    <i class="fas fa-print mr-1"></i>Invoice Print
                 </button>
                 <button onclick="closeGuestInfoModal()" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times text-xl"></i>
@@ -277,7 +277,7 @@
         <div id="guestInfoContent" class="p-6">
             <div class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i>
-                <p class="text-gray-600 mt-2">লোড হচ্ছে...</p>
+                <p class="text-gray-600 mt-2">Loading...</p>
             </div>
         </div>
     </div>
@@ -372,19 +372,19 @@ function formatDate(dateStr) {
 
 // Helper function to format currency
 function formatTaka(amount) {
-    return '৳' + parseFloat(amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return 'BDT ' + parseFloat(amount || 0).toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 // Helper function to get status badge
 function getStatusBadge(status) {
     const badges = {
-        'pending': '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">পেন্ডিং</span>',
-        'confirmed': '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">নিশ্চিত</span>',
-        'checked_in': '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">চেক-ইন</span>',
-        'checked_out': '<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">চেক-আউট</span>',
-        'cancelled': '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">বাতিল</span>',
-        'paid': '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">পরিশোধিত</span>',
-        'partial': '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">আংশিক</span>'
+        'pending': '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Pending</span>',
+        'confirmed': '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Confirmed</span>',
+        'checked_in': '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Check-In</span>',
+        'checked_out': '<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Check-Out</span>',
+        'cancelled': '<span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">Cancelled</span>',
+        'paid': '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Paid</span>',
+        'partial': '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Partial</span>'
     };
     return badges[status] || `<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">${status}</span>`;
 }
@@ -470,7 +470,7 @@ function showGuestInfo(bookingId) {
             if (b.additional_guests && b.additional_guests.length > 0) {
                 additionalGuestsHtml = `
                     <div class="mt-4 border-t pt-4">
-                        <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-users mr-2"></i>অতিরিক্ত গেস্ট (${b.additional_guests.length})</h4>
+                        <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-users mr-2"></i>Extra Guests (${b.additional_guests.length})</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                             ${b.additional_guests.map((g, i) => `
                                 <div class="bg-gray-50 p-2 rounded border text-sm">
@@ -488,14 +488,14 @@ function showGuestInfo(bookingId) {
             if (b.payments && b.payments.length > 0) {
                 paymentHistoryHtml = `
                     <div class="mt-4 border-t pt-4">
-                        <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-history mr-2"></i>পেমেন্ট হিস্ট্রি</h4>
+                        <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-history mr-2"></i>Payment History</h4>
                         <table class="w-full text-sm">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="py-2 px-2 text-left">তারিখ</th>
-                                    <th class="py-2 px-2 text-right">পরিমাণ</th>
-                                    <th class="py-2 px-2 text-left">মাধ্যম</th>
-                                    <th class="py-2 px-2 text-left">নোট</th>
+                                    <th class="py-2 px-2 text-left">Date</th>
+                                    <th class="py-2 px-2 text-right">Amount</th>
+                                    <th class="py-2 px-2 text-left">Method</th>
+                                    <th class="py-2 px-2 text-left">Note</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -517,8 +517,8 @@ function showGuestInfo(bookingId) {
                 <div class="space-y-4" id="guestInfoPrintContent">
                     <!-- Header -->
                     <div class="text-center border-b-2 border-gray-300 pb-4 mb-4">
-                        <h2 class="text-xl font-bold text-gray-800">তুফান কনভেনশন রিসোর্ট</h2>
-                        <p class="text-sm text-gray-600">ইনভয়েস / বুকিং বিবরণী</p>
+                        <h2 class="text-xl font-bold text-gray-800">Tufan Convention & Resort</h2>
+                        <p class="text-sm text-gray-600">Invoice / Booking Details</p>
                         <p class="text-lg font-bold text-primary-600 mt-2">Booking #${String(b.id).padStart(5, '0')}</p>
                     </div>
                     
@@ -526,40 +526,40 @@ function showGuestInfo(bookingId) {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Customer Info -->
                         <div class="bg-primary-50 p-4 rounded-lg border border-primary-200">
-                            <h4 class="font-bold text-primary-800 mb-3 border-b pb-2"><i class="fas fa-user mr-2"></i>গ্রাহক তথ্য</h4>
+                            <h4 class="font-bold text-primary-800 mb-3 border-b pb-2"><i class="fas fa-user mr-2"></i>Customer Info</h4>
                             <div class="space-y-1 text-sm">
-                                <p><span class="font-semibold w-20 inline-block">নাম:</span> ${b.customer_name || 'N/A'}</p>
-                                <p><span class="font-semibold w-20 inline-block">ফোন:</span> ${b.customer_phone || 'N/A'}</p>
+                                <p><span class="font-semibold w-20 inline-block">Name:</span> ${b.customer_name || 'N/A'}</p>
+                                <p><span class="font-semibold w-20 inline-block">Phone:</span> ${b.customer_phone || 'N/A'}</p>
                                 <p><span class="font-semibold w-20 inline-block">NID:</span> ${b.customer_nid || 'N/A'}</p>
-                                <p><span class="font-semibold w-20 inline-block">কোম্পানি:</span> ${b.company_name || 'N/A'}</p>
-                                <p><span class="font-semibold w-20 inline-block">ঠিকানা:</span> ${b.customer_address || 'N/A'}</p>
+                                <p><span class="font-semibold w-20 inline-block">Company:</span> ${b.company_name || 'N/A'}</p>
+                                <p><span class="font-semibold w-20 inline-block">Address:</span> ${b.customer_address || 'N/A'}</p>
                             </div>
                         </div>
                         
                         <!-- Booking Info -->
                         <div class="bg-gray-50 p-4 rounded-lg border">
-                            <h4 class="font-bold text-gray-800 mb-3 border-b pb-2"><i class="fas fa-calendar-alt mr-2"></i>বুকিং তথ্য</h4>
+                            <h4 class="font-bold text-gray-800 mb-3 border-b pb-2"><i class="fas fa-calendar-alt mr-2"></i>Booking Info</h4>
                             <div class="space-y-1 text-sm">
-                                <p><span class="font-semibold">চেক-ইন:</span> ${formatDate(b.check_in_date)} ${b.check_in_time ? 'সময়: ' + b.check_in_time : ''}</p>
-                                <p><span class="font-semibold">চেক-আউট:</span> ${formatDate(b.check_out_date)} ${b.check_out_time ? 'সময়: ' + b.check_out_time : ''}</p>
-                                <p><span class="font-semibold">মোট রাত্রি:</span> ${nights} রাত</p>
-                                <p><span class="font-semibold">গেস্ট সংখ্যা:</span> ${b.number_of_guests || 1} জন</p>
-                                <p><span class="font-semibold">স্ট্যাটাস:</span> ${getStatusBadge(b.status)}</p>
-                                <p><span class="font-semibold">পেমেন্ট:</span> ${getStatusBadge(b.payment_status)}</p>
+                                <p><span class="font-semibold">Check-In:</span> ${formatDate(b.check_in_date)} ${b.check_in_time ? 'Time: ' + b.check_in_time : ''}</p>
+                                <p><span class="font-semibold">Check-Out:</span> ${formatDate(b.check_out_date)} ${b.check_out_time ? 'Time: ' + b.check_out_time : ''}</p>
+                                <p><span class="font-semibold">Total Nights:</span> ${nights} Nights</p>
+                                <p><span class="font-semibold">Guests:</span> ${b.number_of_guests || 1} guests</p>
+                                <p><span class="font-semibold">Status:</span> ${getStatusBadge(b.status)}</p>
+                                <p><span class="font-semibold">Payment:</span> ${getStatusBadge(b.payment_status)}</p>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Room Details Table -->
                     <div class="mt-4">
-                        <h4 class="font-bold text-gray-800 mb-2"><i class="fas fa-bed mr-2"></i>রুম বিবরণ</h4>
+                        <h4 class="font-bold text-gray-800 mb-2"><i class="fas fa-bed mr-2"></i>Room Details</h4>
                         <table class="w-full text-sm border">
                             <thead class="bg-gray-200">
                                 <tr>
-                                    <th class="py-2 px-2 text-left border">রুম</th>
-                                    <th class="py-2 px-2 text-right border">প্রতি রাত</th>
-                                    <th class="py-2 px-2 text-center border">রাত</th>
-                                    <th class="py-2 px-2 text-right border">মোট</th>
+                                    <th class="py-2 px-2 text-left border">Room</th>
+                                    <th class="py-2 px-2 text-right border">Per Night</th>
+                                    <th class="py-2 px-2 text-center border">Nights</th>
+                                    <th class="py-2 px-2 text-right border">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -567,7 +567,7 @@ function showGuestInfo(bookingId) {
                             </tbody>
                             <tfoot class="bg-gray-100 font-bold">
                                 <tr>
-                                    <td colspan="3" class="py-2 px-2 text-right border">সাবটোটাল:</td>
+                                    <td colspan="3" class="py-2 px-2 text-right border">Subtotal:</td>
                                     <td class="py-2 px-2 text-right border">${formatTaka(baseAmount)}</td>
                                 </tr>
                             </tfoot>
@@ -576,18 +576,18 @@ function showGuestInfo(bookingId) {
                     
                     <!-- Payment Summary -->
                     <div class="mt-4 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <h4 class="font-bold text-gray-800 mb-3 border-b pb-2"><i class="fas fa-calculator mr-2"></i>পেমেন্ট সারাংশ</h4>
+                        <h4 class="font-bold text-gray-800 mb-3 border-b pb-2"><i class="fas fa-calculator mr-2"></i>Payment Summary</h4>
                         <div class="grid grid-cols-2 gap-2 text-sm">
-                            <div>রুম চার্জ:</div>
+                            <div>Room Charge:</div>
                             <div class="text-right">${formatTaka(baseAmount)}</div>
                             
                             ${discount > 0 ? `
-                            <div class="text-green-600">ডিসকাউন্ট ${b.discount_type === 'percentage' ? '('+discountPercent+'%)' : ''}:</div>
+                            <div class="text-green-600">Discount ${b.discount_type === 'percentage' ? '('+discountPercent+'%)' : ''}:</div>
                             <div class="text-right text-green-600">- ${formatTaka(discount)}</div>
                             ` : ''}
                             
                             ${extraCharges > 0 ? `
-                            <div>অতিরিক্ত চার্জ:</div>
+                            <div>Extra Charges:</div>
                             <div class="text-right">+ ${formatTaka(extraCharges)}</div>
                             ` : ''}
                             
@@ -596,13 +596,13 @@ function showGuestInfo(bookingId) {
                             <div class="text-right">+ ${formatTaka(vatAmount)}</div>
                             ` : ''}
                             
-                            <div class="font-bold text-lg border-t pt-2 mt-2">সর্বমোট:</div>
+                            <div class="font-bold text-lg border-t pt-2 mt-2">Grand Total:</div>
                             <div class="text-right font-bold text-lg border-t pt-2 mt-2">${formatTaka(grandTotal)}</div>
                             
-                            <div class="text-green-700">অগ্রিম জমা:</div>
+                            <div class="text-green-700">Advance:</div>
                             <div class="text-right text-green-700">${formatTaka(advancePayment)}</div>
                             
-                            <div class="font-bold ${remaining > 0 ? 'text-red-600' : 'text-green-600'}">বাকি:</div>
+                            <div class="font-bold ${remaining > 0 ? 'text-red-600' : 'text-green-600'}">Remaining:</div>
                             <div class="text-right font-bold ${remaining > 0 ? 'text-red-600' : 'text-green-600'}">${formatTaka(remaining)}</div>
                         </div>
                     </div>
@@ -614,14 +614,14 @@ function showGuestInfo(bookingId) {
                     <!-- Reference Info -->
                     ${b.reference_name || b.reference_phone ? `
                     <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-4">
-                        <p class="text-sm"><i class="fas fa-phone-alt mr-2"></i><span class="font-semibold">রেফারেন্স:</span> ${b.reference_name || 'N/A'} | ফোন: ${b.reference_phone || 'N/A'}</p>
+                        <p class="text-sm"><i class="fas fa-phone-alt mr-2"></i><span class="font-semibold">Reference:</span> ${b.reference_name || 'N/A'} | Phone: ${b.reference_phone || 'N/A'}</p>
                     </div>
                     ` : ''}
                     
                     <!-- Notes -->
                     ${b.notes ? `
                     <div class="bg-gray-100 p-3 rounded-lg mt-4">
-                        <p class="text-sm"><i class="fas fa-sticky-note mr-2"></i><span class="font-semibold">নোট:</span> ${b.notes}</p>
+                        <p class="text-sm"><i class="fas fa-sticky-note mr-2"></i><span class="font-semibold">Note:</span> ${b.notes}</p>
                     </div>
                     ` : ''}
                     
@@ -653,13 +653,13 @@ function showGuestInfo(bookingId) {
 
                     <!-- Print Footer -->
                     <div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
-                        <p>প্রিন্ট তারিখ: ${new Date().toLocaleDateString('bn-BD')} | Developed by Mir Javed Jeetu | 01811480222</p>
+                        <p>Print Date: ${new Date().toLocaleDateString('en-GB')} | Developed by Mir Javed Jeetu | 01811480222</p>
                         <p style="margin-top: 2px;">TUFAN RESORT | +88 01958-216728</p>
                     </div>
                 </div>
             `;
         } else {
-            content.innerHTML = '<div class="text-center py-8 text-red-600">তথ্য লোড করা যায়নি</div>';
+            content.innerHTML = '<div class="text-center py-8 text-red-600">Failed to load data</div>';
         }
     })
     .catch(err => {
@@ -676,14 +676,14 @@ function closeGuestInfoModal() {
 
 function printInvoice() {
     if (!currentBookingId) {
-        alert('বুকিং তথ্য পাওয়া যায়নি');
+        alert('Booking info not found');
         return;
     }
     
     // Show loading indicator
     const printBtn = document.querySelector('button[onclick="printInvoice()"]');
     const originalText = printBtn.innerHTML;
-    printBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>লোড হচ্ছে...';
+    printBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading...';
     printBtn.disabled = true;
     
     // Create hidden iframe
@@ -725,14 +725,14 @@ function printInvoice() {
             console.error('Print error:', e);
             printBtn.innerHTML = originalText;
             printBtn.disabled = false;
-            alert('প্রিন্ট করতে সমস্যা হয়েছে');
+            alert('Error printing');
         }
     };
     
     iframe.onerror = function() {
         printBtn.innerHTML = originalText;
         printBtn.disabled = false;
-        alert('ইনভয়েস লোড করতে সমস্যা হয়েছে');
+        alert('Error loading invoice');
     };
 }
 

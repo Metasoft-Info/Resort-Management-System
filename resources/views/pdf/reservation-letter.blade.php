@@ -172,9 +172,9 @@
     <table style="width: 100%; margin-bottom: 15px;">
         <tr>
             <td style="text-align: right;">
-                <strong>Total Amount:</strong> ৳{{ number_format($booking->getCalculatedTotal(), 0) }} | 
-                <strong>Total Paid:</strong> <span style="color: green;">৳{{ number_format($booking->getTotalDeposited(), 0) }}</span> | 
-                <strong>Due:</strong> <span style="color: red;">৳{{ number_format(max(0, $booking->getCalculatedRemaining()), 0) }}</span>
+                <strong>Total Amount:</strong> BDT {{ number_format($booking->getCalculatedTotal(), 0) }} | 
+                <strong>Total Paid:</strong> <span style="color: green;">BDT {{ number_format($booking->getTotalDeposited(), 0) }}</span> | 
+                <strong>Due:</strong> <span style="color: red;">BDT {{ number_format(max(0, $booking->getCalculatedRemaining()), 0) }}</span>
             </td>
         </tr>
     </table>
