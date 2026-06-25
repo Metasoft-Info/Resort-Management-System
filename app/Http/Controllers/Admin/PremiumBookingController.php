@@ -47,7 +47,7 @@ class PremiumBookingController extends Controller
             'field' => 'required|string|in:customer_photo,customer_nid_document,passport_document,visiting_card',
         ]);
 
-        $path = $request->file('file')->store('bookings', 'public');
+        $path = $request->file('file')->store('bookings/documents', 'public');
 
         return response()->json([
             'success' => true,
@@ -271,13 +271,13 @@ class PremiumBookingController extends Controller
                     }
                     foreach ($files as $f) {
                         if ($f && $f->isValid()) {
-                            $paths[] = $f->store('bookings', 'public');
+                            $paths[] = $f->store('bookings/documents', 'public');
                         }
                     }
                 }
 
                 if (!empty($paths)) {
-                    $validated[$field] = json_encode(array_values(array_unique($paths)));
+                    $validated[$field] = array_values(array_unique($paths));
                 }
             }
 
