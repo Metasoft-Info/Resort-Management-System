@@ -67,6 +67,14 @@
  /* Main content transition */
  .main-wrapper { transition: margin-left 0.3s ease; }
  .main-wrapper.sidebar-collapsed { margin-left: 72px !important; }
+ /* Print: hide sidebar, reset margins, allow full width */
+ @media print {
+   #sidebar, #sidebarOverlay { display: none !important; }
+   #mainWrapper { margin-left: 0 !important; overflow: visible !important; height: auto !important; }
+   .main-content { overflow: visible !important; max-width: 100% !important; }
+   body { background: white !important; }
+   .flex.h-screen { overflow: visible !important; height: auto !important; }
+ }
  </style>
  <script>
  tailwind.config = {
@@ -104,10 +112,10 @@
 <body class="bg-gray-50">
  <div class="flex h-screen overflow-hidden">
  <!-- Mobile Menu Overlay -->
- <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" onclick="toggleMobileSidebar()"></div>
+ <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden print:hidden" onclick="toggleMobileSidebar()"></div>
  
  <!-- Premium Sidebar -->
- <aside id="sidebar" class="w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-in-out overflow-hidden">
+ <aside id="sidebar" class="w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-in-out overflow-hidden print:hidden">
  <!-- Sidebar Header -->
  <div class="sidebar-header p-4 border-b border-slate-700/50 flex items-center justify-between">
  <div class="flex items-center space-x-3">
