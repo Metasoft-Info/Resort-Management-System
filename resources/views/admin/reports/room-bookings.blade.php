@@ -70,38 +70,70 @@
         $summaryExtra = $bookings->sum('extra_charges');
         $summaryDiscount = $bookings->sum('discount_amount');
     @endphp
-    <div class="grid grid-cols-2 md:grid-cols-8 gap-4 mb-6 print:grid-cols-8 print:gap-2 print:text-xs">
-        <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
-            <p class="text-gray-600 text-xs">Total Bookings</p>
-            <p class="text-xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
+
+    <!-- Booking Count Summary -->
+    <div class="bg-white rounded-xl shadow-lg p-5 mb-4 print:shadow-none print:border print:border-gray-400 print:rounded-none">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Booking Summary</h3>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3 print:grid-cols-6 print:gap-2 print:text-xs">
+            <div class="bg-primary-50 rounded-lg p-3 text-center border border-primary-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Total Bookings</p>
+                <p class="text-2xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 text-center border border-green-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Currently In</p>
+                <p class="text-2xl font-bold text-green-700 print:text-base">{{ $checkedInCount }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Check-In Today</p>
+                <p class="text-2xl font-bold text-blue-700 print:text-base">{{ $checkInTodayCount }}</p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-300 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Check-Out Today</p>
+                <p class="text-2xl font-bold text-gray-700 print:text-base">{{ $checkOutTodayCount }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3 text-center border border-purple-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Confirmed</p>
+                <p class="text-2xl font-bold text-purple-700 print:text-base">{{ $confirmedCount }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-3 text-center border border-red-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Cancelled</p>
+                <p class="text-2xl font-bold text-red-600 print:text-base">{{ $cancelledCount }}</p>
+            </div>
         </div>
-        <div class="bg-blue-50 rounded-lg p-4 text-center border border-blue-200 print:p-2">
-            <p class="text-gray-600 text-xs">Room Rent</p>
-            <p class="text-xl font-bold text-blue-700 print:text-base">BDT {{ number_format($summaryRoomRent, 0) }}</p>
-        </div>
-        <div class="bg-orange-50 rounded-lg p-4 text-center border border-orange-200 print:p-2">
-            <p class="text-gray-600 text-xs">Discount</p>
-            <p class="text-xl font-bold text-orange-600 print:text-base">BDT {{ number_format($summaryDiscount, 0) }}</p>
-        </div>
-        <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200 print:p-2">
-            <p class="text-gray-600 text-xs">Extra Charges</p>
-            <p class="text-xl font-bold text-purple-700 print:text-base">BDT {{ number_format($summaryExtra, 0) }}</p>
-        </div>
-        <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
-            <p class="text-gray-600 text-xs">Total Bill</p>
-            <p class="text-xl font-bold text-primary-700 print:text-base">BDT {{ number_format($totalRevenue, 0) }}</p>
-        </div>
-        <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200 print:p-2">
-            <p class="text-gray-600 text-xs">Advance</p>
-            <p class="text-xl font-bold text-green-600 print:text-base">BDT {{ number_format($totalAdvance, 0) }}</p>
-        </div>
-        <div class="bg-emerald-50 rounded-lg p-4 text-center border border-emerald-200 print:p-2">
-            <p class="text-gray-600 text-xs">Total Deposited</p>
-            <p class="text-xl font-bold text-emerald-700 print:text-base">BDT {{ number_format($totalDeposited, 0) }}</p>
-        </div>
-        <div class="bg-red-50 rounded-lg p-4 text-center border border-red-200 print:p-2">
-            <p class="text-gray-600 text-xs">Remaining</p>
-            <p class="text-xl font-bold text-red-600 print:text-base">BDT {{ number_format($totalRemaining, 0) }}</p>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="bg-white rounded-xl shadow-lg p-5 mb-6 print:shadow-none print:border print:border-gray-400 print:rounded-none">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Financial Summary</h3>
+        <div class="grid grid-cols-2 md:grid-cols-7 gap-3 print:grid-cols-7 print:gap-2 print:text-xs">
+            <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Room Rent</p>
+                <p class="text-lg font-bold text-blue-700 print:text-sm">BDT {{ number_format($summaryRoomRent, 0) }}</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-3 text-center border border-orange-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Discount</p>
+                <p class="text-lg font-bold text-orange-600 print:text-sm">BDT {{ number_format($summaryDiscount, 0) }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-3 text-center border border-purple-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Extra Charges</p>
+                <p class="text-lg font-bold text-purple-700 print:text-sm">BDT {{ number_format($summaryExtra, 0) }}</p>
+            </div>
+            <div class="bg-primary-50 rounded-lg p-3 text-center border border-primary-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Total Bill</p>
+                <p class="text-lg font-bold text-primary-700 print:text-sm">BDT {{ number_format($totalRevenue, 0) }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-3 text-center border border-green-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Advance</p>
+                <p class="text-lg font-bold text-green-600 print:text-sm">BDT {{ number_format($totalAdvance, 0) }}</p>
+            </div>
+            <div class="bg-emerald-50 rounded-lg p-3 text-center border border-emerald-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Total Deposited</p>
+                <p class="text-lg font-bold text-emerald-700 print:text-sm">BDT {{ number_format($totalDeposited, 0) }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-3 text-center border border-red-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Remaining</p>
+                <p class="text-lg font-bold text-red-600 print:text-sm">BDT {{ number_format($totalRemaining, 0) }}</p>
+            </div>
         </div>
     </div>
 
