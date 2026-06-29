@@ -154,6 +154,44 @@
  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500"></textarea>
  </div>
  </div>
+
+ <!-- Document Upload -->
+ <div class="mt-6 p-5 bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-100">
+ <h3 class="text-base font-bold mb-1 text-violet-800 flex items-center gap-2">
+ <i class="fas fa-paperclip"></i> Documents (Optional)
+ </h3>
+ <p class="text-sm text-violet-500 mb-4">Upload customer documents for record keeping</p>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-violet-100 group-hover:bg-violet-200 flex items-center justify-center transition">
+ <i class="fas fa-camera text-violet-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">Photo</span>
+ <input type="file" name="customer_photo[]" accept="image/*" multiple class="hidden">
+ </label>
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 flex items-center justify-center transition">
+ <i class="fas fa-id-card text-green-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">NID Document</span>
+ <input type="file" name="customer_nid_document[]" accept="image/*,.pdf" multiple class="hidden">
+ </label>
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition">
+ <i class="fas fa-passport text-blue-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">Passport</span>
+ <input type="file" name="passport_document[]" accept="image/*,.pdf" multiple class="hidden">
+ </label>
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center transition">
+ <i class="fas fa-address-card text-purple-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">Visiting Card</span>
+ <input type="file" name="visiting_card[]" accept="image/*,.pdf" multiple class="hidden">
+ </label>
+ </div>
+ </div>
  </div>
 
  <div class="flex justify-end mt-8">
@@ -288,20 +326,20 @@
  </div>
 
  <div>
- <h3 class="text-lg font-bold mb-3">Payment Method</h3>
- <select name="payment_method" id="payment_method" class="w-full px-4 py-3 border rounded-lg" onchange="togglePaymentFields()">
- <option value="cash">Cash</option>
- <option value="bkash">bKash</option>
- <option value="card">Card</option>
+ <h3 class="text-base font-bold mb-3 text-gray-700">Payment Method</h3>
+ <select name="payment_method" id="payment_method" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition" onchange="togglePaymentFields()">
+ <option value="cash">💵 Cash</option>
+ <option value="bkash">📱 bKash</option>
+ <option value="card">💳 Card</option>
  </select>
  </div>
  <div id="bkash_field" class="hidden">
- <h3 class="text-lg font-bold mb-3">bKash Number</h3>
- <input type="text" name="bkash_number" id="bkash_number" placeholder="01XXXXXXXXX" class="w-full px-4 py-3 border rounded-lg">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">bKash Number</label>
+ <input type="text" name="bkash_number" id="bkash_number" placeholder="01XXXXXXXXX" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition">
  </div>
  <div id="bank_field" class="hidden">
- <h3 class="text-lg font-bold mb-3">Bank Name</h3>
- <select name="bank_name" id="bank_name" class="w-full px-4 py-3 border rounded-lg">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+ <select name="bank_name" id="bank_name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition">
  <option value="">Select Bank</option>
  <option value="Pubali Bank">Pubali Bank</option>
  <option value="City Bank">City Bank</option>
@@ -315,29 +353,6 @@
  <option value="UCB">UCB</option>
  <option value="Other">Other</option>
  </select>
- </div>
- </div>
-
- <!-- Document Upload -->
- <div class="mt-6">
- <h3 class="text-lg font-bold mb-3">Documents (Optional)</h3>
- <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
- <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">Photo</label>
- <input type="file" name="customer_photo[]" accept="image/*" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
- </div>
- <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">NID Document</label>
- <input type="file" name="customer_nid_document[]" accept="image/*,.pdf" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
- </div>
- <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">Passport</label>
- <input type="file" name="passport_document[]" accept="image/*,.pdf" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
- </div>
- <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">Visiting Card</label>
- <input type="file" name="visiting_card[]" accept="image/*,.pdf" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
- </div>
  </div>
  </div>
 
