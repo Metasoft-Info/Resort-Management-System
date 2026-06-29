@@ -333,11 +333,18 @@
  <td class="py-3">
  <span class="px-2 py-1 rounded-full text-xs font-semibold
  @if($payment->payment_method == 'cash') bg-emerald-100 text-emerald-700
+ @elseif($payment->payment_method == 'bkash') bg-pink-100 text-pink-700
  @elseif($payment->payment_method == 'card') bg-blue-100 text-blue-700
  @else bg-purple-100 text-purple-700
  @endif">
  {{ ucfirst($payment->payment_method) }}
  </span>
+ @if($payment->bkash_number)
+ <div class="text-xs text-gray-500 mt-1">{{ $payment->bkash_number }}</div>
+ @endif
+ @if($payment->bank_name)
+ <div class="text-xs text-gray-500 mt-1">{{ $payment->bank_name }}</div>
+ @endif
  </td>
  <td class="py-3 text-emerald-600 font-bold">{{ number_format($payment->amount, 0) }}</td>
  <td class="py-3 text-gray-500 text-sm">{{ $payment->notes ?? '-' }}</td>
@@ -375,9 +382,105 @@
  </div>
  </div>
  @endif
- </div>
 
- <!-- Right Column - Payment Summary & Actions -->
+ <!-- Documents -->
+ @php
+ $customerPhotos = $booking->getDocuments('customer_photo');
+ $nidDocs = $booking->getDocuments('customer_nid_document');
+ $passportDocs = $booking->getDocuments('passport_document');
+ $visitingCards = $booking->getDocuments('visiting_card');
+ $hasAnyDoc = !empty($customerPhotos) || !empty($nidDocs) || !empty($passportDocs) || !empty($visitingCards);
+ @endphp
+ @if($hasAnyDoc)
+ <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+ <div class="bg-gradient-to-r from-violet-50 to-purple-50 px-6 py-4 border-b">
+ <h2 class="text-xl font-bold text-violet-700 flex items-center gap-2">
+ <i class="fas fa-file"></i> Uploaded Documents
+ </h2>
+ </div>
+ <div class="p-6">
+ @if(!empty($customerPhotos))
+ <div class="mb-4">
+ <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="fas fa-camera text-violet-600 mr-1"></i> Customer Photos</h3>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ @foreach($customerPhotos as $idx => $doc)
+ <div class="bg-violet-50 p-2 rounded-lg text-center hover:bg-violet-100 transition">
+ <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+ <img src="{{ Storage::url($doc) }}" alt="Photo" class="w-full h-24 object-cover rounded mb-1 border">
+ <p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
+ </a>
+ </div>
+ @endforeach
+ </div>
+ </div>
+ @endif
+ @if(!empty($nidDocs))
+ <div class="mb-4">
+ <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="fas fa-id-card text-green-600 mr-1"></i> NID Documents</h3>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ @foreach($nidDocs as $idx => $doc)
+ <div class="bg-green-50 p-2 rounded-lg text-center hover:bg-green-100 transition">
+ <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ Storage::url($doc) }}" alt="NID" class="w-full h-24 object-cover rounded mb-1 border">
+ @else
+ <div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-1">
+ <i class="fas fa-file-pdf text-green-600 text-3xl"></i>
+ </div>
+ @endif
+ <p class="text-xs text-gray-700 font-semibold">NID {{ $idx + 1 }}</p>
+ </a>
+ </div>
+ @endforeach
+ </div>
+ </div>
+ @endif
+ @if(!empty($passportDocs))
+ <div class="mb-4">
+ <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="fas fa-passport text-blue-600 mr-1"></i> Passport Documents</h3>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ @foreach($passportDocs as $idx => $doc)
+ <div class="bg-blue-50 p-2 rounded-lg text-center hover:bg-blue-100 transition">
+ <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-1 border">
+ @else
+ <div class="w-full h-24 flex items-center justify-center bg-blue-100 rounded mb-1">
+ <i class="fas fa-file-pdf text-blue-600 text-3xl"></i>
+ </div>
+ @endif
+ <p class="text-xs text-gray-700 font-semibold">Passport {{ $idx + 1 }}</p>
+ </a>
+ </div>
+ @endforeach
+ </div>
+ </div>
+ @endif
+ @if(!empty($visitingCards))
+ <div class="mb-2">
+ <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="fas fa-address-card text-purple-600 mr-1"></i> Visiting Cards</h3>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ @foreach($visitingCards as $idx => $doc)
+ <div class="bg-purple-50 p-2 rounded-lg text-center hover:bg-purple-100 transition">
+ <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-1 border">
+ @else
+ <div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-1">
+ <i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
+ </div>
+ @endif
+ <p class="text-xs text-gray-700 font-semibold">Card {{ $idx + 1 }}</p>
+ </a>
+ </div>
+ @endforeach
+ </div>
+ </div>
+ @endif
+ </div>
+ </div>
+ @endif
+ </div>
  <div class="space-y-6">
  <!-- Payment Summary Card -->
  <div class="bg-white rounded-xl shadow-lg overflow-hidden sticky top-6">
@@ -461,10 +564,31 @@
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
- <select name="method" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition">
+ <select name="method" id="payment_method_select" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition" onchange="togglePaymentMethodFields()">
  <option value="cash">Cash</option>
+ <option value="bkash">bKash</option>
  <option value="card">Card</option>
- <option value="mfs">Mobile Banking</option>
+ </select>
+ </div>
+ <div id="bkash_payment_field" class="hidden">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">bKash Number</label>
+ <input type="text" name="bkash_number" placeholder="01XXXXXXXXX" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition">
+ </div>
+ <div id="bank_payment_field" class="hidden">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+ <select name="bank_name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition">
+ <option value="">Select Bank</option>
+ <option value="Pubali Bank">Pubali Bank</option>
+ <option value="City Bank">City Bank</option>
+ <option value="Sonali Bank">Sonali Bank</option>
+ <option value="Janata Bank">Janata Bank</option>
+ <option value="Agrani Bank">Agrani Bank</option>
+ <option value="Rupali Bank">Rupali Bank</option>
+ <option value="Islami Bank">Islami Bank</option>
+ <option value="Dutch-Bangla Bank">Dutch-Bangla Bank</option>
+ <option value="BRAC Bank">BRAC Bank</option>
+ <option value="UCB">UCB</option>
+ <option value="Other">Other</option>
  </select>
  </div>
  <div>
@@ -606,6 +730,21 @@
 </div>
 
 <script>
+function togglePaymentMethodFields() {
+ const method = document.getElementById('payment_method_select').value;
+ const bkashField = document.getElementById('bkash_payment_field');
+ const bankField = document.getElementById('bank_payment_field');
+ 
+ bkashField.classList.add('hidden');
+ bankField.classList.add('hidden');
+ 
+ if (method === 'bkash') {
+ bkashField.classList.remove('hidden');
+ } else if (method === 'card') {
+ bankField.classList.remove('hidden');
+ }
+}
+
 function openAddonModal() {
  document.getElementById('addonModal').classList.remove('hidden');
  document.getElementById('addonModal').classList.add('flex');

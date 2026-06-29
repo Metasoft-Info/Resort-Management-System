@@ -12,9 +12,24 @@ class PremiumConventionController extends Controller {
         return view('admin.premium-convention.index', compact('halls', 'foodPackages', 'addonServices'));
     }
     public function search(Request $request) {
-        $bookedHallIds = ConventionBooking::whereDate('event_date', $request->date)
-            ->where('time_slot', $request->slot)->whereNotIn('status', ['cancelled'])
-            ->pluck('hall_id')->toArray();
+        $slot = $request->slot;
+        $query = ConventionBooking::whereDate('event_date', $request->date)
+            ->whereNotIn('status', ['cancelled']);
+
+        // Slot overlap logic: full_day blocks both morning and night
+        if ($slot === 'morning') {
+            $query->whereIn('time_slot', ['morning', 'full_day']);
+        } elseif ($slot === 'night') {
+            $query->whereIn('time_slot', ['night', 'full_day']);
+        } else {
+            $query->where('time_slot', 'full_day');
+        }
+
+        $bookedHallIds = $query->pluck('hall_id')->toArray();
+
+        // Get booking details for booked halls
+        $hallBookings = $query->with('conventionHall')->get();
+
         $availableHalls = ConventionHall::whereNotIn('id', $bookedHallIds)->get()->map(function($hall) {
             return [
                 'id' => $hall->id,
@@ -26,7 +41,18 @@ class PremiumConventionController extends Controller {
                 'description' => $hall->description,
             ];
         });
-        return response()->json(['availableHalls' => $availableHalls]);
+        return response()->json([
+            'availableHalls' => $availableHalls,
+            'bookedHalls' => $hallBookings->map(fn($b) => [
+                'hall_id' => $b->hall_id,
+                'hall_name' => $b->conventionHall->name ?? 'N/A',
+                'customer_name' => $b->customer_name,
+                'time_slot' => $b->time_slot,
+                'event_type' => $b->event_type,
+                'number_of_guests' => $b->number_of_guests,
+                'status' => $b->status,
+            ]),
+        ]);
     }
     public function book(Request $request) {
         $validated = $request->validate([

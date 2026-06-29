@@ -268,7 +268,17 @@ class ConventionBookingController extends Controller
             'vat_amount' => 'nullable|numeric',
             'vat_percentage' => 'nullable|numeric',
             'advance_payment' => 'nullable|numeric',
-            'payment_method' => 'required|in:cash,card,mfs',
+            'payment_method' => 'required|in:cash,card,bkash,mfs',
+            'bkash_number' => 'nullable|string|max:20',
+            'bank_name' => 'nullable|string|max:255',
+            'customer_photo' => 'nullable|array',
+            'customer_photo.*' => 'nullable|image|max:5120',
+            'customer_nid_document' => 'nullable|array',
+            'customer_nid_document.*' => 'nullable|file|max:5120',
+            'passport_document' => 'nullable|array',
+            'passport_document.*' => 'nullable|file|max:5120',
+            'visiting_card' => 'nullable|array',
+            'visiting_card.*' => 'nullable|file|max:5120',
             'notes' => 'nullable|string',
             'status' => 'nullable|in:pending,confirmed,completed,cancelled',
         ]);
@@ -299,6 +309,26 @@ class ConventionBookingController extends Controller
             }
         }
 
+        // Handle file uploads
+        $docFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
+        foreach ($docFields as $field) {
+            $paths = [];
+            if ($request->hasFile($field)) {
+                $files = $request->file($field);
+                if (!is_array($files)) {
+                    $files = [$files];
+                }
+                foreach ($files as $f) {
+                    if ($f && $f->isValid()) {
+                        $paths[] = $f->store('convention-bookings/documents', 'public');
+                    }
+                }
+            }
+            if (!empty($paths)) {
+                $validated[$field] = $paths;
+            }
+        }
+
         $totals = $this->calculateTotals($validated);
         $validated = array_merge($validated, $totals);
         $validated['status'] = $request->status ?? 'confirmed';
@@ -318,6 +348,8 @@ class ConventionBookingController extends Controller
                 'convention_booking_id' => $booking->id,
                 'amount' => $booking->advance_payment,
                 'payment_method' => $validated['payment_method'],
+                'bkash_number' => $validated['bkash_number'] ?? null,
+                'bank_name' => $validated['bank_name'] ?? null,
                 'payment_date' => now(),
                 'notes' => 'Initial advance payment',
                 'received_by_id' => auth()->id()
@@ -379,7 +411,9 @@ class ConventionBookingController extends Controller
             'vat_amount' => 'nullable|numeric',
             'vat_percentage' => 'nullable|numeric',
             'advance_payment' => 'nullable|numeric',
-            'payment_method' => 'nullable|in:cash,card,mfs',
+            'payment_method' => 'nullable|in:cash,card,bkash,mfs',
+            'bkash_number' => 'nullable|string|max:20',
+            'bank_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ]);
 
@@ -408,7 +442,9 @@ class ConventionBookingController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
-            'method' => 'required|in:cash,card,mfs',
+            'method' => 'required|in:cash,card,bkash,mfs',
+            'bkash_number' => 'nullable|string|max:20',
+            'bank_name' => 'nullable|string|max:255',
             'note' => 'nullable|string',
         ]);
 
@@ -417,6 +453,8 @@ class ConventionBookingController extends Controller
             'convention_booking_id' => $conventionBooking->id,
             'amount' => $validated['amount'],
             'payment_method' => $validated['method'],
+            'bkash_number' => $validated['bkash_number'] ?? null,
+            'bank_name' => $validated['bank_name'] ?? null,
             'payment_date' => now(),
             'notes' => $validated['note'] ?? null,
             'received_by_id' => auth()->id(),

@@ -44,7 +44,7 @@
  </div>
  </div>
 
- <form action="{{ route('admin.convention-bookings.store') }}" method="POST" id="bookingForm" class="max-w-6xl mx-auto" novalidate onsubmit="return validateForm()">
+ <form action="{{ route('admin.convention-bookings.store') }}" method="POST" id="bookingForm" class="max-w-6xl mx-auto" enctype="multipart/form-data" novalidate onsubmit="return validateForm()">
  @csrf
  
  <!-- Step 1: Hall & Event Details -->
@@ -289,11 +289,55 @@
 
  <div>
  <h3 class="text-lg font-bold mb-3">Payment Method</h3>
- <select name="payment_method" class="w-full px-4 py-3 border rounded-lg">
+ <select name="payment_method" id="payment_method" class="w-full px-4 py-3 border rounded-lg" onchange="togglePaymentFields()">
  <option value="cash">Cash</option>
+ <option value="bkash">bKash</option>
  <option value="card">Card</option>
- <option value="mfs">Mobile Banking</option>
  </select>
+ </div>
+ <div id="bkash_field" class="hidden">
+ <h3 class="text-lg font-bold mb-3">bKash Number</h3>
+ <input type="text" name="bkash_number" id="bkash_number" placeholder="01XXXXXXXXX" class="w-full px-4 py-3 border rounded-lg">
+ </div>
+ <div id="bank_field" class="hidden">
+ <h3 class="text-lg font-bold mb-3">Bank Name</h3>
+ <select name="bank_name" id="bank_name" class="w-full px-4 py-3 border rounded-lg">
+ <option value="">Select Bank</option>
+ <option value="Pubali Bank">Pubali Bank</option>
+ <option value="City Bank">City Bank</option>
+ <option value="Sonali Bank">Sonali Bank</option>
+ <option value="Janata Bank">Janata Bank</option>
+ <option value="Agrani Bank">Agrani Bank</option>
+ <option value="Rupali Bank">Rupali Bank</option>
+ <option value="Islami Bank">Islami Bank</option>
+ <option value="Dutch-Bangla Bank">Dutch-Bangla Bank</option>
+ <option value="BRAC Bank">BRAC Bank</option>
+ <option value="UCB">UCB</option>
+ <option value="Other">Other</option>
+ </select>
+ </div>
+ </div>
+
+ <!-- Document Upload -->
+ <div class="mt-6">
+ <h3 class="text-lg font-bold mb-3">Documents (Optional)</h3>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Photo</label>
+ <input type="file" name="customer_photo[]" accept="image/*" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">NID Document</label>
+ <input type="file" name="customer_nid_document[]" accept="image/*,.pdf" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Passport</label>
+ <input type="file" name="passport_document[]" accept="image/*,.pdf" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Visiting Card</label>
+ <input type="file" name="visiting_card[]" accept="image/*,.pdf" multiple class="w-full px-3 py-2 border rounded-lg text-sm">
+ </div>
  </div>
  </div>
 
@@ -356,6 +400,21 @@
 
 <script>
 let selectedFoodPrice = 0;
+
+function togglePaymentFields() {
+ const method = document.getElementById('payment_method').value;
+ const bkashField = document.getElementById('bkash_field');
+ const bankField = document.getElementById('bank_field');
+ 
+ bkashField.classList.add('hidden');
+ bankField.classList.add('hidden');
+ 
+ if (method === 'bkash') {
+ bkashField.classList.remove('hidden');
+ } else if (method === 'card') {
+ bankField.classList.remove('hidden');
+ }
+}
 
 function validateForm() {
  const requiredFields = [
