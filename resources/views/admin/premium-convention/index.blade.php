@@ -459,6 +459,29 @@ function validateForm() {
 }
 
 function nextStep(step) {
+ // Validate step 1 fields before proceeding
+ if (step >= 2) {
+ const step1Fields = [
+ { id: 'eventDate', name: 'Event Date' },
+ { id: 'timeSlot', name: 'Time Slot' },
+ { id: 'selectedHallId', name: 'Convention Hall' },
+ { id: 'customerPhone', name: 'Phone Number' },
+ { id: 'customerName', name: 'Customer Name' },
+ { id: 'numberOfGuests', name: 'Guest Count' }
+ ];
+ let errors = [];
+ for (let field of step1Fields) {
+ const el = document.getElementById(field.id);
+ if (!el || !el.value || el.value.trim() === '') {
+ errors.push(field.name);
+ }
+ }
+ if (errors.length > 0) {
+ alert('Please fill in the following required fields:\n\n• ' + errors.join('\n• '));
+ return;
+ }
+ }
+
  // Hide all steps
  document.getElementById('step1').classList.add('hidden');
  document.getElementById('step2').classList.add('hidden');
