@@ -303,37 +303,37 @@
  <div class="space-y-3">
  <div class="flex justify-between">
  <span>Hall Rent:</span>
- <span class="font-semibold" id="displayHallRent">0</span>
+ <span class="font-semibold" id="displayHallRent">BDT 0</span>
  </div>
  <div class="flex justify-between">
  <span>Food Cost:</span>
- <span class="font-semibold" id="displayFoodCost">0</span>
+ <span class="font-semibold" id="displayFoodCost">BDT 0</span>
  </div>
  <div class="flex justify-between">
  <span>Addon Cost:</span>
- <span class="font-semibold" id="displayAddonsCost">0</span>
+ <span class="font-semibold" id="displayAddonsCost">BDT 0</span>
  </div>
  <div class="flex justify-between text-red-600">
  <span>Discount:</span>
- <span class="font-semibold" id="displayDiscount">-0</span>
+ <span class="font-semibold" id="displayDiscount">-BDT 0</span>
  </div>
  <div class="flex justify-between">
  <span>VAT:</span>
- <span class="font-semibold" id="displayVat">0</span>
+ <span class="font-semibold" id="displayVat">BDT 0</span>
  </div>
  <div class="border-t border-violet-200 pt-3">
  <div class="flex justify-between text-lg font-bold text-violet-700">
  <span>Total Amount:</span>
- <span id="displayTotal">0</span>
+ <span id="displayTotal">BDT 0</span>
  </div>
  </div>
  <div class="flex justify-between text-violet-600">
  <span>Advance Payment:</span>
- <span class="font-semibold" id="displayAdvance">0</span>
+ <span class="font-semibold" id="displayAdvance">BDT 0</span>
  </div>
  <div class="flex justify-between text-lg font-bold text-red-600">
  <span>Remaining:</span>
- <span id="displayRemaining">0</span>
+ <span id="displayRemaining">BDT 0</span>
  </div>
  </div>
  </div>
@@ -452,7 +452,7 @@ async function checkAvailability() {
  <div class="p-4">
  <h4 class="font-bold text-lg text-gray-800">${hall.name}</h4>
  <p class="text-sm text-gray-600 mt-1"><i class="fas fa-users mr-1"></i>Capacity: ${hallCapacity} people</p>
- <p class="text-xl font-bold text-violet-600 mt-2">${Number(hall.price_per_day).toLocaleString()}//day</p>
+ <p class="text-xl font-bold text-violet-600 mt-2">BDT ${Number(hall.price_per_day).toLocaleString()}/day</p>
  <span class="inline-block mt-3 px-3 py-1 bg-violet-100 text-primary-800 text-xs font-bold rounded-full">✅ Available</span>
  </div>
  </div>
@@ -483,17 +483,17 @@ function selectHall(hallId, price, timeSlot) {
  card.classList.add('border-gray-300');
  });
  
- event.target.closest('.hall-card').classList.remove('border-gray-300');
- event.target.closest('.hall-card').classList.add('border-violet-500', 'bg-violet-50');
- 
- let finalPrice = price;
- if (timeSlot === 'morning' || timeSlot === 'afternoon' || timeSlot === 'evening') {
- finalPrice = price * 0.4;
+ const clickedCard = event.target.closest('.hall-card');
+ if (clickedCard) {
+ clickedCard.classList.remove('border-gray-300');
+ clickedCard.classList.add('border-violet-500', 'bg-violet-50');
  }
- 
+
+ let finalPrice = price;
+
  document.getElementById('selectedHallId').value = hallId;
  document.getElementById('hallRent').value = finalPrice;
- document.getElementById('displayHallRent').textContent = '' + finalPrice.toFixed(2);
+ document.getElementById('displayHallRent').textContent = 'BDT ' + finalPrice.toFixed(2);
 }
 
 async function searchCustomer(phone) {
@@ -531,7 +531,7 @@ function updateFoodCost() {
  const guests = parseInt(document.getElementById('numberOfGuests').value) || 0;
  const foodCost = guests * selectedFoodPrice;
  document.getElementById('foodCost').value = foodCost;
- document.getElementById('displayFoodCost').textContent = '' + foodCost.toFixed(2);
+ document.getElementById('displayFoodCost').textContent = 'BDT ' + foodCost.toFixed(2);
 }
 
 function toggleAddonQuantity(addonId, isChecked) {
@@ -554,7 +554,7 @@ function updateAddonsCost() {
  total += price * quantity;
  });
  document.getElementById('addonsCost').value = total;
- document.getElementById('displayAddonsCost').textContent = '' + total.toFixed(2);
+ document.getElementById('displayAddonsCost').textContent = 'BDT ' + total.toFixed(2);
 }
 
 function filterAddons(category) {
@@ -585,7 +585,7 @@ function calculateTotal() {
  discount = discountValue;
  }
  document.getElementById('discountAmount').value = discount;
- document.getElementById('displayDiscount').textContent = '-' + discount.toFixed(2);
+ document.getElementById('displayDiscount').textContent = '-BDT ' + discount.toFixed(2);
  
  const afterDiscount = subtotal - discount;
  
@@ -598,18 +598,18 @@ function calculateTotal() {
  vatAmount = (afterDiscount * vatPercentage) / 100;
  }
  document.getElementById('vatAmount').value = vatAmount;
- document.getElementById('displayVat').textContent = '' + vatAmount.toFixed(2);
+ document.getElementById('displayVat').textContent = 'BDT ' + vatAmount.toFixed(2);
  
  // Total
  const total = afterDiscount + vatAmount;
  document.getElementById('totalAmount').value = total;
- document.getElementById('displayTotal').textContent = '' + total.toFixed(2);
+ document.getElementById('displayTotal').textContent = 'BDT ' + total.toFixed(2);
  
  // Remaining
  const advance = parseFloat(document.getElementById('advancePayment').value) || 0;
- document.getElementById('displayAdvance').textContent = '' + advance.toFixed(2);
+ document.getElementById('displayAdvance').textContent = 'BDT ' + advance.toFixed(2);
  const remaining = Math.max(0, total - advance);
- document.getElementById('displayRemaining').textContent = '' + remaining.toFixed(2);
+ document.getElementById('displayRemaining').textContent = 'BDT ' + remaining.toFixed(2);
 }
 
 // Handle URL parameters for pre-selection from dashboard

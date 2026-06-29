@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\{ConventionHall, ConventionBooking, FoodPackage, AddonService};
+use App\Models\{ConventionHall, ConventionBooking, ConventionPayment, FoodPackage, AddonService};
 use Illuminate\Http\Request;
 
 class PremiumConventionController extends Controller {
@@ -50,7 +50,6 @@ class PremiumConventionController extends Controller {
         // Set defaults
         $validated['created_by_id'] = auth()->id();
         $validated['status'] = 'confirmed';
-        $validated['payment_status'] = 'pending';
         $validated['hall_rent'] = $validated['total_amount'];
         $validated['food_cost'] = 0;
         $validated['addons_cost'] = 0;
@@ -59,9 +58,31 @@ class PremiumConventionController extends Controller {
         $validated['advance_payment'] = $validated['advance_payment'] ?? 0;
         $validated['remaining_payment'] = $validated['total_amount'] - $validated['advance_payment'];
         $validated['notes'] = $validated['special_requests'] ?? '';
-        
+
+        // Set payment status
+        if ($validated['remaining_payment'] <= 0) {
+            $validated['payment_status'] = 'paid';
+        } elseif ($validated['advance_payment'] > 0) {
+            $validated['payment_status'] = 'partial';
+        } else {
+            $validated['payment_status'] = 'pending';
+        }
+
         try {
-            ConventionBooking::create($validated);
+            $booking = ConventionBooking::create($validated);
+
+            // Create payment record for advance
+            if ($booking->advance_payment > 0) {
+                ConventionPayment::create([
+                    'convention_booking_id' => $booking->id,
+                    'amount' => $booking->advance_payment,
+                    'payment_method' => 'cash',
+                    'payment_date' => now(),
+                    'notes' => 'Initial advance payment',
+                    'received_by_id' => auth()->id(),
+                ]);
+            }
+
             return response()->json(['success' => true, 'message' => 'Booking created successfully']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

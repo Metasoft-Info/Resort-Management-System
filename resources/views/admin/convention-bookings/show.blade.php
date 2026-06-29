@@ -454,7 +454,7 @@
  @csrf
  <div class="space-y-4">
  <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">Amount ()</label>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Amount (BDT)</label>
  <input type="number" name="amount" step="1" max="{{ $booking->remaining_payment }}" required 
  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
  placeholder="Enter amount">

@@ -254,6 +254,7 @@ class ConventionBookingController extends Controller
             'event_date' => 'required|date',
             'time_slot' => 'required|in:morning,night,full_day',
             'event_type' => 'required|string|max:255',
+            'event_description' => 'nullable|string',
             'number_of_guests' => 'required|integer|min:1',
             'selected_food_package_id' => 'nullable|exists:food_packages,id',
             'selected_addons' => 'nullable|array',
@@ -269,6 +270,7 @@ class ConventionBookingController extends Controller
             'advance_payment' => 'nullable|numeric',
             'payment_method' => 'required|in:cash,card,mfs',
             'notes' => 'nullable|string',
+            'status' => 'nullable|in:pending,confirmed,completed,cancelled',
         ]);
 
         // Map selected_food_package_id to food_package_id
@@ -305,9 +307,9 @@ class ConventionBookingController extends Controller
         
         ActivityLog::log('Created convention booking', 'ConventionBooking', $booking->id, [
             'customer_name' => $booking->customer_name,
-            'hall_id' => $booking->convention_hall_id,
+            'hall_id' => $booking->hall_id,
             'event_date' => $booking->event_date,
-            'total_amount' => $booking->grand_total
+            'total_amount' => $booking->total_amount
         ]);
 
         // Add advance payment if provided
@@ -363,6 +365,7 @@ class ConventionBookingController extends Controller
             'event_date' => 'required|date',
             'time_slot' => 'required|in:morning,night,full_day',
             'event_type' => 'required|string|max:255',
+            'event_description' => 'nullable|string',
             'number_of_guests' => 'required|integer|min:1',
             'selected_food_package_id' => 'nullable|exists:food_packages,id',
             'selected_addons' => 'nullable|array',
@@ -371,16 +374,30 @@ class ConventionBookingController extends Controller
             'food_cost' => 'nullable|numeric',
             'addons_cost' => 'nullable|numeric',
             'discount' => 'nullable|numeric',
+            'discount_type' => 'nullable|in:flat,percentage',
+            'discount_value' => 'nullable|numeric',
             'vat_amount' => 'nullable|numeric',
+            'vat_percentage' => 'nullable|numeric',
             'advance_payment' => 'nullable|numeric',
             'payment_method' => 'nullable|in:cash,card,mfs',
             'notes' => 'nullable|string',
         ]);
 
+        // Map selected_food_package_id to food_package_id
+        if (isset($validated['selected_food_package_id'])) {
+            $validated['food_package_id'] = $validated['selected_food_package_id'];
+            unset($validated['selected_food_package_id']);
+        }
+
+        // Set defaults for missing fields
+        $validated['discount_type'] = $validated['discount_type'] ?? 'flat';
+        $validated['discount_value'] = $validated['discount_value'] ?? 0;
+        $validated['vat_percentage'] = $validated['vat_percentage'] ?? 0;
+        $validated['updated_by_id'] = auth()->id();
+
         $totals = $this->calculateTotals($validated);
         $validated = array_merge($validated, $totals);
 
-        $validated['updated_by_id'] = auth()->id();
         $conventionBooking->update($validated);
 
         return redirect()->route('admin.convention-bookings.index')
@@ -414,7 +431,7 @@ class ConventionBookingController extends Controller
         } elseif ($newAdvance > 0) {
             $paymentStatus = 'partial';
         } else {
-            $paymentStatus = 'unpaid';
+            $paymentStatus = 'pending';
         }
 
         $conventionBooking->update([
@@ -461,14 +478,14 @@ class ConventionBookingController extends Controller
         }
         
         // Recalculate totals
-        $hallRent = $conventionBooking->hall_rent;
-        $foodCost = $conventionBooking->food_cost;
-        $discount = $conventionBooking->discount;
-        $vatPercentage = $conventionBooking->vat_percentage ?? 0;
+        $hallRent = round(floatval($conventionBooking->hall_rent));
+        $foodCost = round(floatval($conventionBooking->food_cost));
+        $discount = round(floatval($conventionBooking->discount));
+        $vatPercentage = floatval($conventionBooking->vat_percentage ?? 0);
         
         $subtotal = $hallRent + $foodCost + $addonsCost - $discount;
-        $vatAmount = $subtotal * ($vatPercentage / 100);
-        $totalAmount = $subtotal + $vatAmount;
+        $vatAmount = round($subtotal * ($vatPercentage / 100));
+        $totalAmount = round($subtotal + $vatAmount);
         $remainingPayment = max(0, $totalAmount - $conventionBooking->advance_payment);
         
         if ($remainingPayment <= 0) {
@@ -482,7 +499,7 @@ class ConventionBookingController extends Controller
         $conventionBooking->update([
             'selected_addons' => $selectedAddons,
             'addon_quantities' => $addonQuantities,
-            'addons_cost' => $addonsCost,
+            'addons_cost' => round($addonsCost),
             'vat_amount' => $vatAmount,
             'total_amount' => $totalAmount,
             'remaining_payment' => $remainingPayment,
