@@ -45,7 +45,7 @@
  </select>
  </div>
  <div>
- <label class="block text-gray-700 font-semibold mb-2">Hall Rent () *</label>
+ <label class="block text-gray-700 font-semibold mb-2">Hall Rent (BDT) *</label>
  <input type="number" name="hall_rent" id="hallRent" value="{{ $conventionBooking->hall_rent }}" required step="0.01"
  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600"
  onchange="calculateTotal()">
@@ -318,7 +318,7 @@ function updateHallRent() {
  const selectedOption = select.options[select.selectedIndex];
  const price = parseFloat(selectedOption.dataset.price) || 0;
  document.getElementById('hallRent').value = price;
- document.getElementById('displayHallRent').textContent = '' + price.toFixed(2);
+ document.getElementById('displayHallRent').textContent = 'BDT ' + price.toFixed(2);
  calculateTotal();
 }
 
@@ -337,7 +337,7 @@ function updateFoodCost() {
  const guests = parseInt(document.getElementById('numberOfGuests').value) || 0;
  const foodCost = guests * selectedFoodPrice;
  document.getElementById('foodCost').value = foodCost;
- document.getElementById('displayFoodCost').textContent = '' + foodCost.toFixed(2);
+ document.getElementById('displayFoodCost').textContent = 'BDT ' + foodCost.toFixed(2);
  calculateTotal();
 }
 
@@ -361,7 +361,7 @@ function updateAddonsCost() {
  total += price * quantity;
  });
  document.getElementById('addonsCost').value = total;
- document.getElementById('displayAddonsCost').textContent = '' + total.toFixed(2);
+ document.getElementById('displayAddonsCost').textContent = 'BDT ' + total.toFixed(2);
  calculateTotal();
 }
 
@@ -393,7 +393,7 @@ function calculateTotal() {
  discount = discountValue;
  }
  document.getElementById('discountAmount').value = discount;
- document.getElementById('displayDiscount').textContent = '-' + discount.toFixed(2);
+ document.getElementById('displayDiscount').textContent = '-BDT ' + discount.toFixed(2);
  
  const afterDiscount = subtotal - discount;
  
@@ -406,15 +406,15 @@ function calculateTotal() {
  vatAmount = (afterDiscount * vatPercentage) / 100;
  }
  document.getElementById('vatAmount').value = vatAmount;
- document.getElementById('displayVat').textContent = '' + vatAmount.toFixed(2);
+ document.getElementById('displayVat').textContent = 'BDT ' + vatAmount.toFixed(2);
  
  // Total
  const total = afterDiscount + vatAmount;
  document.getElementById('totalAmount').value = total;
- document.getElementById('displayTotal').textContent = '' + total.toFixed(2);
+ document.getElementById('displayTotal').textContent = 'BDT ' + total.toFixed(2);
  
  // Update display values
- document.getElementById('displayHallRent').textContent = '' + hallRent.toFixed(2);
+ document.getElementById('displayHallRent').textContent = 'BDT ' + hallRent.toFixed(2);
 }
 
 // Initialize on page load

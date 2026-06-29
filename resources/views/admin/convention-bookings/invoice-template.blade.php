@@ -80,8 +80,8 @@
  <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; width: 30px;">SL</th>
  <th style="border: 1px solid #000; padding: 6px; text-align: left; font-weight: bold;">Description</th>
  <th style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold; width: 60px;">Qty</th>
- <th style="border: 1px solid #000; padding: 6px; text-align: right; font-weight: bold; width: 80px;">Rate ()</th>
- <th style="border: 1px solid #000; padding: 6px; text-align: right; font-weight: bold; width: 90px;">Amount ()</th>
+ <th style="border: 1px solid #000; padding: 6px; text-align: right; font-weight: bold; width: 80px;">Rate (BDT)</th>
+ <th style="border: 1px solid #000; padding: 6px; text-align: right; font-weight: bold; width: 90px;">Amount (BDT)</th>
  </tr>
  </thead>
  <tbody>

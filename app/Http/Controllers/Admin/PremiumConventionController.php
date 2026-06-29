@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\{ConventionHall, ConventionBooking, FoodPackage, AddonService};
+use App\Models\{ConventionHall, ConventionBooking, ConventionPayment, FoodPackage, AddonService};
 use Illuminate\Http\Request;
 
 class PremiumConventionController extends Controller {
@@ -12,9 +12,24 @@ class PremiumConventionController extends Controller {
         return view('admin.premium-convention.index', compact('halls', 'foodPackages', 'addonServices'));
     }
     public function search(Request $request) {
-        $bookedHallIds = ConventionBooking::whereDate('event_date', $request->date)
-            ->where('time_slot', $request->slot)->whereNotIn('status', ['cancelled'])
-            ->pluck('hall_id')->toArray();
+        $slot = $request->slot;
+        $query = ConventionBooking::whereDate('event_date', $request->date)
+            ->whereNotIn('status', ['cancelled']);
+
+        // Slot overlap logic: full_day blocks both morning and night
+        if ($slot === 'morning') {
+            $query->whereIn('time_slot', ['morning', 'full_day']);
+        } elseif ($slot === 'night') {
+            $query->whereIn('time_slot', ['night', 'full_day']);
+        } else {
+            $query->where('time_slot', 'full_day');
+        }
+
+        $bookedHallIds = $query->pluck('hall_id')->toArray();
+
+        // Get booking details for booked halls
+        $hallBookings = $query->with('conventionHall')->get();
+
         $availableHalls = ConventionHall::whereNotIn('id', $bookedHallIds)->get()->map(function($hall) {
             return [
                 'id' => $hall->id,
@@ -26,7 +41,18 @@ class PremiumConventionController extends Controller {
                 'description' => $hall->description,
             ];
         });
-        return response()->json(['availableHalls' => $availableHalls]);
+        return response()->json([
+            'availableHalls' => $availableHalls,
+            'bookedHalls' => $hallBookings->map(fn($b) => [
+                'hall_id' => $b->hall_id,
+                'hall_name' => $b->conventionHall->name ?? 'N/A',
+                'customer_name' => $b->customer_name,
+                'time_slot' => $b->time_slot,
+                'event_type' => $b->event_type,
+                'number_of_guests' => $b->number_of_guests,
+                'status' => $b->status,
+            ]),
+        ]);
     }
     public function book(Request $request) {
         $validated = $request->validate([
@@ -50,7 +76,6 @@ class PremiumConventionController extends Controller {
         // Set defaults
         $validated['created_by_id'] = auth()->id();
         $validated['status'] = 'confirmed';
-        $validated['payment_status'] = 'pending';
         $validated['hall_rent'] = $validated['total_amount'];
         $validated['food_cost'] = 0;
         $validated['addons_cost'] = 0;
@@ -59,9 +84,31 @@ class PremiumConventionController extends Controller {
         $validated['advance_payment'] = $validated['advance_payment'] ?? 0;
         $validated['remaining_payment'] = $validated['total_amount'] - $validated['advance_payment'];
         $validated['notes'] = $validated['special_requests'] ?? '';
-        
+
+        // Set payment status
+        if ($validated['remaining_payment'] <= 0) {
+            $validated['payment_status'] = 'paid';
+        } elseif ($validated['advance_payment'] > 0) {
+            $validated['payment_status'] = 'partial';
+        } else {
+            $validated['payment_status'] = 'pending';
+        }
+
         try {
-            ConventionBooking::create($validated);
+            $booking = ConventionBooking::create($validated);
+
+            // Create payment record for advance
+            if ($booking->advance_payment > 0) {
+                ConventionPayment::create([
+                    'convention_booking_id' => $booking->id,
+                    'amount' => $booking->advance_payment,
+                    'payment_method' => 'cash',
+                    'payment_date' => now(),
+                    'notes' => 'Initial advance payment',
+                    'received_by_id' => auth()->id(),
+                ]);
+            }
+
             return response()->json(['success' => true, 'message' => 'Booking created successfully']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

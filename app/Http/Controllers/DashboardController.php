@@ -129,34 +129,45 @@ class DashboardController extends Controller
                 $date = Carbon::today()->addDays($i);
                 $dateStr = $date->format('Y-m-d');
                 
-                // Check full_day booking first
-                $fullDayBooked = ConventionBooking::where('hall_id', $hall->id)
+                // Get all bookings for this hall on this date
+                $dayBookings = ConventionBooking::with('conventionHall')
+                    ->where('hall_id', $hall->id)
                     ->whereDate('event_date', $dateStr)
-                    ->where('time_slot', 'full_day')
                     ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
-                
-                // Check morning slot booking
-                $morningBooked = ConventionBooking::where('hall_id', $hall->id)
-                    ->whereDate('event_date', $dateStr)
-                    ->whereIn('time_slot', ['morning', 'full_day'])
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
-                
-                // Check night slot booking  
-                $nightBooked = ConventionBooking::where('hall_id', $hall->id)
-                    ->whereDate('event_date', $dateStr)
-                    ->whereIn('time_slot', ['night', 'full_day'])
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
+                    ->get();
+
+                $fullDayBooking = $dayBookings->firstWhere('time_slot', 'full_day');
+                $morningBooking = $dayBookings->firstWhere('time_slot', 'morning');
+                $nightBooking = $dayBookings->firstWhere('time_slot', 'night');
+
+                $fullDayBooked = (bool) $fullDayBooking;
+                $morningBooked = $fullDayBooked || (bool) $morningBooking;
+                $nightBooked = $fullDayBooked || (bool) $nightBooking;
                 
                 // full_day status: available, booked, or unavailable (when morning/night booked separately)
                 $fullDayStatus = 'available';
                 if ($fullDayBooked) {
-                    $fullDayStatus = 'booked'; // Actually booked as full_day
+                    $fullDayStatus = 'booked';
                 } elseif ($morningBooked || $nightBooked) {
-                    $fullDayStatus = 'unavailable'; // Can't book full_day because morning or night is taken
+                    $fullDayStatus = 'unavailable';
                 }
+
+                // Build hover details
+                $morningDetails = null;
+                if ($fullDayBooking) {
+                    $morningDetails = $fullDayBooking;
+                } elseif ($morningBooking) {
+                    $morningDetails = $morningBooking;
+                }
+
+                $nightDetails = null;
+                if ($fullDayBooking) {
+                    $nightDetails = $fullDayBooking;
+                } elseif ($nightBooking) {
+                    $nightDetails = $nightBooking;
+                }
+
+                $fullDayDetails = $fullDayBooking;
                 
                 $hallDays[] = [
                     'date' => $date,
@@ -166,6 +177,9 @@ class DashboardController extends Controller
                     'morning' => $morningBooked ? 'booked' : 'available',
                     'night' => $nightBooked ? 'booked' : 'available',
                     'full_day' => $fullDayStatus,
+                    'morning_booking' => $morningDetails,
+                    'night_booking' => $nightDetails,
+                    'full_day_booking' => $fullDayDetails,
                 ];
             }
             $hallsWithStatus[] = [
@@ -298,16 +312,21 @@ class DashboardController extends Controller
         $date = $request->date;
         $slot = $request->slot;
 
-        $bookedHallIds = ConventionBooking::whereDate('event_date', $date)
-            ->where('time_slot', $slot)
-            ->whereNotIn('status', ['cancelled'])
-            ->pluck('convention_hall_id')->toArray();
-
-        $hallBookings = ConventionBooking::with('conventionHall')
+        $query = ConventionBooking::with('conventionHall')
             ->whereDate('event_date', $date)
-            ->where('time_slot', $slot)
-            ->whereNotIn('status', ['cancelled'])
-            ->get();
+            ->whereNotIn('status', ['cancelled']);
+
+        // Slot overlap logic: full_day blocks both morning and night
+        if ($slot === 'morning') {
+            $query->whereIn('time_slot', ['morning', 'full_day']);
+        } elseif ($slot === 'night') {
+            $query->whereIn('time_slot', ['night', 'full_day']);
+        } else {
+            $query->where('time_slot', 'full_day');
+        }
+
+        $hallBookings = $query->get();
+        $bookedHallIds = $hallBookings->pluck('hall_id')->toArray();
 
         return response()->json([
             'bookedHallIds' => $bookedHallIds,

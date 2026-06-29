@@ -344,7 +344,8 @@
  <span class="ml-1 text-[10px] text-emerald-300">Morning</span>
  </a>
  @else
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+ @php $mb = $day['morning_booking'] ?? null; @endphp
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $mb ? 'Booking #' . $mb->id . ': ' . $mb->customer_name . ' | ' . $mb->event_type . ' | ' . $mb->number_of_guests . ' guests | ' . ucfirst($mb->time_slot) : '' }}">
  <i class="fas fa-sun text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Morning</span>
  </span>
@@ -358,13 +359,14 @@
  </a>
  @elseif(($day['full_day'] ?? 'booked') == 'unavailable')
  <!-- Unavailable: morning/night booked separately -->
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500">
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500 cursor-help" title="Full day unavailable - morning or night already booked">
  <i class="fas fa-calendar-day text-[10px] text-gray-400"></i>
  <span class="ml-1 text-[10px] text-gray-400">Full Day</span>
  </span>
  @else
+ @php $fdb = $day['full_day_booking'] ?? null; @endphp
  <!-- Actually booked as full_day -->
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $fdb ? 'Booking #' . $fdb->id . ': ' . $fdb->customer_name . ' | ' . $fdb->event_type . ' | ' . $fdb->number_of_guests . ' guests | Full Day' : '' }}">
  <i class="fas fa-calendar-day text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Full Day</span>
  </span>
@@ -377,7 +379,8 @@
  <span class="ml-1 text-[10px] text-emerald-300">Nights</span>
  </a>
  @else
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+ @php $nb = $day['night_booking'] ?? null; @endphp
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $nb ? 'Booking #' . $nb->id . ': ' . $nb->customer_name . ' | ' . $nb->event_type . ' | ' . $nb->number_of_guests . ' guests | ' . ucfirst($nb->time_slot) : '' }}">
  <i class="fas fa-moon text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Nights</span>
  </span>

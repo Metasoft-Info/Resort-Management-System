@@ -13,6 +13,8 @@ class ConventionBooking extends Model
         'food_package_id', 'food_cost', 'selected_addons', 'addon_quantities', 'addons_cost',
         'hall_rent', 'discount', 'discount_type', 'discount_value', 'vat_amount', 'vat_percentage',
         'total_amount', 'advance_payment', 'remaining_payment', 'payment_method', 'payment_status',
+        'bkash_number', 'bank_name',
+        'customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card',
         'status', 'program_status', 'notes', 'created_by_id', 'updated_by_id',
         'discount_status', 'discount_requested_by', 'discount_approved_by', 'discount_approved_at',
     ];
@@ -23,7 +25,37 @@ class ConventionBooking extends Model
             'event_date' => 'date',
             'selected_addons' => 'array',
             'addon_quantities' => 'array',
+            'customer_photo' => 'array',
+            'customer_nid_document' => 'array',
+            'passport_document' => 'array',
+            'visiting_card' => 'array',
         ];
+    }
+
+    public function getDocuments(string $field): array
+    {
+        $rawValue = $this->getAttributes()[$field] ?? null;
+
+        if (is_string($rawValue) && !empty($rawValue)) {
+            $decoded = json_decode($rawValue, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter($decoded));
+            }
+            if (is_string($decoded)) {
+                $innerDecoded = json_decode($decoded, true);
+                if (is_array($innerDecoded)) {
+                    return array_values(array_filter($innerDecoded));
+                }
+                return [$decoded];
+            }
+            return [$rawValue];
+        }
+
+        if (is_array($rawValue)) {
+            return array_values(array_filter($rawValue));
+        }
+
+        return [];
     }
 
     // Accessor to handle rounding issues - treat small amounts as 0
