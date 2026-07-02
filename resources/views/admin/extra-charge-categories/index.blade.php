@@ -78,7 +78,7 @@
                                 <a href="{{ route('admin.extra-charge-categories.edit', $category) }}" class="w-8 h-8 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition flex items-center justify-center" title="Edit">
                                     <i class="fas fa-edit text-xs"></i>
                                 </a>
-                                <form action="{{ route('admin.extra-charge-categories.destroy', $category) }}" method="POST" class="inline" onsubmit="event.preventDefault(); confirmDelete(this.form, 'Are you sure you want to delete this category?')">
+                                <form action="{{ route('admin.extra-charge-categories.destroy', $category) }}" method="POST" class="inline" onsubmit="event.preventDefault(); confirmDelete(this, 'Are you sure you want to delete this category?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="w-8 h-8 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center justify-center" title="Delete">
                                         <i class="fas fa-trash text-xs"></i>
