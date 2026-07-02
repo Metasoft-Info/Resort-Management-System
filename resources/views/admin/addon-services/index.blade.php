@@ -23,6 +23,55 @@
         </div>
     </div>
 
+    <!-- Danger Zone -->
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-trash-alt text-red-500"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-red-700 text-sm">Clear All Convention Addons</h3>
+                <p class="text-red-500 text-xs">Permanently delete all convention addon services. This cannot be undone.</p>
+            </div>
+        </div>
+        <button onclick="document.getElementById('clearConventionModal').classList.remove('hidden')"
+            class="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition font-semibold text-sm shadow">
+            <i class="fas fa-broom mr-1"></i>Clear All
+        </button>
+    </div>
+
+    <!-- Clear Convention Modal -->
+    <div id="clearConventionModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Clear All Convention Addons?</h3>
+                    <p class="text-sm text-gray-500">This will permanently delete all convention addon services.</p>
+                </div>
+            </div>
+            <form action="{{ route('admin.addon-services.clear-convention') }}" method="POST">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Type <span class="font-mono bg-gray-100 px-2 py-0.5 rounded text-red-600">CLEAR</span> to confirm</label>
+                    <input type="text" name="confirm" required placeholder="CLEAR"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-200 transition uppercase">
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="document.getElementById('clearConventionModal').classList.add('hidden')"
+                        class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-semibold">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition font-semibold">
+                        <i class="fas fa-trash mr-1"></i>Delete All
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Category Filter -->
     <div class="flex flex-wrap gap-2">
         <a href="{{ route('admin.addon-services.index') }}" class="px-4 py-2 rounded-xl font-semibold text-sm transition {{ !request('category') ? 'bg-violet-600 text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200' }}">
@@ -101,7 +150,7 @@
                                 <a href="{{ route('admin.addon-services.edit', $service) }}" class="w-8 h-8 bg-violet-500 text-white rounded-lg hover:bg-violet-600 transition flex items-center justify-center" title="Edit">
                                     <i class="fas fa-edit text-xs"></i>
                                 </a>
-                                <form action="{{ route('admin.addon-services.destroy', $service) }}" method="POST" class="inline" onsubmit="event.preventDefault(); confirmDelete(this.form, 'Are you sure you want to delete this service?')">
+                                <form action="{{ route('admin.addon-services.destroy', $service) }}" method="POST" class="inline" onsubmit="event.preventDefault(); confirmDelete(this, 'Are you sure you want to delete this service?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="w-8 h-8 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center justify-center" title="Delete">
                                         <i class="fas fa-trash text-xs"></i>

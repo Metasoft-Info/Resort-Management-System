@@ -97,6 +97,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Addon Services
     Route::resource('addon-services', AddonServiceController::class);
+    Route::post('/addon-services/clear-convention', [AddonServiceController::class, 'clearConvention'])->name('addon-services.clear-convention');
     
     // Extra Charge Categories
     Route::resource('extra-charge-categories', ExtraChargeCategoryController::class);
