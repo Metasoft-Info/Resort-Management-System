@@ -39,14 +39,11 @@
  @endif
  <!-- Status Badge -->
  <span class="absolute top-2 left-2 px-3 py-1 text-xs font-bold rounded-full
- @if($hall->status == 'available') bg-green-500 text-white
- @elseif($hall->status == 'booked') bg-yellow-500 text-white
+ @if($hall->is_available) bg-green-500 text-white
  @else bg-red-500 text-white
  @endif">
- @if($hall->status == 'available')
+ @if($hall->is_available)
  <i class="fas fa-check-circle mr-1"></i>Available
- @elseif($hall->status == 'booked')
- <i class="fas fa-clock mr-1"></i>Booked
  @else
  <i class="fas fa-tools mr-1"></i>Maintenance
  @endif

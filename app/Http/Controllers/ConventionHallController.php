@@ -29,11 +29,11 @@ class ConventionHallController extends Controller
             'price_per_day' => 'required|numeric',
             'amenities' => 'nullable|array',
             'event_types' => 'nullable|array',
-            'status' => 'required|in:available,booked,maintenance',
+            'is_available' => 'boolean',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $validated['is_available'] = $request->status === 'available';
+        $validated['is_available'] = $request->has('is_available');
         
         // Handle image uploads
         $images = [];
@@ -71,11 +71,11 @@ class ConventionHallController extends Controller
             'price_per_day' => 'required|numeric',
             'amenities' => 'nullable|array',
             'event_types' => 'nullable|array',
-            'status' => 'required|in:available,booked,maintenance',
+            'is_available' => 'boolean',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $validated['is_available'] = $request->status === 'available';
+        $validated['is_available'] = $request->has('is_available');
         
         // Handle image uploads
         $images = $conventionHall->images ?? [];
