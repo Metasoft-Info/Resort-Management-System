@@ -81,15 +81,15 @@
         <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Booking Summary</h3>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3 print:grid-cols-3 print:gap-2 print:text-xs">
             <div class="bg-green-50 rounded-lg p-3 text-center border border-green-200 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Currently In</p>
+                <p class="text-gray-500 text-xs">Old Guest</p>
                 <p class="text-2xl font-bold text-green-700 print:text-base">{{ $checkedInCount }}</p>
             </div>
             <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-200 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Check-In Today</p>
+                <p class="text-gray-500 text-xs">Check-In</p>
                 <p class="text-2xl font-bold text-blue-700 print:text-base">{{ $checkInTodayCount }}</p>
             </div>
             <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-300 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Check-Out Today</p>
+                <p class="text-gray-500 text-xs">Check-Out</p>
                 <p class="text-2xl font-bold text-gray-700 print:text-base">{{ $checkOutTodayCount }}</p>
             </div>
         </div>

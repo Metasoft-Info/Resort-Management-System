@@ -17,25 +17,45 @@ class ReportController extends Controller {
         } elseif ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
             $end = $request->end_date ?: $start;
+            $isSingleDate = ($start === $end);
 
-            $query->where(function ($q) use ($start, $end) {
-                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
-                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
-                  ->orWhere(function ($qq) use ($start, $end) {
-                      $qq->whereDate('check_in_date', '<=', $end)
-                         ->whereDate('check_out_date', '>=', $start)
-                         ->where('status', 'checked_in');
-                  })
-                  ->orWhere(function ($qq) use ($start, $end) {
-                      $qq->where('status', 'cancelled')
-                         ->whereDate('check_in_date', '<=', $end)
-                         ->whereDate('check_in_date', '>=', $start);
-                  })
-                  ->orWhereHas('payments', function ($pq) use ($start, $end) {
-                      $pq->whereDate('created_at', '>=', $start)
-                         ->whereDate('created_at', '<=', $end)
-                         ->where('type', '!=', 'refund');
-                  });
+            $query->where(function ($q) use ($start, $end, $isSingleDate) {
+                if ($isSingleDate) {
+                    // Single date: only show activity on this specific date
+                    $q->whereDate('check_in_date', $start)
+                      ->orWhereDate('check_out_date', $start)
+                      ->orWhere(function ($qq) use ($start) {
+                          $qq->whereDate('check_in_date', '<=', $start)
+                             ->whereDate('check_out_date', '>', $start)
+                             ->where('status', 'checked_in');
+                      })
+                      ->orWhere(function ($qq) use ($start) {
+                          $qq->where('status', 'cancelled')
+                             ->whereDate('check_in_date', $start);
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($start) {
+                          $pq->whereDate('created_at', $start)
+                             ->where('type', '!=', 'refund');
+                      });
+                } else {
+                    $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                      ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                      ->orWhere(function ($qq) use ($start, $end) {
+                          $qq->whereDate('check_in_date', '<=', $end)
+                             ->whereDate('check_out_date', '>=', $start)
+                             ->where('status', 'checked_in');
+                      })
+                      ->orWhere(function ($qq) use ($start, $end) {
+                          $qq->where('status', 'cancelled')
+                             ->whereDate('check_in_date', '<=', $end)
+                             ->whereDate('check_in_date', '>=', $start);
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($start, $end) {
+                          $pq->whereDate('created_at', '>=', $start)
+                             ->whereDate('created_at', '<=', $end)
+                             ->where('type', '!=', 'refund');
+                      });
+                }
             });
         } else {
             $query->where(function ($q) use ($today) {
@@ -88,17 +108,17 @@ class ReportController extends Controller {
         $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
         $totalAdvance = $summaryBookings->sum('advance_payment');
 
-        // Booking count breakdown
+        // Determine the filter date for counts
+        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
+        $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
+
+        // Booking count breakdown - use filtered date, not actual today
         $checkedInCount = $summaryBookings->where('status', 'checked_in')->count();
         $checkedOutCount = $summaryBookings->where('status', 'checked_out')->count();
         $confirmedCount = $summaryBookings->where('status', 'confirmed')->count();
         $cancelledCount = $summaryBookings->where('status', 'cancelled')->count();
-        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date == $today)->count();
-        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date == $today)->count();
-        
-        // Determine the filter date range for payment calculations
-        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
-        $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
+        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date == $filterEndDate)->count();
+        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date == $filterEndDate)->count();
         
         if ($request->due_only) {
             $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
