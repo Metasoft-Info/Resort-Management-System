@@ -58,13 +58,13 @@
 
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">
- <i class="fas fa-info-circle mr-2 text-primary-600"></i>Status *
+ <i class="fas fa-info-circle mr-2 text-primary-600"></i>Availability
  </label>
- <select name="status" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
- <option value="available" {{ $conventionHall->is_available ? 'selected' : '' }}>Available</option>
- <option value="booked" {{ !$conventionHall->is_available ? 'selected' : '' }}>Booked</option>
- <option value="maintenance">Maintenance</option>
- </select>
+ <label class="flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+ <input type="checkbox" name="is_available" value="1" {{ $conventionHall->is_available ? 'checked' : '' }}
+ class="w-5 h-5 text-green-600 rounded focus:ring-green-500">
+ <span class="text-sm font-semibold text-gray-700">Hall is available for booking</span>
+ </label>
  </div>
 
  <!-- Existing Images -->
