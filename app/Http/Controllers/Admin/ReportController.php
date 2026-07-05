@@ -17,25 +17,45 @@ class ReportController extends Controller {
         } elseif ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
             $end = $request->end_date ?: $start;
+            $isSingleDate = ($start === $end);
 
-            $query->where(function ($q) use ($start, $end) {
-                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
-                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
-                  ->orWhere(function ($qq) use ($start, $end) {
-                      $qq->whereDate('check_in_date', '<=', $end)
-                         ->whereDate('check_out_date', '>=', $start)
-                         ->where('status', 'checked_in');
-                  })
-                  ->orWhere(function ($qq) use ($start, $end) {
-                      $qq->where('status', 'cancelled')
-                         ->whereDate('check_in_date', '<=', $end)
-                         ->whereDate('check_in_date', '>=', $start);
-                  })
-                  ->orWhereHas('payments', function ($pq) use ($start, $end) {
-                      $pq->whereDate('created_at', '>=', $start)
-                         ->whereDate('created_at', '<=', $end)
-                         ->where('type', '!=', 'refund');
-                  });
+            $query->where(function ($q) use ($start, $end, $isSingleDate) {
+                if ($isSingleDate) {
+                    // Single date: only show activity on this specific date
+                    $q->whereDate('check_in_date', $start)
+                      ->orWhereDate('check_out_date', $start)
+                      ->orWhere(function ($qq) use ($start) {
+                          $qq->whereDate('check_in_date', '<=', $start)
+                             ->whereDate('check_out_date', '>', $start)
+                             ->where('status', 'checked_in');
+                      })
+                      ->orWhere(function ($qq) use ($start) {
+                          $qq->where('status', 'cancelled')
+                             ->whereDate('check_in_date', $start);
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($start) {
+                          $pq->whereDate('created_at', $start)
+                             ->where('type', '!=', 'refund');
+                      });
+                } else {
+                    $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                      ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                      ->orWhere(function ($qq) use ($start, $end) {
+                          $qq->whereDate('check_in_date', '<=', $end)
+                             ->whereDate('check_out_date', '>=', $start)
+                             ->where('status', 'checked_in');
+                      })
+                      ->orWhere(function ($qq) use ($start, $end) {
+                          $qq->where('status', 'cancelled')
+                             ->whereDate('check_in_date', '<=', $end)
+                             ->whereDate('check_in_date', '>=', $start);
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($start, $end) {
+                          $pq->whereDate('created_at', '>=', $start)
+                             ->whereDate('created_at', '<=', $end)
+                             ->where('type', '!=', 'refund');
+                      });
+                }
             });
         } else {
             $query->where(function ($q) use ($today) {

@@ -37,8 +37,20 @@
 
         <p class="text-[10px] text-gray-600 leading-tight">
             @if(request('start_date') || request('end_date'))
-                Date: {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'Start' }}
-                to {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'End' }}
+                @php
+                    $sDate = request('start_date');
+                    $eDate = request('end_date');
+                @endphp
+                @if($sDate && $eDate && $sDate === $eDate)
+                    Date: {{ \Carbon\Carbon::parse($sDate)->format('d-m-Y') }}
+                @elseif($sDate && !$eDate)
+                    Date: {{ \Carbon\Carbon::parse($sDate)->format('d-m-Y') }}
+                @elseif(!$sDate && $eDate)
+                    Date: {{ \Carbon\Carbon::parse($eDate)->format('d-m-Y') }}
+                @else
+                    Date: {{ \Carbon\Carbon::parse($sDate)->format('d-m-Y') }}
+                    to {{ \Carbon\Carbon::parse($eDate)->format('d-m-Y') }}
+                @endif
             @else
                 Date: {{ date('d-m-Y') }}
             @endif
