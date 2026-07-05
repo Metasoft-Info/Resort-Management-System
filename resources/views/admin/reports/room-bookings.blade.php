@@ -56,6 +56,11 @@
                     <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
                         <i class="fas fa-filter mr-2"></i>Filter
                     </button>
+                    <a href="{{ route('admin.reports.room-bookings', ['due_only' => 1]) }}" 
+                       class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition whitespace-nowrap {{ request('due_only') ? 'ring-2 ring-red-300 ring-offset-1' : '' }}"
+                       title="Show all bookings with due payment">
+                        <i class="fas fa-exclamation-circle mr-1"></i>Due Only
+                    </a>
                     <a href="{{ route('admin.reports.room-bookings') }}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                         <i class="fas fa-times"></i>
                     </a>
@@ -74,11 +79,7 @@
     <!-- Booking Count Summary -->
     <div class="bg-white rounded-xl shadow-lg p-5 mb-4 print:shadow-none print:border print:border-gray-400 print:rounded-none">
         <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Booking Summary</h3>
-        <div class="grid grid-cols-2 md:grid-cols-6 gap-3 print:grid-cols-6 print:gap-2 print:text-xs">
-            <div class="bg-primary-50 rounded-lg p-3 text-center border border-primary-200 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Total Bookings</p>
-                <p class="text-2xl font-bold text-primary-700 print:text-base">{{ $totalBookings }}</p>
-            </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 print:grid-cols-3 print:gap-2 print:text-xs">
             <div class="bg-green-50 rounded-lg p-3 text-center border border-green-200 print:p-1 print:border-gray-400">
                 <p class="text-gray-500 text-xs">Currently In</p>
                 <p class="text-2xl font-bold text-green-700 print:text-base">{{ $checkedInCount }}</p>
@@ -90,14 +91,6 @@
             <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-300 print:p-1 print:border-gray-400">
                 <p class="text-gray-500 text-xs">Check-Out Today</p>
                 <p class="text-2xl font-bold text-gray-700 print:text-base">{{ $checkOutTodayCount }}</p>
-            </div>
-            <div class="bg-purple-50 rounded-lg p-3 text-center border border-purple-200 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Confirmed</p>
-                <p class="text-2xl font-bold text-purple-700 print:text-base">{{ $confirmedCount }}</p>
-            </div>
-            <div class="bg-red-50 rounded-lg p-3 text-center border border-red-200 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Cancelled</p>
-                <p class="text-2xl font-bold text-red-600 print:text-base">{{ $cancelledCount }}</p>
             </div>
         </div>
     </div>

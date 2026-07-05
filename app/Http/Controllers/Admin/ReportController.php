@@ -10,13 +10,11 @@ class ReportController extends Controller {
         $today = date('Y-m-d');
         $query = Booking::with(['room.roomType', 'bookingRooms.room', 'payments']);
 
-        // Default operational report scope:
-        // - currently checked-in guests
-        // - guests checked-out today (or within selected date window)
-        // - guests with check-in/check-out activity in selected window
-        // - cancelled bookings within the date range
-        // This keeps pure advance-only bookings out of this report by default.
-        if ($request->start_date || $request->end_date) {
+        // Due Only filter: show all bookings with remaining payment > 0, no date filter
+        if ($request->due_only) {
+            $query->whereNotIn('status', ['cancelled']);
+            // We'll filter by remaining > 0 after fetching since it's calculated
+        } elseif ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
             $end = $request->end_date ?: $start;
 
@@ -80,6 +78,12 @@ class ReportController extends Controller {
         }
         
         $summaryBookings = (clone $query)->get();
+        
+        // Filter by remaining > 0 for due_only mode
+        if ($request->due_only) {
+            $summaryBookings = $summaryBookings->filter(fn($b) => $b->getCalculatedRemaining() > 0);
+        }
+        
         $totalBookings = $summaryBookings->count();
         $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
         $totalAdvance = $summaryBookings->sum('advance_payment');
@@ -96,11 +100,26 @@ class ReportController extends Controller {
         $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
         $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
         
-        // Use date-range filtered payment calculations for summary
-        $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
-        $totalRemaining = $summaryBookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
-        
-        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        if ($request->due_only) {
+            $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
+            $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
+            // Manual pagination for due_only since we filter in collection
+            $dueBookings = $summaryBookings->sortByDesc('check_in_date')->values();
+            $perPage = 20;
+            $currentPage = request()->get('page', 1);
+            $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
+                $dueBookings->forPage($currentPage, $perPage),
+                $dueBookings->count(),
+                $perPage,
+                $currentPage,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+        } else {
+            // Use date-range filtered payment calculations for summary
+            $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
+            $totalRemaining = $summaryBookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
+            $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        }
         $roomTypes = RoomType::all();
         $rooms = Room::orderBy('room_number')->get();
         $resortInfo = ResortInfo::first();
