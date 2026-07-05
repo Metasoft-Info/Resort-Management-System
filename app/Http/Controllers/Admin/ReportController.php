@@ -10,9 +10,9 @@ class ReportController extends Controller {
         $today = date('Y-m-d');
         $query = Booking::with(['room.roomType', 'bookingRooms.room', 'payments']);
 
-        // Due Only filter: show all bookings with remaining payment > 0, no date filter
+        // Due Only filter: show only checked-out bookings with remaining payment > 0
         if ($request->due_only) {
-            $query->whereNotIn('status', ['cancelled']);
+            $query->where('status', 'checked_out');
             // We'll filter by remaining > 0 after fetching since it's calculated
         } elseif ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
