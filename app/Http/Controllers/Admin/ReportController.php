@@ -117,8 +117,8 @@ class ReportController extends Controller {
         $checkedOutCount = $summaryBookings->where('status', 'checked_out')->count();
         $confirmedCount = $summaryBookings->where('status', 'confirmed')->count();
         $cancelledCount = $summaryBookings->where('status', 'cancelled')->count();
-        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date == $filterEndDate)->count();
-        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date == $filterEndDate)->count();
+        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date && $b->check_in_date->format('Y-m-d') == $filterEndDate)->count();
+        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date && $b->check_out_date->format('Y-m-d') == $filterEndDate)->count();
         
         if ($request->due_only) {
             $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
