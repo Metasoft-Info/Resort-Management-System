@@ -10,9 +10,9 @@ class ReportController extends Controller {
         $today = date('Y-m-d');
         $query = Booking::with(['room.roomType', 'bookingRooms.room', 'payments']);
 
-        // Due Only filter: show all bookings with remaining payment > 0, no date filter
+        // Due Only filter: show only checked-out bookings with remaining payment > 0
         if ($request->due_only) {
-            $query->whereNotIn('status', ['cancelled']);
+            $query->where('status', 'checked_out');
             // We'll filter by remaining > 0 after fetching since it's calculated
         } elseif ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
@@ -117,8 +117,8 @@ class ReportController extends Controller {
         $checkedOutCount = $summaryBookings->where('status', 'checked_out')->count();
         $confirmedCount = $summaryBookings->where('status', 'confirmed')->count();
         $cancelledCount = $summaryBookings->where('status', 'cancelled')->count();
-        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date == $filterEndDate)->count();
-        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date == $filterEndDate)->count();
+        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date && $b->check_in_date->format('Y-m-d') == $filterEndDate)->count();
+        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date && $b->check_out_date->format('Y-m-d') == $filterEndDate)->count();
         
         if ($request->due_only) {
             $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
