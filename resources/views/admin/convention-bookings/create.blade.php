@@ -54,7 +54,7 @@
  <select name="hall_id" id="hall_id" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="updateHallRent()">
  <option value="">Hall Select</option>
  @foreach($halls as $hall)
- <option value="{{ $hall->id }}" data-price="{{ $hall->price_per_day }}">{{ $hall->name }} (Capacity: {{ $hall->capacity }})</option>
+ <option value="{{ $hall->id }}" data-price="{{ $hall->price_per_day }}">{{ $hall->name }} (Capacity: {{ $hall->max_capacity }})</option>
  @endforeach
  </select>
  </div>
@@ -93,11 +93,11 @@
  </h2>
  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
  <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">Hall Rent () *</label>
- <input type="number" name="hall_rent" id="hall_rent" value="0" step="0.01" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" readonly>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Hall Rent (BDT) *</label>
+ <input type="number" name="hall_rent" id="hall_rent" value="0" step="0.01" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" onchange="calculateTotal()">
  </div>
  <div>
- <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment ()</label>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Advance Payment (BDT)</label>
  <input type="number" name="advance_payment" value="0" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
  </div>
  <div>
@@ -130,9 +130,39 @@
  </div>
  </div>
 
- <input type="hidden" name="food_cost" value="0">
- <input type="hidden" name="addons_cost" value="0">
+ <input type="hidden" name="food_cost" id="food_cost" value="0">
+ <input type="hidden" name="addons_cost" id="addons_cost" value="0">
+ <input type="hidden" name="discount" id="discount_amount" value="0">
  <input type="hidden" name="total_amount" id="total_amount" value="0">
+
+ <!-- Live Summary -->
+ <div class="mb-6">
+ <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+ <i class="fas fa-receipt text-primary-600 mr-3"></i>Booking Summary
+ </h2>
+ <div class="bg-gray-50 rounded-xl p-6 max-w-md">
+ <div class="space-y-3">
+ <div class="flex justify-between">
+ <span>Hall Rent:</span>
+ <span class="font-semibold" id="display_hall_rent">0</span>
+ </div>
+ <div class="flex justify-between">
+ <span>Advance Payment:</span>
+ <span class="font-semibold" id="display_advance">0</span>
+ </div>
+ <div class="border-t pt-3">
+ <div class="flex justify-between text-lg font-bold text-primary-600">
+ <span>Total Amount:</span>
+ <span id="display_total">0</span>
+ </div>
+ </div>
+ <div class="flex justify-between text-red-600 font-bold">
+ <span>Remaining:</span>
+ <span id="display_remaining">0</span>
+ </div>
+ </div>
+ </div>
+ </div>
 
  <div class="flex gap-4">
  <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg font-semibold text-lg">
@@ -149,20 +179,31 @@
 <script>
 function updateHallRent() {
  const hallSelect = document.getElementById('hall_id');
- const timeSlot = document.getElementById('time_slot').value;
  const selectedOption = hallSelect.options[hallSelect.selectedIndex];
  
  if (selectedOption && selectedOption.dataset.price) {
  let price = parseFloat(selectedOption.dataset.price);
- 
- // Apply time slot pricing
- if (timeSlot === 'morning' || timeSlot === 'afternoon' || timeSlot === 'evening') {
- price = price * 0.4; // 40% for half day slots
- }
- 
  document.getElementById('hall_rent').value = price.toFixed(2);
- document.getElementById('total_amount').value = price.toFixed(2);
+ calculateTotal();
  }
 }
+
+function calculateTotal() {
+ const hallRent = parseFloat(document.getElementById('hall_rent').value) || 0;
+ const advance = parseFloat(document.querySelector('[name="advance_payment"]').value) || 0;
+ const total = hallRent;
+ const remaining = Math.max(0, total - advance);
+ 
+ document.getElementById('total_amount').value = total.toFixed(2);
+ document.getElementById('display_hall_rent').textContent = 'BDT ' + hallRent.toFixed(2);
+ document.getElementById('display_advance').textContent = 'BDT ' + advance.toFixed(2);
+ document.getElementById('display_total').textContent = 'BDT ' + total.toFixed(2);
+ document.getElementById('display_remaining').textContent = 'BDT ' + remaining.toFixed(2);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+ calculateTotal();
+ document.querySelector('[name="advance_payment"]').addEventListener('input', calculateTotal);
+});
 </script>
 @endsection

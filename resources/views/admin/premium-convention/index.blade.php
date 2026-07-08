@@ -44,7 +44,7 @@
  </div>
  </div>
 
- <form action="{{ route('admin.convention-bookings.store') }}" method="POST" id="bookingForm" class="max-w-6xl mx-auto" novalidate onsubmit="return validateForm()">
+ <form action="{{ route('admin.convention-bookings.store') }}" method="POST" id="bookingForm" class="max-w-6xl mx-auto" enctype="multipart/form-data" novalidate onsubmit="return validateForm()">
  @csrf
  
  <!-- Step 1: Hall & Event Details -->
@@ -152,6 +152,44 @@
  <label class="block text-gray-700 font-semibold mb-2">Address</label>
  <textarea name="customer_address" id="customerAddress" rows="2"
  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500"></textarea>
+ </div>
+ </div>
+
+ <!-- Document Upload -->
+ <div class="mt-6 p-5 bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-100">
+ <h3 class="text-base font-bold mb-1 text-violet-800 flex items-center gap-2">
+ <i class="fas fa-paperclip"></i> Documents (Optional)
+ </h3>
+ <p class="text-sm text-violet-500 mb-4">Upload customer documents for record keeping</p>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-violet-100 group-hover:bg-violet-200 flex items-center justify-center transition">
+ <i class="fas fa-camera text-violet-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">Photo</span>
+ <input type="file" name="customer_photo[]" accept="image/*" multiple class="hidden">
+ </label>
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 flex items-center justify-center transition">
+ <i class="fas fa-id-card text-green-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">NID Document</span>
+ <input type="file" name="customer_nid_document[]" accept="image/*,.pdf" multiple class="hidden">
+ </label>
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition">
+ <i class="fas fa-passport text-blue-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">Passport</span>
+ <input type="file" name="passport_document[]" accept="image/*,.pdf" multiple class="hidden">
+ </label>
+ <label class="flex flex-col items-center justify-center gap-2 p-4 bg-white rounded-xl border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50/50 cursor-pointer transition group">
+ <div class="w-10 h-10 rounded-full bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center transition">
+ <i class="fas fa-address-card text-purple-500"></i>
+ </div>
+ <span class="text-xs font-semibold text-gray-600">Visiting Card</span>
+ <input type="file" name="visiting_card[]" accept="image/*,.pdf" multiple class="hidden">
+ </label>
  </div>
  </div>
  </div>
@@ -288,11 +326,32 @@
  </div>
 
  <div>
- <h3 class="text-lg font-bold mb-3">Payment Method</h3>
- <select name="payment_method" class="w-full px-4 py-3 border rounded-lg">
- <option value="cash">Cash</option>
- <option value="card">Card</option>
- <option value="mfs">Mobile Banking</option>
+ <h3 class="text-base font-bold mb-3 text-gray-700">Payment Method</h3>
+ <select name="payment_method" id="payment_method" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition" onchange="togglePaymentFields()">
+ <option value="cash">💵 Cash</option>
+ <option value="bkash">📱 bKash</option>
+ <option value="card">💳 Card</option>
+ </select>
+ </div>
+ <div id="bkash_field" class="hidden">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">bKash Number</label>
+ <input type="text" name="bkash_number" id="bkash_number" placeholder="01XXXXXXXXX" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition">
+ </div>
+ <div id="bank_field" class="hidden">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Bank Name</label>
+ <select name="bank_name" id="bank_name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition">
+ <option value="">Select Bank</option>
+ <option value="Pubali Bank">Pubali Bank</option>
+ <option value="City Bank">City Bank</option>
+ <option value="Sonali Bank">Sonali Bank</option>
+ <option value="Janata Bank">Janata Bank</option>
+ <option value="Agrani Bank">Agrani Bank</option>
+ <option value="Rupali Bank">Rupali Bank</option>
+ <option value="Islami Bank">Islami Bank</option>
+ <option value="Dutch-Bangla Bank">Dutch-Bangla Bank</option>
+ <option value="BRAC Bank">BRAC Bank</option>
+ <option value="UCB">UCB</option>
+ <option value="Other">Other</option>
  </select>
  </div>
  </div>
@@ -303,37 +362,37 @@
  <div class="space-y-3">
  <div class="flex justify-between">
  <span>Hall Rent:</span>
- <span class="font-semibold" id="displayHallRent">0</span>
+ <span class="font-semibold" id="displayHallRent">BDT 0</span>
  </div>
  <div class="flex justify-between">
  <span>Food Cost:</span>
- <span class="font-semibold" id="displayFoodCost">0</span>
+ <span class="font-semibold" id="displayFoodCost">BDT 0</span>
  </div>
  <div class="flex justify-between">
  <span>Addon Cost:</span>
- <span class="font-semibold" id="displayAddonsCost">0</span>
+ <span class="font-semibold" id="displayAddonsCost">BDT 0</span>
  </div>
  <div class="flex justify-between text-red-600">
  <span>Discount:</span>
- <span class="font-semibold" id="displayDiscount">-0</span>
+ <span class="font-semibold" id="displayDiscount">-BDT 0</span>
  </div>
  <div class="flex justify-between">
  <span>VAT:</span>
- <span class="font-semibold" id="displayVat">0</span>
+ <span class="font-semibold" id="displayVat">BDT 0</span>
  </div>
  <div class="border-t border-violet-200 pt-3">
  <div class="flex justify-between text-lg font-bold text-violet-700">
  <span>Total Amount:</span>
- <span id="displayTotal">0</span>
+ <span id="displayTotal">BDT 0</span>
  </div>
  </div>
  <div class="flex justify-between text-violet-600">
  <span>Advance Payment:</span>
- <span class="font-semibold" id="displayAdvance">0</span>
+ <span class="font-semibold" id="displayAdvance">BDT 0</span>
  </div>
  <div class="flex justify-between text-lg font-bold text-red-600">
  <span>Remaining:</span>
- <span id="displayRemaining">0</span>
+ <span id="displayRemaining">BDT 0</span>
  </div>
  </div>
  </div>
@@ -356,6 +415,21 @@
 
 <script>
 let selectedFoodPrice = 0;
+
+function togglePaymentFields() {
+ const method = document.getElementById('payment_method').value;
+ const bkashField = document.getElementById('bkash_field');
+ const bankField = document.getElementById('bank_field');
+ 
+ bkashField.classList.add('hidden');
+ bankField.classList.add('hidden');
+ 
+ if (method === 'bkash') {
+ bkashField.classList.remove('hidden');
+ } else if (method === 'card') {
+ bankField.classList.remove('hidden');
+ }
+}
 
 function validateForm() {
  const requiredFields = [
@@ -385,6 +459,29 @@ function validateForm() {
 }
 
 function nextStep(step) {
+ // Validate step 1 fields before proceeding
+ if (step >= 2) {
+ const step1Fields = [
+ { id: 'eventDate', name: 'Event Date' },
+ { id: 'timeSlot', name: 'Time Slot' },
+ { id: 'selectedHallId', name: 'Convention Hall' },
+ { id: 'customerPhone', name: 'Phone Number' },
+ { id: 'customerName', name: 'Customer Name' },
+ { id: 'numberOfGuests', name: 'Guest Count' }
+ ];
+ let errors = [];
+ for (let field of step1Fields) {
+ const el = document.getElementById(field.id);
+ if (!el || !el.value || el.value.trim() === '') {
+ errors.push(field.name);
+ }
+ }
+ if (errors.length > 0) {
+ alert('Please fill in the following required fields:\n\n• ' + errors.join('\n• '));
+ return;
+ }
+ }
+
  // Hide all steps
  document.getElementById('step1').classList.add('hidden');
  document.getElementById('step2').classList.add('hidden');
@@ -452,7 +549,7 @@ async function checkAvailability() {
  <div class="p-4">
  <h4 class="font-bold text-lg text-gray-800">${hall.name}</h4>
  <p class="text-sm text-gray-600 mt-1"><i class="fas fa-users mr-1"></i>Capacity: ${hallCapacity} people</p>
- <p class="text-xl font-bold text-violet-600 mt-2">${Number(hall.price_per_day).toLocaleString()}//day</p>
+ <p class="text-xl font-bold text-violet-600 mt-2">BDT ${Number(hall.price_per_day).toLocaleString()}/day</p>
  <span class="inline-block mt-3 px-3 py-1 bg-violet-100 text-primary-800 text-xs font-bold rounded-full">✅ Available</span>
  </div>
  </div>
@@ -483,17 +580,17 @@ function selectHall(hallId, price, timeSlot) {
  card.classList.add('border-gray-300');
  });
  
- event.target.closest('.hall-card').classList.remove('border-gray-300');
- event.target.closest('.hall-card').classList.add('border-violet-500', 'bg-violet-50');
- 
- let finalPrice = price;
- if (timeSlot === 'morning' || timeSlot === 'afternoon' || timeSlot === 'evening') {
- finalPrice = price * 0.4;
+ const clickedCard = event.target.closest('.hall-card');
+ if (clickedCard) {
+ clickedCard.classList.remove('border-gray-300');
+ clickedCard.classList.add('border-violet-500', 'bg-violet-50');
  }
- 
+
+ let finalPrice = price;
+
  document.getElementById('selectedHallId').value = hallId;
  document.getElementById('hallRent').value = finalPrice;
- document.getElementById('displayHallRent').textContent = '' + finalPrice.toFixed(2);
+ document.getElementById('displayHallRent').textContent = 'BDT ' + finalPrice.toFixed(2);
 }
 
 async function searchCustomer(phone) {
@@ -531,7 +628,7 @@ function updateFoodCost() {
  const guests = parseInt(document.getElementById('numberOfGuests').value) || 0;
  const foodCost = guests * selectedFoodPrice;
  document.getElementById('foodCost').value = foodCost;
- document.getElementById('displayFoodCost').textContent = '' + foodCost.toFixed(2);
+ document.getElementById('displayFoodCost').textContent = 'BDT ' + foodCost.toFixed(2);
 }
 
 function toggleAddonQuantity(addonId, isChecked) {
@@ -554,7 +651,7 @@ function updateAddonsCost() {
  total += price * quantity;
  });
  document.getElementById('addonsCost').value = total;
- document.getElementById('displayAddonsCost').textContent = '' + total.toFixed(2);
+ document.getElementById('displayAddonsCost').textContent = 'BDT ' + total.toFixed(2);
 }
 
 function filterAddons(category) {
@@ -585,7 +682,7 @@ function calculateTotal() {
  discount = discountValue;
  }
  document.getElementById('discountAmount').value = discount;
- document.getElementById('displayDiscount').textContent = '-' + discount.toFixed(2);
+ document.getElementById('displayDiscount').textContent = '-BDT ' + discount.toFixed(2);
  
  const afterDiscount = subtotal - discount;
  
@@ -598,18 +695,18 @@ function calculateTotal() {
  vatAmount = (afterDiscount * vatPercentage) / 100;
  }
  document.getElementById('vatAmount').value = vatAmount;
- document.getElementById('displayVat').textContent = '' + vatAmount.toFixed(2);
+ document.getElementById('displayVat').textContent = 'BDT ' + vatAmount.toFixed(2);
  
  // Total
  const total = afterDiscount + vatAmount;
  document.getElementById('totalAmount').value = total;
- document.getElementById('displayTotal').textContent = '' + total.toFixed(2);
+ document.getElementById('displayTotal').textContent = 'BDT ' + total.toFixed(2);
  
  // Remaining
  const advance = parseFloat(document.getElementById('advancePayment').value) || 0;
- document.getElementById('displayAdvance').textContent = '' + advance.toFixed(2);
+ document.getElementById('displayAdvance').textContent = 'BDT ' + advance.toFixed(2);
  const remaining = Math.max(0, total - advance);
- document.getElementById('displayRemaining').textContent = '' + remaining.toFixed(2);
+ document.getElementById('displayRemaining').textContent = 'BDT ' + remaining.toFixed(2);
 }
 
 // Handle URL parameters for pre-selection from dashboard

@@ -67,6 +67,14 @@
  /* Main content transition */
  .main-wrapper { transition: margin-left 0.3s ease; }
  .main-wrapper.sidebar-collapsed { margin-left: 72px !important; }
+ /* Print: hide sidebar, reset margins, allow full width */
+ @media print {
+   #sidebar, #sidebarOverlay { display: none !important; }
+   #mainWrapper { margin-left: 0 !important; overflow: visible !important; height: auto !important; }
+   .main-content { overflow: visible !important; max-width: 100% !important; }
+   body { background: white !important; }
+   .flex.h-screen { overflow: visible !important; height: auto !important; }
+ }
  </style>
  <script>
  tailwind.config = {
@@ -104,10 +112,10 @@
 <body class="bg-gray-50">
  <div class="flex h-screen overflow-hidden">
  <!-- Mobile Menu Overlay -->
- <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" onclick="toggleMobileSidebar()"></div>
+ <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden print:hidden" onclick="toggleMobileSidebar()"></div>
  
  <!-- Premium Sidebar -->
- <aside id="sidebar" class="w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-in-out overflow-hidden">
+ <aside id="sidebar" class="w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-white shadow-2xl flex-shrink-0 fixed h-screen z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-in-out overflow-hidden print:hidden">
  <!-- Sidebar Header -->
  <div class="sidebar-header p-4 border-b border-slate-700/50 flex items-center justify-between">
  <div class="flex items-center space-x-3">
@@ -153,6 +161,12 @@
  'groups' => ['Rooms Management', 'Room Bookings', 'Services'],
  'color' => 'emerald'
  ],
+ 'customers_section' => [
+ 'title' => 'Customers',
+ 'icon' => 'fas fa-users',
+ 'groups' => ['Customers'],
+ 'color' => 'blue'
+ ],
  'convention' => [
  'title' => 'Convention Halls',
  'icon' => 'fas fa-building-columns',
@@ -176,6 +190,12 @@
  'icon' => 'fas fa-building-columns',
  'groups' => ['Convention Reports'],
  'color' => 'violet'
+ ],
+ 'owner' => [
+ 'title' => 'Owner',
+ 'icon' => 'fas fa-crown',
+ 'groups' => ['Owner'],
+ 'color' => 'amber'
  ],
  'system' => [
  'title' => 'System',
@@ -244,22 +264,11 @@
  </div>
  @endforeach
  
- <!-- Logout -->
- <div class="border-t border-slate-700/50 mt-4 pt-4">
- <form method="POST" action="{{ route('admin.logout') }}">
- @csrf
- <button type="submit" class="sidebar-menu-item group relative flex items-center w-full px-3 py-2.5 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition text-sm">
- <i class="fas fa-sign-out-alt w-5 mr-3 group-hover:text-red-400"></i>
- <span class="sidebar-text">Logout</span>
- <span class="sidebar-tooltip">Logout</span>
- </button>
- </form>
- </div>
  </nav>
- 
+
  <!-- Sidebar Footer -->
  <div class="p-3 border-t border-slate-700/50">
- <div class="sidebar-text flex items-center justify-between px-2 py-2 bg-slate-800/50 rounded-xl">
+ <div class="sidebar-text flex items-center px-2 py-2 bg-slate-800/50 rounded-xl">
  <div class="flex items-center">
  <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-2">
  <i class="fas fa-user text-white text-xs"></i>
@@ -283,6 +292,11 @@
  </button>
  <h2 class="text-lg lg:text-xl font-bold text-gray-800 truncate flex-1 lg:flex-none text-center lg:text-left">@yield('header', 'Dashboard')</h2>
  <div class="flex items-center space-x-3">
+ <!-- Bangladesh Time Clock -->
+ <div class="hidden md:flex items-center bg-gradient-to-r from-slate-50 to-gray-50 rounded-full px-3 py-1.5 shadow-sm border border-slate-200">
+ <i class="fas fa-clock text-indigo-500 mr-2 text-sm"></i>
+ <span id="bdClock" class="text-sm font-semibold text-gray-700 tabular-nums"></span>
+ </div>
  <div class="relative" id="notificationWrapper">
  <button onclick="toggleNotifications()" class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition">
  <i class="fas fa-bell text-xl"></i>
@@ -305,11 +319,25 @@
  </div>
  </div>
  </div>
- <div class="hidden sm:flex items-center bg-gradient-to-r from-slate-100 to-slate-50 rounded-full px-4 py-2 shadow-sm border border-slate-200">
+ <div class="relative hidden sm:block" id="topUserDropdownWrapper">
+ <button onclick="toggleTopUserDropdown()" class="flex items-center bg-gradient-to-r from-slate-100 to-slate-50 rounded-full px-4 py-2 shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer">
  <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow">
  <i class="fas fa-user text-white text-xs"></i>
  </div>
  <span class="text-sm font-semibold text-gray-700">{{ auth()->user()->name ?? 'Admin' }}</span>
+ <i class="fas fa-chevron-down text-gray-400 text-xs ml-2 transition-transform" id="topUserChevron"></i>
+ </button>
+ <div id="topUserDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+ <a href="{{ route('admin.profile') }}" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+ <i class="fas fa-user-edit w-5 mr-3 text-indigo-500"></i>My Profile
+ </a>
+ <form method="POST" action="{{ route('admin.logout') }}">
+ @csrf
+ <button type="submit" class="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition text-left">
+ <i class="fas fa-sign-out-alt w-5 mr-3 text-red-500"></i>Logout
+ </button>
+ </form>
+ </div>
  </div>
  </div>
  </div>
@@ -338,6 +366,21 @@
  document.getElementById('sidebar').classList.add('sidebar-collapsed');
  document.getElementById('mainWrapper').classList.add('sidebar-collapsed');
  }
+
+ // Bangladesh Time Clock (12-hour format)
+ function updateBangladeshClock() {
+ const now = new Date();
+ const options = { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+ const timeString = now.toLocaleTimeString('en-US', options);
+ const dateOptions = { timeZone: 'Asia/Dhaka', day: '2-digit', month: 'short', year: 'numeric' };
+ const dateString = now.toLocaleDateString('en-US', dateOptions);
+ const clockEl = document.getElementById('bdClock');
+ if (clockEl) {
+ clockEl.textContent = dateString + ' ' + timeString;
+ }
+ }
+ updateBangladeshClock();
+ setInterval(updateBangladeshClock, 1000);
  
  // Restore section collapse states
  const sectionStates = JSON.parse(localStorage.getItem('sidebarSections') || '{}');
@@ -387,7 +430,34 @@
  localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
  }
  
- function toggleSection(sectionKey) {
+ function toggleSidebarUserDropdown() {
+ const dropdown = document.getElementById('sidebarUserDropdown');
+ const chevron = document.getElementById('sidebarUserChevron');
+ dropdown.classList.toggle('hidden');
+ chevron.style.transform = dropdown.classList.contains('hidden') ? '' : 'rotate(180deg)';
+}
+
+function toggleTopUserDropdown() {
+ const dropdown = document.getElementById('topUserDropdown');
+ const chevron = document.getElementById('topUserChevron');
+ dropdown.classList.toggle('hidden');
+ chevron.style.transform = dropdown.classList.contains('hidden') ? '' : 'rotate(180deg)';
+}
+
+// Close top user dropdown when clicking outside
+document.addEventListener('click', function(e) {
+ const wrapper = document.getElementById('topUserDropdownWrapper');
+ if (wrapper && !wrapper.contains(e.target)) {
+  const dropdown = document.getElementById('topUserDropdown');
+  const chevron = document.getElementById('topUserChevron');
+  if (dropdown && !dropdown.classList.contains('hidden')) {
+   dropdown.classList.add('hidden');
+   if (chevron) chevron.style.transform = '';
+  }
+ }
+});
+
+function toggleSection(sectionKey) {
  const section = document.getElementById('section-' + sectionKey);
  const header = document.querySelector(`[onclick="toggleSection('${sectionKey}')"]`);
  
@@ -540,6 +610,36 @@
  }, 10);
  }
 
+ function showGlobalModalHtml(html) {
+ const modal = document.getElementById('globalModal');
+ const content = document.getElementById('modalContent');
+ 
+ // Hide all modal types
+ document.getElementById('successModal').classList.add('hidden');
+ document.getElementById('errorModal').classList.add('hidden');
+ document.getElementById('warningModal').classList.add('hidden');
+ document.getElementById('infoModal').classList.add('hidden');
+ document.getElementById('confirmModal').classList.add('hidden');
+ 
+ // Create or update custom modal content
+ let customModal = document.getElementById('customModal');
+ if (!customModal) {
+ customModal = document.createElement('div');
+ customModal.id = 'customModal';
+ content.appendChild(customModal);
+ }
+ customModal.innerHTML = '<div class="p-1">' + html + '<div class="text-center mt-5"><button onclick="closeGlobalModal()" class="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition shadow-lg"><i class="fas fa-times mr-2"></i>Close</button></div></div>';
+ customModal.classList.remove('hidden');
+ 
+ // Show modal with animation
+ modal.classList.remove('hidden');
+ modal.classList.add('flex');
+ setTimeout(() => {
+ content.classList.remove('scale-95', 'opacity-0');
+ content.classList.add('scale-100', 'opacity-100');
+ }, 10);
+ }
+
  function showConfirmModal(message, onConfirm) {
  const modal = document.getElementById('globalModal');
  const content = document.getElementById('modalContent');
@@ -575,6 +675,9 @@
  const modal = document.getElementById('globalModal');
  const content = document.getElementById('modalContent');
  
+ const customModal = document.getElementById('customModal');
+ if (customModal) customModal.classList.add('hidden');
+
  content.classList.remove('scale-100', 'opacity-100');
  content.classList.add('scale-95', 'opacity-0');
  

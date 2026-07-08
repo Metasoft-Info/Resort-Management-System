@@ -8,18 +8,8 @@
  $allRooms = $booking->getAllRooms();
  $bookingRooms = $booking->bookingRooms;
  
- // Calculate base amount from actual rooms (not stored total_amount)
- $baseAmount = 0;
- foreach($allRooms as $room) {
- $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
- $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
- $baseAmount += $roomPrice * $nights;
- }
- 
- // If no rooms found, fallback to stored total_amount
- if ($baseAmount == 0) {
- $baseAmount = $booking->total_amount;
- }
+ // Use model method for consistent base amount calculation
+ $baseAmount = $booking->getCalculatedTotal();
  
  $discountAmount = 0;
  
@@ -33,7 +23,22 @@
  $extraCharges = $booking->extra_charges ?? 0;
  $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
  $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
- $remainingPayment = $grandTotal - $booking->advance_payment;
+ $totalDeposited = $booking->getTotalDeposited();
+$remainingPayment = $booking->getCalculatedRemaining();
+
+ // Date & status logic
+ $today = \Carbon\Carbon::now()->startOfDay();
+ $now = \Carbon\Carbon::now('Asia/Dhaka');
+ $checkInDate = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
+ $checkOutDate = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
+ $isCheckInDayOrPast = $checkInDate->lte($today);
+ $checkoutDateTime = $booking->getCheckOutDateTime();
+ $isBeforeCheckoutTime = $checkoutDateTime ? $now->lt($checkoutDateTime) : false;
+ $isExtendedStay = $booking->status === 'checked_out' && ($checkOutDate->gt($today) || ($checkOutDate->eq($today) && $isBeforeCheckoutTime));
+ $canCheckIn = ($booking->status === 'confirmed' && $isCheckInDayOrPast) || $isExtendedStay;
+ $canCancel = !in_array($booking->status, ['checked_out', 'cancelled']);
+ $canRefund = $totalDeposited > 0 && $booking->status !== 'checked_out';
+ $isEarlyDeparture = $booking->status === 'checked_in' && $checkOutDate->gt($today);
  @endphp
 
  <!-- Action Buttons (Screen Only) -->
@@ -60,10 +65,12 @@
  <i class="fas fa-money-bill"></i>
  <span>Add Payment</span>
  </button>
- <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2" @if($booking->advance_payment <= 0) disabled @endif>
+ @if($canRefund)
+ <button onclick="openRefundModal()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2">
  <i class="fas fa-undo"></i>
  <span>Process Refund</span>
  </button>
+ @endif
  <button onclick="openVatModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
  <i class="fas fa-percentage"></i>
  <span>{{ $booking->vat_enabled ? 'Disable' : 'Enable' }} VAT</span>
@@ -84,14 +91,48 @@
  <i class="fas fa-user"></i>
  <span>Customer Profile</span>
  </a>
+ @if($canCheckIn)
+ <button onclick="updateStatus({{ $booking->id }}, 'checked_in')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2">
+ <i class="fas fa-sign-in-alt"></i>
+ <span>{{ $isExtendedStay ? 'Re-Check In' : 'Check In' }}</span>
+ </button>
+ @endif
+ @if($booking->status === 'checked_in')
+ <button onclick="updateStatus({{ $booking->id }}, 'checked_out')" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition flex items-center gap-2">
+ <i class="fas fa-sign-out-alt"></i>
+ <span>Check Out</span>
+ </button>
+ @endif
  <div class="relative">
  <select onchange="updateStatus({{ $booking->id }}, this.value)" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition cursor-pointer appearance-none pr-10">
  <option value="">Change Status</option>
+
+ {{-- Pending can become confirmed or cancelled --}}
+ @if(in_array($booking->status, ['pending', 'confirmed', 'checked_in']))
  <option value="pending" {{ $booking->status === 'pending' ? 'selected' : '' }}>Pending</option>
+ @endif
+
+ {{-- Confirmed can become pending, checked_in (on date), or cancelled --}}
+ @if(in_array($booking->status, ['pending', 'confirmed', 'checked_in']))
  <option value="confirmed" {{ $booking->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+ @endif
+
+ {{-- Checked In shown when check-in date arrived AND current status is confirmed, checked_in, or extended checked_out --}}
+ @if($isCheckInDayOrPast && in_array($booking->status, ['confirmed', 'checked_in']))
  <option value="checked_in" {{ $booking->status === 'checked_in' ? 'selected' : '' }}>Checked In</option>
+ @elseif($isExtendedStay)
+ <option value="checked_in">Re-Check In</option>
+ @endif
+
+ {{-- Checked Out shown when currently checked_in OR already checked_out --}}
+ @if(in_array($booking->status, ['checked_in', 'checked_out']))
  <option value="checked_out" {{ $booking->status === 'checked_out' ? 'selected' : '' }}>Checked Out</option>
+ @endif
+
+ {{-- Cancelled shown for all except checked_out and already cancelled --}}
+ @if($canCancel)
  <option value="cancelled" {{ $booking->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+ @endif
  </select>
  <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-white pointer-events-none"></i>
  </div>
@@ -109,10 +150,15 @@
  <div class="lg:col-span-2 space-y-6">
  <!-- Customer Information -->
  <div class="bg-white rounded-xl shadow-lg p-6">
- <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+ <div class="flex justify-between items-center mb-4">
+ <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
  <i class="fas fa-user text-primary-600"></i>
  Guest Information
  </h2>
+ <button onclick="openEditCustomerModal()" class="print:hidden bg-primary-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-primary-700 flex items-center gap-1">
+ <i class="fas fa-edit"></i> Edit
+ </button>
+ </div>
  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
  <div>
  <span class="font-semibold text-gray-600">Name:</span>
@@ -236,33 +282,34 @@
  </span>
  </div>
  
+ @php $calculatedPaymentStatus = $booking->getCalculatedPaymentStatus(); @endphp
  <!-- Payment Status -->
  <div class="border-2 rounded-lg p-4 text-center
- @if($booking->payment_status === 'paid') 
+ @if($calculatedPaymentStatus === 'paid') 
  border-primary-500 bg-green-50
- @elseif($booking->payment_status === 'partial') 
+ @elseif($calculatedPaymentStatus === 'partial') 
  border-yellow-500 bg-yellow-50
  @else 
  border-red-500 bg-red-50
  @endif">
  <i class="fas fa-money-bill-wave text-2xl mb-2
- @if($booking->payment_status === 'paid') 
+ @if($calculatedPaymentStatus === 'paid') 
  text-primary-600
- @elseif($booking->payment_status === 'partial') 
+ @elseif($calculatedPaymentStatus === 'partial') 
  text-yellow-600
  @else 
  text-red-600
  @endif"></i>
  <p class="text-xs font-semibold text-gray-600 mb-1">Payment Status</p>
  <span class="inline-block px-3 py-1 rounded-full text-xs font-bold
- @if($booking->payment_status === 'paid') 
+ @if($calculatedPaymentStatus === 'paid') 
  bg-green-500 text-white
- @elseif($booking->payment_status === 'partial') 
+ @elseif($calculatedPaymentStatus === 'partial') 
  bg-yellow-500 text-gray-900
  @else 
  bg-red-500 text-white
  @endif">
- {{ strtoupper($booking->payment_status) }}
+ {{ strtoupper($calculatedPaymentStatus) }}
  </span>
  @if($remainingPayment > 0)
  <p class="text-xs text-gray-600 mt-1">Due: {{ number_format($remainingPayment, 2) }}</p>
@@ -295,13 +342,13 @@
  <div>
  <span class="font-semibold text-gray-600">Check-In:</span>
  <p class="text-gray-900">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M Y') }} 
- @if($booking->check_in_time) at {{ $booking->check_in_time }} @endif
+ @if($booking->check_in_time) at {{ \Carbon\Carbon::parse($booking->check_in_time)->format('h:i A') }} @endif
  </p>
  </div>
  <div>
  <span class="font-semibold text-gray-600">Check-Out:</span>
  <p class="text-gray-900">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d M Y') }} 
- @if($booking->check_out_time) at {{ $booking->check_out_time }} @endif
+ @if($booking->check_out_time) at {{ \Carbon\Carbon::parse($booking->check_out_time)->format('h:i A') }} @endif
  </p>
  </div>
  <div>
@@ -327,6 +374,10 @@
  <div>
  <span class="font-semibold text-gray-600">Created By:</span>
  <p class="text-gray-900">{{ $booking->createdBy->name ?? 'N/A' }}</p>
+ </div>
+ <div>
+ <span class="font-semibold text-gray-600">Updated By:</span>
+ <p class="text-gray-900">{{ $booking->updatedBy->name ?? 'N/A' }}</p>
  </div>
  @if($booking->notes)
  <div class="md:col-span-2">
@@ -357,66 +408,102 @@
  @endif
 
  <!-- Documents -->
- @if($booking->customer_photo || $booking->customer_nid_document || $booking->passport_document || $booking->visiting_card)
+ @php
+ $customerPhotos = $booking->getDocuments('customer_photo');
+ $nidDocs = $booking->getDocuments('customer_nid_document');
+ $passportDocs = $booking->getDocuments('passport_document');
+ $visitingCards = $booking->getDocuments('visiting_card');
+ $hasAnyDoc = !empty($customerPhotos) || !empty($nidDocs) || !empty($passportDocs) || !empty($visitingCards);
+ @endphp
+ @if($hasAnyDoc)
  <div class="bg-white rounded-xl shadow-lg p-6 print:hidden">
  <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
  <i class="fas fa-file text-primary-600"></i>
  Uploaded Documents
  </h2>
- <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
- @if($booking->customer_photo)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->customer_photo) }}" target="_blank" class="block">
- <img src="{{ Storage::url($booking->customer_photo) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-2 border">
- <p class="text-xs text-gray-700 font-semibold">Customer Photo</p>
- </a>
- </div>
- @endif
- @if($booking->customer_nid_document)
- <div class="bg-green-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->customer_nid_document) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($booking->customer_nid_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($booking->customer_nid_document) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">NID Document</p>
- </a>
- </div>
- @endif
- @if($booking->passport_document)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->passport_document) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($booking->passport_document), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($booking->passport_document) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">Passport</p>
- </a>
- </div>
- @endif
- @if($booking->visiting_card)
- <div class="bg-primary-50 p-3 rounded-lg text-center hover:bg-primary-100 transition">
- <a href="{{ Storage::url($booking->visiting_card) }}" target="_blank" class="block">
- @if(Str::endsWith(strtolower($booking->visiting_card), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($booking->visiting_card) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-2 border">
- @else
- <div class="w-full h-24 flex items-center justify-center bg-primary-100 rounded mb-2">
- <i class="fas fa-file-pdf text-primary-600 text-3xl"></i>
- </div>
- @endif
- <p class="text-xs text-gray-700 font-semibold">Visiting Card</p>
- </a>
- </div>
- @endif
- </div>
- </div>
- @endif
+@if(!empty($customerPhotos))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-camera text-primary-600"></i> Customer Photos</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($customerPhotos as $idx => $doc)
+<div class="bg-primary-50 p-2 rounded-lg text-center hover:bg-primary-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+<img src="{{ Storage::url($doc) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-1 border">
+<p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($nidDocs))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-id-card text-green-600"></i> NID Documents</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($nidDocs as $idx => $doc)
+<div class="bg-green-50 p-2 rounded-lg text-center hover:bg-green-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-1">
+<i class="fas fa-file-pdf text-green-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">NID {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($passportDocs))
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-passport text-blue-600"></i> Passport Documents</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($passportDocs as $idx => $doc)
+<div class="bg-blue-50 p-2 rounded-lg text-center hover:bg-blue-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-blue-100 rounded mb-1">
+<i class="fas fa-file-pdf text-blue-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">Passport {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+
+@if(!empty($visitingCards))
+<div class="mb-2">
+<h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1"><i class="fas fa-address-card text-purple-600"></i> Visiting Cards</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+@foreach($visitingCards as $idx => $doc)
+<div class="bg-purple-50 p-2 rounded-lg text-center hover:bg-purple-100 transition">
+<a href="{{ Storage::url($doc) }}" target="_blank" class="block">
+@if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+<img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-1 border">
+@else
+<div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-1">
+<i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
+</div>
+@endif
+<p class="text-xs text-gray-700 font-semibold">Card {{ $idx + 1 }}</p>
+</a>
+</div>
+@endforeach
+</div>
+</div>
+@endif
+</div>
+@endif
 
  <!-- Payment History -->
  @if($booking->payments && $booking->payments->count() > 0)
@@ -439,7 +526,7 @@
  <tbody class="divide-y">
  @foreach($booking->payments as $payment)
  <tr>
- <td class="p-2">{{ $payment->created_at->format('d/m/Y H:i') }}</td>
+ <td class="p-2">{{ $payment->created_at->format('d/m/Y h:i A') }}</td>
  <td class="p-2">
  <span class="px-2 py-1 rounded text-xs font-semibold
  @if($payment->type === 'advance') bg-primary-100 text-primary-800
@@ -506,7 +593,20 @@
  <span class="font-semibold">Extra Charges:</span>
  <span class="font-bold text-lg">+ {{ number_format($extraCharges, 2) }}</span>
  </div>
- @if($booking->extra_charges_description)
+ @php
+ $extraData = $booking->extra_charges_data ?? [];
+ @endphp
+ @if(!empty($extraData) && is_array($extraData))
+ <div class="mt-2 pt-2 border-t border-primary-400">
+ <p class="text-xs text-primary-100 font-semibold mb-1"><i class="fas fa-list mr-1"></i> Details:</p>
+ @foreach($extraData as $item)
+ <div class="text-xs text-primary-100 flex justify-between">
+ <span>{{ $item['name'] ?? 'Unknown' }} {{ ($item['quantity'] ?? 1) > 1 ? '× ' . ($item['quantity'] ?? 1) . ' @ ' . number_format($item['price'] ?? 0) : '' }}</span>
+ <span>{{ number_format($item['amount'] ?? 0, 2) }}</span>
+ </div>
+ @endforeach
+ </div>
+ @elseif($booking->extra_charges_description)
  <div class="mt-2 pt-2 border-t border-primary-400">
  <p class="text-xs text-primary-100"><i class="fas fa-list mr-1"></i> {{ $booking->extra_charges_description }}</p>
  </div>
@@ -553,11 +653,11 @@
  <div class="flex justify-between items-center">
  <span>Payment Status:</span>
  <span class="px-3 py-1 rounded-full text-xs font-semibold
- @if($booking->payment_status === 'paid') bg-green-500 text-white
- @elseif($booking->payment_status === 'partial') bg-yellow-500 text-gray-900
+ @if($calculatedPaymentStatus === 'paid') bg-green-500 text-white
+ @elseif($calculatedPaymentStatus === 'partial') bg-yellow-500 text-gray-900
  @else bg-red-500 text-white
  @endif">
- {{ strtoupper($booking->payment_status) }}
+ {{ strtoupper($calculatedPaymentStatus) }}
  </span>
  </div>
  </div>
@@ -588,12 +688,12 @@
  <div class="bg-yellow-50 border-l-4 border-yellow-500 p-3">
  <p class="text-sm text-yellow-700">
  <i class="fas fa-exclamation-triangle mr-2"></i>
- Available for refund: {{ number_format($booking->advance_payment, 2) }}
+ Available for refund: {{ number_format($totalDeposited, 2) }}
  </p>
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Refund Amount ()</label>
- <input type="number" step="0.01" name="amount" required max="{{ $booking->advance_payment }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500">
+ <input type="number" step="0.01" name="amount" required max="{{ $totalDeposited }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Refund Reason</label>
@@ -652,20 +752,32 @@
 <div id="timeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
  <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md my-8 mx-4 max-h-[90vh] overflow-y-auto">
  <div class="flex justify-between items-center mb-4">
- <h3 class="text-xl font-bold text-gray-800">Edit Check-In/Out Time</h3>
+ <h3 class="text-xl font-bold text-gray-800">Edit Check-In/Out Date & Time</h3>
  <button onclick="closeTimeModal()" class="text-gray-500 hover:text-gray-700">
  <i class="fas fa-times text-xl"></i>
  </button>
  </div>
  <form id="timeForm" onsubmit="submitTimeUpdate(event)">
  <div class="space-y-4">
+ <div class="grid grid-cols-2 gap-3">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Check-In Date</label>
+ <input type="date" name="check_in_date" value="{{ $booking->check_in_date?->format('Y-m-d') }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Check-In Time</label>
- <input type="time" name="check_in_time" value="{{ $booking->check_in_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="time" name="check_in_time" value="{{ $booking->check_in_time }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
+ </div>
+ <div class="grid grid-cols-2 gap-3">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Check-Out Date</label>
+ <input type="date" name="check_out_date" value="{{ $booking->check_out_date?->format('Y-m-d') }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Check-Out Time</label>
- <input type="time" name="check_out_time" value="{{ $booking->check_out_time }}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ <input type="time" name="check_out_time" value="{{ $booking->check_out_time }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
+ </div>
  </div>
  <div class="flex gap-3">
  <button type="submit" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
@@ -677,6 +789,188 @@
  </div>
  </div>
  </form>
+ </div>
+</div>
+
+<!-- Edit Customer Modal -->
+<div id="editCustomerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+ <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl my-8 mx-4 max-h-[90vh] overflow-y-auto">
+ <div class="flex justify-between items-center mb-4">
+ <h3 class="text-xl font-bold text-gray-800">Edit Customer Information</h3>
+ <button onclick="closeEditCustomerModal()" class="text-gray-500 hover:text-gray-700">
+ <i class="fas fa-times text-xl"></i>
+ </button>
+ </div>
+ <form id="editCustomerForm" onsubmit="submitEditCustomer(event)" enctype="multipart/form-data">
+ @csrf
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+ <input type="text" name="customer_name" value="{{ $booking->customer_name }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Phone <span class="text-red-500">*</span></label>
+ <input type="text" name="customer_phone" value="{{ $booking->customer_phone }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">NID</label>
+ <input type="text" name="customer_nid" value="{{ $booking->customer_nid }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+ <input type="email" name="customer_email" value="{{ $booking->customer_email }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">WhatsApp</label>
+ <input type="text" name="customer_whatsapp" value="{{ $booking->customer_whatsapp }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Passport No</label>
+ <input type="text" name="passport_number" value="{{ $booking->passport_number }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Company</label>
+ <input type="text" name="company_name" value="{{ $booking->company_name }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Reference Name</label>
+ <input type="text" name="reference_name" value="{{ $booking->reference_name }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Reference Phone</label>
+ <input type="text" name="reference_phone" value="{{ $booking->reference_phone }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+ </div>
+ <div class="md:col-span-2">
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Address</label>
+ <textarea name="customer_address" rows="2" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">{{ $booking->customer_address }}</textarea>
+ </div>
+ </div>
+
+ <!-- Documents -->
+ <div class="mt-4 border-t pt-4">
+ <h4 class="text-sm font-bold text-gray-700 mb-3">Documents (optional — check to remove, select new to add more)</h4>
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+ @php
+ $editPhotos = $booking->getDocuments('customer_photo');
+ $editNids = $booking->getDocuments('customer_nid_document');
+ $editPassports = $booking->getDocuments('passport_document');
+ $editCards = $booking->getDocuments('visiting_card');
+ @endphp
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Photo</label>
+ @if(!empty($editPhotos))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editPhotos as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_customer_photo[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="customer_photo[]" accept="image/*" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">NID Document</label>
+ @if(!empty($editNids))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editNids as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ @else
+ <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
+ @endif
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_customer_nid_document[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="customer_nid_document[]" accept="image/*,.pdf" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Passport Document</label>
+ @if(!empty($editPassports))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editPassports as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ @else
+ <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
+ @endif
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_passport_document[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="passport_document[]" accept="image/*,.pdf" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-1">Visiting Card</label>
+ @if(!empty($editCards))
+ <div class="flex flex-wrap gap-2 mb-2">
+ @foreach($editCards as $doc)
+ <div class="relative inline-block">
+ <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
+ @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+ <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ @else
+ <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
+ @endif
+ </a>
+ <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
+ <input type="checkbox" name="remove_visiting_card[]" value="{{ $doc }}" class="hidden">
+ <i class="fas fa-times text-[8px]"></i>
+ </label>
+ </div>
+ @endforeach
+ </div>
+ @endif
+ <input type="file" name="visiting_card[]" accept="image/*,.pdf" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
+ </div>
+ </div>
+ </div>
+
+ <div class="flex gap-3 mt-5">
+ <button type="submit" id="editCustomerSubmitBtn" class="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 font-semibold">
+ <i class="fas fa-save mr-1"></i> Save Changes
+ </button>
+ <button type="button" onclick="closeEditCustomerModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+ Cancel
+ </button>
+ </div>
+ </form>
+
+ <!-- Upload Progress Overlay -->
+ <div id="uploadProgressOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+ <div class="bg-white rounded-xl shadow-2xl p-6 w-80 text-center">
+ <div class="mb-3">
+ <i class="fas fa-cloud-upload-alt text-4xl text-primary-600 animate-bounce"></i>
+ </div>
+ <h3 class="text-lg font-bold text-gray-800 mb-1">Uploading Documents...</h3>
+ <p id="uploadPercentText" class="text-2xl font-bold text-primary-600 mb-3">0%</p>
+ <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+ <div id="uploadProgressBar" class="bg-primary-600 h-4 rounded-full transition-all duration-200" style="width: 0%"></div>
+ </div>
+ <p class="text-xs text-gray-500 mt-2">Please do not close this window</p>
+ </div>
+ </div>
  </div>
 </div>
 
@@ -714,7 +1008,7 @@
  <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
  <select name="method" id="payment_modal_method" required onchange="togglePaymentModalFields()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500">
  <option value="cash">Cash</option>
- <option value="bkash">bKash</option>
+ <option value="mfs">bKash / MFS</option>
  <option value="card">Card</option>
  </select>
  </div>
@@ -733,7 +1027,7 @@
  </div>
  <div class="border-t pt-4">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount</label>
- <select name="discount_type" id="payment_discount_type" onchange="toggleDiscountFields()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+ <select name="discount_type" id="payment_discount_type" onchange="toggleDiscountFields(true)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
  <option value="none">No Discount</option>
  <option value="flat">Fixed Amount</option>
  <option value="percentage">Percentage (%)</option>
@@ -741,11 +1035,11 @@
  </div>
  <div id="discount_flat_div" class="hidden">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Amount ()</label>
- <input type="number" step="0.01" name="discount_amount" id="discount_amount_input" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+ <input type="number" step="0.01" name="discount_amount" id="discount_amount_input" oninput="calculatePaymentPreview(true)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
  </div>
  <div id="discount_percentage_div" class="hidden">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Percentage (%)</label>
- <input type="number" step="0.01" name="discount_percentage" id="discount_percentage_input" min="0" max="100" oninput="calculatePaymentPreview()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+ <input type="number" step="0.01" name="discount_percentage" id="discount_percentage_input" min="0" max="100" oninput="calculatePaymentPreview(true)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
  </div>
  <div id="discount_reference_div" class="hidden">
  <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Reference (approved by?)</label>
@@ -923,7 +1217,16 @@ function closeTimeModal() {
 function openPaymentModal() {
  document.getElementById('paymentModal').classList.remove('hidden');
  document.getElementById('paymentModal').classList.add('flex');
- document.getElementById('payment_amount').value = remainingBalance.toFixed(2);
+
+ // Reset to clean defaults for better UX each time modal opens
+ document.getElementById('payment_modal_method').value = 'cash';
+ togglePaymentModalFields();
+
+ document.getElementById('payment_discount_type').value = 'none';
+ document.getElementById('discount_amount_input').value = '';
+ document.getElementById('discount_percentage_input').value = '';
+ toggleDiscountFields(true); // force auto-calc on modal open
+
  calculatePaymentPreview();
 }
 
@@ -937,14 +1240,14 @@ function togglePaymentModalFields() {
  document.getElementById('payment_modal_bkash').classList.add('hidden');
  document.getElementById('payment_modal_bank').classList.add('hidden');
  
- if (method === 'bkash') {
+ if (method === 'mfs') {
  document.getElementById('payment_modal_bkash').classList.remove('hidden');
  } else if (method === 'card') {
  document.getElementById('payment_modal_bank').classList.remove('hidden');
  }
 }
 
-function toggleDiscountFields() {
+function toggleDiscountFields(forceAutoUpdateAmount = false) {
  const type = document.getElementById('payment_discount_type').value;
  document.getElementById('discount_flat_div').classList.add('hidden');
  document.getElementById('discount_percentage_div').classList.add('hidden');
@@ -957,24 +1260,47 @@ function toggleDiscountFields() {
  document.getElementById('discount_percentage_div').classList.remove('hidden');
  document.getElementById('discount_reference_div').classList.remove('hidden');
  }
- calculatePaymentPreview();
+
+ // When discount type changes, auto-adjust payment amount for user friendliness
+ autoAdjustPaymentAmountFromDiscount();
+ calculatePaymentPreview(forceAutoUpdateAmount);
 }
 
 // Calculate real-time payment preview
 const remainingBalance = {{ $remainingPayment }};
 
-function calculatePaymentPreview() {
- const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+function getDiscountAmount() {
  const discountType = document.getElementById('payment_discount_type').value;
- 
- let discountAmount = 0;
+
  if (discountType === 'flat') {
- discountAmount = parseFloat(document.getElementById('discount_amount_input').value) || 0;
- } else if (discountType === 'percentage') {
- const percentage = parseFloat(document.getElementById('discount_percentage_input').value) || 0;
- discountAmount = (remainingBalance * percentage) / 100;
+ return parseFloat(document.getElementById('discount_amount_input').value) || 0;
  }
- 
+
+ if (discountType === 'percentage') {
+ const percentage = parseFloat(document.getElementById('discount_percentage_input').value) || 0;
+ const safePercentage = Math.max(0, Math.min(100, percentage));
+ return (remainingBalance * safePercentage) / 100;
+ }
+
+ return 0;
+}
+
+function autoAdjustPaymentAmountFromDiscount() {
+ const paymentInput = document.getElementById('payment_amount');
+ const discountAmount = getDiscountAmount();
+
+ // Auto-fill payment so (payment + discount) targets full remaining amount
+ const suggestedPayment = Math.max(0, remainingBalance - discountAmount);
+ paymentInput.value = suggestedPayment.toFixed(2);
+}
+
+function calculatePaymentPreview(forceAutoUpdateAmount = false) {
+ if (forceAutoUpdateAmount) {
+ autoAdjustPaymentAmountFromDiscount();
+ }
+
+ const paymentAmount = parseFloat(document.getElementById('payment_amount').value) || 0;
+ const discountAmount = getDiscountAmount();
  const totalDeduction = paymentAmount + discountAmount;
  const afterPayment = remainingBalance - totalDeduction;
  
@@ -992,7 +1318,7 @@ function calculatePaymentPreview() {
  remainingSpan.classList.remove('text-primary-600');
  remainingSpan.classList.add('text-red-600');
  errorDiv.classList.remove('hidden');
- errorDiv.textContent = 'Total payment and discount cannot exceed remaining amount!';
+ errorDiv.textContent = 'Total payment + discount cannot exceed remaining amount.';
  submitBtn.disabled = true;
  submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
  } else {
@@ -1016,10 +1342,29 @@ function calculatePaymentPreview() {
 let extraChargeCategories = [];
 let selectedCharges = [];
 
+// Pre-load existing extra charges from booking
+const existingExtraChargesData = @json($booking->extra_charges_data ?? []);
+
 function openExtraChargesModal() {
  document.getElementById('extraChargesModal').classList.remove('hidden');
  document.getElementById('extraChargesModal').classList.add('flex');
  selectedCharges = [];
+
+ // Populate from existing data if available
+ if (existingExtraChargesData && existingExtraChargesData.length > 0) {
+  existingExtraChargesData.forEach(item => {
+   selectedCharges.push({
+    categoryId: item.category_id || null,
+    name: item.name || 'Unknown',
+    price: parseFloat(item.price) || 0,
+    unit: item.unit || null,
+    quantity: parseInt(item.quantity) || 1,
+    amount: parseFloat(item.amount) || 0,
+    description: item.name || ''
+   });
+  });
+ }
+
  updateSelectedChargesUI();
  loadExtraChargeCategories();
 }
@@ -1181,10 +1526,11 @@ function addManualCharge() {
 
 async function submitAllExtraCharges() {
  if (selectedCharges.length === 0) return;
- 
+
  let totalAmount = 0;
  let descriptions = [];
- 
+ let items = [];
+
  selectedCharges.forEach(charge => {
  totalAmount += charge.amount;
  if (charge.quantity > 1) {
@@ -1192,8 +1538,15 @@ async function submitAllExtraCharges() {
  } else {
  descriptions.push(`${charge.name} = ${charge.amount.toFixed(2)}`);
  }
+ items.push({
+ category_id: charge.categoryId,
+ name: charge.name,
+ price: charge.price,
+ quantity: charge.quantity,
+ amount: charge.amount
  });
- 
+ });
+
  try {
  const response = await fetch(`/admin/bookings/{{ $booking->id }}/add-extra-charges`, {
  method: 'POST',
@@ -1203,7 +1556,8 @@ async function submitAllExtraCharges() {
  },
  body: JSON.stringify({
  amount: totalAmount,
- description: descriptions.join('; ')
+ description: descriptions.join('; '),
+ items: items
  })
  });
 
@@ -1211,11 +1565,12 @@ async function submitAllExtraCharges() {
  showGlobalModal('success', 'Extra charges added!');
  setTimeout(() => location.reload(), 1500);
  } else {
- showGlobalModal('error', 'Failed to add extra charges!');
+ const errorText = await response.text();
+ showGlobalModal('error', 'Failed: ' + (errorText.substring(0, 200) || 'Server error'));
  }
  } catch (error) {
  console.error('Error:', error);
- showGlobalModal('error', 'Failed to add extra charges!');
+ showGlobalModal('error', 'Failed: ' + error.message);
  }
 }
 
@@ -1252,17 +1607,26 @@ function closeVatModal() {
 // Update status
 async function updateStatus(bookingId, status) {
  if (!status) return;
- 
+
  const statusLabels = {
- 'pending': 'Pending',
- 'confirmed': 'Confirmed',
- 'checked_in': 'Check-In',
- 'checked_out': 'Check-Out',
- 'cancelled': 'Cancelled'
+  'pending': 'Pending',
+  'confirmed': 'Confirmed',
+  'checked_in': 'Check-In',
+  'checked_out': 'Check-Out',
+  'cancelled': 'Cancelled'
  };
  const statusLabel = statusLabels[status] || status.replace('_', ' ').toUpperCase();
- 
- showConfirmModal(`Do you want to change status to "${statusLabel}" change?`, async function() {
+
+ let confirmMsg = `Do you want to change status to "${statusLabel}"?`;
+ if (status === 'checked_in') {
+  confirmMsg = 'Check in this guest now? The room will be marked as occupied.';
+ } else if (status === 'checked_out') {
+  confirmMsg = 'Check out this guest now? The room will be freed up.';
+ } else if (status === 'cancelled') {
+  confirmMsg = 'Cancel this booking? This action cannot be undone.';
+ }
+
+ showConfirmModal(confirmMsg, async function() {
  try {
  const response = await fetch(`/admin/bookings/${bookingId}/update-status`, {
  method: 'POST',
@@ -1274,8 +1638,8 @@ async function updateStatus(bookingId, status) {
  });
 
  if (response.ok) {
- showGlobalModal('success', 'Status updated!');
- setTimeout(() => location.reload(), 1500);
+ showGlobalModal('success', `Status updated to ${statusLabel}!`);
+ setTimeout(() => location.reload(), 1200);
  } else {
  showGlobalModal('error', 'Failed to update status!');
  }
@@ -1299,16 +1663,41 @@ async function submitTimeUpdate(e) {
  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
  },
  body: JSON.stringify({
+ check_in_date: formData.get('check_in_date'),
+ check_out_date: formData.get('check_out_date'),
  check_in_time: formData.get('check_in_time'),
  check_out_time: formData.get('check_out_time')
  })
  });
 
  if (response.ok) {
- showGlobalModal('success', 'Time updated!');
+ showGlobalModal('success', 'Date/Time updated!');
  setTimeout(() => location.reload(), 1500);
  } else {
- showGlobalModal('error', 'Time update failed!');
+ const data = await response.json();
+ if (data.conflicts && data.conflicts.length > 0) {
+ let html = '<div class="text-center mb-4"><i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-2"></i>';
+ html += '<p class="text-lg font-bold text-gray-800">' + (data.message || 'Room is already booked for this date.') + '</p></div>';
+ html += '<div class="space-y-3 max-h-60 overflow-y-auto">';
+ data.conflicts.forEach(function(c) {
+ const statusColors = {confirmed: 'bg-blue-100 text-blue-700', checked_in: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700'};
+ const statusColor = statusColors[c.status] || 'bg-gray-100 text-gray-700';
+ html += '<div class="border rounded-lg p-3 bg-gray-50">';
+ html += '<div class="flex justify-between items-start mb-1">';
+ html += '<span class="font-semibold text-gray-800">#' + c.id + ' - ' + c.customer_name + '</span>';
+ html += '<span class="px-2 py-0.5 rounded-full text-xs font-semibold ' + statusColor + '">' + c.status.replace('_', ' ').toUpperCase() + '</span>';
+ html += '</div>';
+ html += '<div class="text-sm text-gray-600"><i class="fas fa-bed mr-1"></i>Room: ' + c.rooms + '</div>';
+ html += '<div class="text-sm text-gray-600"><i class="fas fa-calendar mr-1"></i>' + c.check_in + ' → ' + c.check_out + '</div>';
+ html += '<div class="text-sm text-gray-600"><i class="fas fa-phone mr-1"></i>' + c.customer_phone + '</div>';
+ html += '</div>';
+ });
+ html += '</div>';
+ html += '<p class="text-center text-sm text-gray-500 mt-3">Please select a different date.</p>';
+ showGlobalModalHtml(html);
+ } else {
+ showGlobalModal('error', data.message || 'Date/Time update failed!');
+ }
  }
  } catch (error) {
  console.error('Error:', error);
@@ -1390,7 +1779,7 @@ async function submitRefund(e) {
  e.preventDefault();
  const formData = new FormData(e.target);
  const amount = parseFloat(formData.get('amount'));
- const maxRefund = {{ $booking->advance_payment }};
+ const maxRefund = {{ $totalDeposited }};
  
  if (amount > maxRefund) {
  showGlobalModal('error', `Refund amount ${maxRefund.toFixed(2)} cannot exceed!`);
@@ -1454,6 +1843,87 @@ async function submitVatToggle() {
  showGlobalModal('error', 'Failed to update VAT!');
  }
  });
+}
+
+// Edit Customer modal
+function openEditCustomerModal() {
+ document.getElementById('editCustomerModal').classList.remove('hidden');
+ document.getElementById('editCustomerModal').classList.add('flex');
+}
+function closeEditCustomerModal() {
+ document.getElementById('editCustomerModal').classList.add('hidden');
+ document.getElementById('editCustomerModal').classList.remove('flex');
+}
+
+// Document remove checkbox visual feedback
+document.querySelectorAll('[name^="remove_"]').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const thumb = this.closest('.relative');
+        if (this.checked) {
+            thumb.style.opacity = '0.4';
+            thumb.querySelector('img, .w-16')?.classList.add('grayscale');
+        } else {
+            thumb.style.opacity = '1';
+            thumb.querySelector('img, .w-16')?.classList.remove('grayscale');
+        }
+    });
+});
+
+function submitEditCustomer(e) {
+ e.preventDefault();
+ const form = document.getElementById('editCustomerForm');
+ const formData = new FormData(form);
+ const overlay = document.getElementById('uploadProgressOverlay');
+ const progressBar = document.getElementById('uploadProgressBar');
+ const percentText = document.getElementById('uploadPercentText');
+ const submitBtn = document.getElementById('editCustomerSubmitBtn');
+
+ // Show overlay and disable button
+ overlay.classList.remove('hidden');
+ overlay.classList.add('flex');
+ submitBtn.disabled = true;
+ submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+ const xhr = new XMLHttpRequest();
+
+ xhr.upload.addEventListener('progress', function(event) {
+ if (event.lengthComputable) {
+ const percent = Math.round((event.loaded / event.total) * 100);
+ progressBar.style.width = percent + '%';
+ percentText.textContent = percent + '%';
+ }
+ });
+
+ xhr.addEventListener('load', function() {
+ overlay.classList.add('hidden');
+ overlay.classList.remove('flex');
+ submitBtn.disabled = false;
+ submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+ if (xhr.status >= 200 && xhr.status < 300) {
+ showGlobalModal('success', 'Customer information updated!');
+ setTimeout(() => location.reload(), 1500);
+ } else {
+ let msg = 'Failed to update customer!';
+ try {
+ const data = JSON.parse(xhr.responseText);
+ msg = data.message || msg;
+ } catch (e) {}
+ showGlobalModal('error', msg);
+ }
+ });
+
+ xhr.addEventListener('error', function() {
+ overlay.classList.add('hidden');
+ overlay.classList.remove('flex');
+ submitBtn.disabled = false;
+ submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+ showGlobalModal('error', 'Failed to update customer!');
+ });
+
+ xhr.open('POST', `/admin/bookings/{{ $booking->id }}/update-customer`);
+ xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
+ xhr.send(formData);
 }
 
 // Auto-print invoice if ?print=invoice parameter is present

@@ -7,6 +7,7 @@ use App\Models\ConventionBooking;
 use App\Models\ConventionHall;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -15,40 +16,46 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $today = Carbon::today();
+        $now = Carbon::now('Asia/Dhaka');
+        $today = $now->copy()->startOfDay();
         
         // Determine user's access and current mode
         $hasResortAccess = $user->hasResortAccess();
         $hasConventionAccess = $user->hasConventionAccess();
         $currentMode = $user->getDashboardMode();
         
-        // Get rooms that are currently occupied (have active bookings for today)
-        // Check legacy room_id column
-        $occupiedRoomIdsLegacy = Booking::whereIn('status', ['confirmed', 'checked_in'])
-            ->where('check_in_date', '<=', $today)
-            ->where('check_out_date', '>', $today)
-            ->whereNotNull('room_id')
-            ->pluck('room_id')
-            ->toArray();
+        // Get rooms that are currently occupied (status checked_in or confirmed with time passed)
+        $activeBookings = Booking::with(['bookingRooms', 'room'])
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->get();
         
-        $occupiedRoomIds = $occupiedRoomIdsLegacy;
+        $occupiedRoomIds = [];
+        $activeBookingIds = [];
+        foreach ($activeBookings as $booking) {
+            if ($booking->isOccupyingAt($now)) {
+                $activeBookingIds[] = $booking->id;
+                $occupiedRoomIds = array_merge($occupiedRoomIds, $booking->getAllRoomIds());
+            }
+        }
+        $occupiedRoomIds = array_values(array_unique($occupiedRoomIds));
         
         $totalRooms = Room::count();
         $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
         
-        // Calculate total revenue including convention bookings
-        $roomRevenue = Booking::where('status', '!=', 'cancelled')->sum('total_amount');
+        // Calculate total revenue using model methods for accuracy (preserves agreed room prices)
+        $roomRevenue = Booking::where('status', '!=', 'cancelled')->get()->sum(fn($b) => $b->getGrandTotal());
         $conventionRevenue = ConventionBooking::where('status', '!=', 'cancelled')->sum('total_amount');
         $totalRevenue = $roomRevenue + $conventionRevenue;
         
         // Resort Stats
         $resortStats = [
             'total_bookings' => Booking::count(),
-            'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'active_bookings' => count($activeBookingIds),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
-            'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count(),
             'room_revenue' => $roomRevenue,
             'pending_bookings' => Booking::where('status', 'pending')->count(),
         ];
@@ -67,18 +74,18 @@ class DashboardController extends Controller
         // Combined stats for overview
         $stats = [
             'total_bookings' => Booking::count(),
-            'active_bookings' => Booking::whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'active_bookings' => count($activeBookingIds),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
             'convention_bookings' => ConventionBooking::count(),
-            'today_checkins' => Booking::whereDate('check_in_date', $today)->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
+            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count(),
             'total_revenue' => $totalRevenue,
             'room_revenue' => $roomRevenue,
             'convention_revenue' => $conventionRevenue,
         ];
 
-        $recentBookings = Booking::with('room')->latest()->take(10)->get();
+        $recentBookings = Booking::with(['room', 'bookingRooms.room'])->latest()->take(10)->get();
         $recentConventionBookings = ConventionBooking::with('conventionHall')->latest()->take(10)->get();
         $allRooms = Room::with('roomType')->get();
         $allHalls = ConventionHall::all();
@@ -86,28 +93,31 @@ class DashboardController extends Controller
         // Get room status with current and upcoming bookings
         $roomsWithStatus = [];
         foreach ($allRooms as $room) {
-            // Check legacy room_id
-            $currentBooking = Booking::where('room_id', $room->id)
+            // Determine if room is currently occupied using merged occupied room IDs
+            $isOccupied = in_array($room->id, $occupiedRoomIds);
+
+            // Find current booking that is currently occupying this room
+            $currentBooking = Booking::with(['bookingRooms', 'room'])
                 ->whereIn('status', ['confirmed', 'checked_in'])
-                ->where('check_in_date', '<=', $today)
-                ->where('check_out_date', '>', $today)
-                ->first();
-            
-            $status = 'available';
-            
-            // Check upcoming bookings - legacy
-            $upcomingBooking = Booking::where('room_id', $room->id)
+                ->get()
+                ->first(fn($b) => $b->isOccupyingAt($now) && in_array($room->id, $b->getAllRoomIds()));
+
+            // Check upcoming bookings
+            $upcomingBooking = Booking::with(['bookingRooms', 'room'])
                 ->whereIn('status', ['confirmed', 'pending'])
                 ->where('check_in_date', '>', $today)
                 ->orderBy('check_in_date')
-                ->first();
-            
+                ->get()
+                ->first(fn($b) => in_array($room->id, $b->getAllRoomIds()));
+
+            $availableFrom = $currentBooking ? $currentBooking->getCheckOutDateTime() : $now;
+
             $roomsWithStatus[] = [
                 'room' => $room,
-                'status' => $currentBooking ? 'occupied' : 'available',
+                'status' => $isOccupied ? 'occupied' : 'available',
                 'current_booking' => $currentBooking,
                 'upcoming_booking' => $upcomingBooking,
-                'available_from' => $currentBooking ? $currentBooking->check_out_date : $today,
+                'available_from' => $availableFrom,
             ];
         }
 
@@ -119,34 +129,45 @@ class DashboardController extends Controller
                 $date = Carbon::today()->addDays($i);
                 $dateStr = $date->format('Y-m-d');
                 
-                // Check full_day booking first
-                $fullDayBooked = ConventionBooking::where('hall_id', $hall->id)
+                // Get all bookings for this hall on this date
+                $dayBookings = ConventionBooking::with('conventionHall')
+                    ->where('hall_id', $hall->id)
                     ->whereDate('event_date', $dateStr)
-                    ->where('time_slot', 'full_day')
                     ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
-                
-                // Check morning slot booking
-                $morningBooked = ConventionBooking::where('hall_id', $hall->id)
-                    ->whereDate('event_date', $dateStr)
-                    ->whereIn('time_slot', ['morning', 'full_day'])
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
-                
-                // Check night slot booking  
-                $nightBooked = ConventionBooking::where('hall_id', $hall->id)
-                    ->whereDate('event_date', $dateStr)
-                    ->whereIn('time_slot', ['night', 'full_day'])
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->exists();
+                    ->get();
+
+                $fullDayBooking = $dayBookings->firstWhere('time_slot', 'full_day');
+                $morningBooking = $dayBookings->firstWhere('time_slot', 'morning');
+                $nightBooking = $dayBookings->firstWhere('time_slot', 'night');
+
+                $fullDayBooked = (bool) $fullDayBooking;
+                $morningBooked = $fullDayBooked || (bool) $morningBooking;
+                $nightBooked = $fullDayBooked || (bool) $nightBooking;
                 
                 // full_day status: available, booked, or unavailable (when morning/night booked separately)
                 $fullDayStatus = 'available';
                 if ($fullDayBooked) {
-                    $fullDayStatus = 'booked'; // Actually booked as full_day
+                    $fullDayStatus = 'booked';
                 } elseif ($morningBooked || $nightBooked) {
-                    $fullDayStatus = 'unavailable'; // Can't book full_day because morning or night is taken
+                    $fullDayStatus = 'unavailable';
                 }
+
+                // Build hover details
+                $morningDetails = null;
+                if ($fullDayBooking) {
+                    $morningDetails = $fullDayBooking;
+                } elseif ($morningBooking) {
+                    $morningDetails = $morningBooking;
+                }
+
+                $nightDetails = null;
+                if ($fullDayBooking) {
+                    $nightDetails = $fullDayBooking;
+                } elseif ($nightBooking) {
+                    $nightDetails = $nightBooking;
+                }
+
+                $fullDayDetails = $fullDayBooking;
                 
                 $hallDays[] = [
                     'date' => $date,
@@ -156,6 +177,9 @@ class DashboardController extends Controller
                     'morning' => $morningBooked ? 'booked' : 'available',
                     'night' => $nightBooked ? 'booked' : 'available',
                     'full_day' => $fullDayStatus,
+                    'morning_booking' => $morningDetails,
+                    'night_booking' => $nightDetails,
+                    'full_day_booking' => $fullDayDetails,
                 ];
             }
             $hallsWithStatus[] = [
@@ -183,7 +207,8 @@ class DashboardController extends Controller
             $revenueLabels[] = 'Week ' . (4 - $i);
             $weekRoomRevenue = Booking::whereBetween('created_at', [$weekStart, $weekEnd])
                 ->where('status', '!=', 'cancelled')
-                ->sum('total_amount');
+                ->get()
+                ->sum(fn($b) => $b->getGrandTotal());
             $weekConventionRevenue = ConventionBooking::whereBetween('created_at', [$weekStart, $weekEnd])
                 ->where('status', '!=', 'cancelled')
                 ->sum('total_amount');
@@ -254,41 +279,31 @@ class DashboardController extends Controller
 
     public function searchRoomAvailability(Request $request)
     {
-        $checkIn = $request->checkIn;
-        $checkOut = $request->checkOut;
+        $checkIn = \Carbon\Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
+        $checkOut = \Carbon\Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
 
-        // Get booked room IDs for the date range
-        $bookedRoomIds = Booking::where(function($query) use ($checkIn, $checkOut) {
-            $query->whereBetween('check_in_date', [$checkIn, $checkOut])
-                  ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
-                  ->orWhere(function($q) use ($checkIn, $checkOut) {
-                      $q->where('check_in_date', '<=', $checkIn)
-                        ->where('check_out_date', '>=', $checkOut);
-                  });
-        })
-        ->whereNotIn('status', ['cancelled'])
-        ->pluck('room_id')->toArray();
-
-        $availableRooms = Room::whereNotIn('id', $bookedRoomIds)
-            ->where('status', 'available')
+        // Get active bookings and check actual datetime overlap using model helpers
+        $activeBookings = Booking::with(['bookingRooms', 'room'])
+            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->where('check_in_date', '<', $checkOut->toDateString())
+            ->where('check_out_date', '>', $checkIn->toDateString())
             ->get();
 
-        $roomBookings = Booking::with('room')
-            ->whereIn('room_id', $bookedRoomIds)
-            ->where(function($query) use ($checkIn, $checkOut) {
-                $query->whereBetween('check_in_date', [$checkIn, $checkOut])
-                      ->orWhereBetween('check_out_date', [$checkIn, $checkOut])
-                      ->orWhere(function($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in_date', '<=', $checkIn)
-                            ->where('check_out_date', '>=', $checkOut);
-                      });
-            })
-            ->whereNotIn('status', ['cancelled'])
-            ->get();
+        $bookedRoomIds = [];
+        foreach ($activeBookings as $booking) {
+            $existingCheckIn = $booking->getCheckInDateTime();
+            $existingCheckOut = $booking->getCheckOutDateTime();
+            if ($existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn)) {
+                $bookedRoomIds = array_merge($bookedRoomIds, $booking->getAllRoomIds());
+            }
+        }
+        $bookedRoomIds = array_values(array_unique($bookedRoomIds));
+
+        $availableRooms = Room::whereNotIn('id', $bookedRoomIds)->get();
 
         return response()->json([
             'availableRooms' => $availableRooms,
-            'roomBookings' => $roomBookings
+            'roomBookings' => []
         ]);
     }
 
@@ -297,16 +312,21 @@ class DashboardController extends Controller
         $date = $request->date;
         $slot = $request->slot;
 
-        $bookedHallIds = ConventionBooking::whereDate('event_date', $date)
-            ->where('time_slot', $slot)
-            ->whereNotIn('status', ['cancelled'])
-            ->pluck('convention_hall_id')->toArray();
-
-        $hallBookings = ConventionBooking::with('conventionHall')
+        $query = ConventionBooking::with('conventionHall')
             ->whereDate('event_date', $date)
-            ->where('time_slot', $slot)
-            ->whereNotIn('status', ['cancelled'])
-            ->get();
+            ->whereNotIn('status', ['cancelled']);
+
+        // Slot overlap logic: full_day blocks both morning and night
+        if ($slot === 'morning') {
+            $query->whereIn('time_slot', ['morning', 'full_day']);
+        } elseif ($slot === 'night') {
+            $query->whereIn('time_slot', ['night', 'full_day']);
+        } else {
+            $query->where('time_slot', 'full_day');
+        }
+
+        $hallBookings = $query->get();
+        $bookedHallIds = $hallBookings->pluck('hall_id')->toArray();
 
         return response()->json([
             'bookedHallIds' => $bookedHallIds,

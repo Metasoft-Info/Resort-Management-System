@@ -6,7 +6,8 @@ use Carbon\Carbon;
 
 class TodaysSummaryController extends Controller {
     public function index() {
-        $today = Carbon::today();
+        $now = Carbon::now('Asia/Dhaka');
+        $today = $now->copy()->startOfDay();
         $user = auth()->user();
         
         // Determine user's access and current mode
@@ -17,23 +18,20 @@ class TodaysSummaryController extends Controller {
         // Today's Check-ins: check_in_date is today AND not yet checked_out
         $todayCheckins = Booking::with('room')
             ->whereDate('check_in_date', $today)
-            ->where('status', '!=', 'checked_out')
+            ->whereNotIn('status', ['checked_out', 'cancelled'])
             ->get();
         
-        // Today's Check-outs: check_out_date is today OR status is checked_out (updated today)
+        // Today's Check-outs: actually checked_out today
         $todayCheckouts = Booking::with('room')
-            ->where(function($query) use ($today) {
-                $query->whereDate('check_out_date', $today)
-                    ->orWhere(function($q) use ($today) {
-                        $q->where('status', 'checked_out')
-                          ->whereDate('updated_at', $today);
-                    });
-            })
+            ->where('status', 'checked_out')
+            ->whereDate('check_out_date', $today)
             ->get();
         
-        $currentlyStaying = Booking::with('room')
-            ->where('check_in_date', '<=', $today)->where('check_out_date', '>=', $today)
-            ->whereIn('status', ['confirmed', 'checked_in'])->get();
+        // Currently staying: anyone occupying a room right now (checked_in OR confirmed past check-in time)
+        $potentialStaying = Booking::with(['room', 'bookingRooms'])
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->get();
+        $currentlyStaying = $potentialStaying->filter(fn($b) => $b->isOccupyingAt($now));
         $todayConventions = ConventionBooking::with('conventionHall')->whereDate('event_date', $today)->get();
         
         // Resort stats
@@ -41,8 +39,8 @@ class TodaysSummaryController extends Controller {
             'checkins_count' => $todayCheckins->count(),
             'checkouts_count' => $todayCheckouts->count(),
             'staying_count' => $currentlyStaying->count(),
-            'today_revenue' => $todayCheckins->sum('total_amount'),
-            'pending_payments' => $currentlyStaying->sum('remaining_payment'),
+            'today_revenue' => $todayCheckins->sum(fn($b) => $b->getGrandTotal()),
+            'pending_payments' => $currentlyStaying->sum(fn($b) => $b->getCalculatedRemaining()),
         ];
         
         // Convention stats

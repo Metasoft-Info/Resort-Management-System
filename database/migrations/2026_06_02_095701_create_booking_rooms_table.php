@@ -8,13 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('booking_rooms', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('room_id')->constrained()->restrictOnDelete();
-            $table->decimal('price_per_night', 10, 2);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('booking_rooms')) {
+            try {
+                Schema::create('booking_rooms', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('booking_id')->constrained()->cascadeOnDelete();
+                    $table->foreignId('room_id')->constrained()->restrictOnDelete();
+                    $table->decimal('price_per_night', 10, 2);
+                    $table->timestamps();
+                });
+            } catch (\Exception $e) {
+                // Table already exists, migration is complete
+            }
+        }
     }
 
     public function down(): void

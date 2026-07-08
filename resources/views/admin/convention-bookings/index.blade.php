@@ -74,7 +74,7 @@
  <p class="text-xl font-bold text-blue-600">{{ number_format($totalRevenue, 0) }}</p>
  </div>
  <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
- <i class="fas fa-bangladeshi-taka-sign text-blue-600"></i>
+ <i class="fas fa-money-bill text-blue-600"></i>
  </div>
  </div>
  </div>
@@ -110,7 +110,7 @@
  <i class="fas fa-users mr-1"></i>Guest
  </th>
  <th class="px-4 py-4 text-left text-xs font-bold text-violet-700 uppercase tracking-wider">
- <i class="fas fa-bangladeshi-taka-sign mr-1"></i>Taka
+ <i class="fas fa-money-bill mr-1"></i>Amount
  </th>
  <th class="px-4 py-4 text-left text-xs font-bold text-violet-700 uppercase tracking-wider">
  <i class="fas fa-info-circle mr-1"></i>Status

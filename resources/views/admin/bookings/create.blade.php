@@ -64,11 +64,16 @@
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Payment Method *</label>
- <select name="payment_method" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <select name="payment_method" id="paymentMethod" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
  <option value="cash">Cash</option>
  <option value="card">Card</option>
  <option value="mfs">Mobile Banking</option>
+ <option value="bkash">bKash</option>
  </select>
+ </div>
+ <div id="bkashField" class="hidden">
+ <label class="block text-sm font-semibold text-gray-700 mb-2">bKash Number</label>
+ <input type="text" name="bkash_number" value="{{ old('bkash_number') }}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
@@ -96,4 +101,15 @@
  </form>
  </div>
 </div>
+
+<script>
+document.getElementById('paymentMethod').addEventListener('change', function() {
+    const bkashField = document.getElementById('bkashField');
+    if (this.value === 'bkash') {
+        bkashField.classList.remove('hidden');
+    } else {
+        bkashField.classList.add('hidden');
+    }
+});
+</script>
 @endsection

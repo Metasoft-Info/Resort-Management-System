@@ -344,7 +344,8 @@
  <span class="ml-1 text-[10px] text-emerald-300">Morning</span>
  </a>
  @else
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+ @php $mb = $day['morning_booking'] ?? null; @endphp
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $mb ? 'Booking #' . $mb->id . ': ' . $mb->customer_name . ' | ' . $mb->event_type . ' | ' . $mb->number_of_guests . ' guests | ' . ucfirst($mb->time_slot) : '' }}">
  <i class="fas fa-sun text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Morning</span>
  </span>
@@ -358,13 +359,14 @@
  </a>
  @elseif(($day['full_day'] ?? 'booked') == 'unavailable')
  <!-- Unavailable: morning/night booked separately -->
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500">
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500 cursor-help" title="Full day unavailable - morning or night already booked">
  <i class="fas fa-calendar-day text-[10px] text-gray-400"></i>
  <span class="ml-1 text-[10px] text-gray-400">Full Day</span>
  </span>
  @else
+ @php $fdb = $day['full_day_booking'] ?? null; @endphp
  <!-- Actually booked as full_day -->
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $fdb ? 'Booking #' . $fdb->id . ': ' . $fdb->customer_name . ' | ' . $fdb->event_type . ' | ' . $fdb->number_of_guests . ' guests | Full Day' : '' }}">
  <i class="fas fa-calendar-day text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Full Day</span>
  </span>
@@ -377,7 +379,8 @@
  <span class="ml-1 text-[10px] text-emerald-300">Nights</span>
  </a>
  @else
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20">
+ @php $nb = $day['night_booking'] ?? null; @endphp
+ <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $nb ? 'Booking #' . $nb->id . ': ' . $nb->customer_name . ' | ' . $nb->event_type . ' | ' . $nb->number_of_guests . ' guests | ' . ucfirst($nb->time_slot) : '' }}">
  <i class="fas fa-moon text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Nights</span>
  </span>
@@ -503,7 +506,22 @@
  @endif
  </div>
  </div>
- <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
+
+ <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity z-0"></div>
+
+ @if($rs['status'] == 'occupied' && $rs['current_booking'])
+ <!-- Hover Tooltip (below card) -->
+ <div class="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-60 bg-white rounded-xl shadow-2xl p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="text-gray-800 text-xs relative">
+ <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $rs['current_booking']->customer_name }}</p>
+ <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $rs['current_booking']->customer_phone }}</p>
+ <p class="mb-0.5"><i class="fas fa-sign-in-alt text-green-500 mr-1 w-3"></i>In: {{ \Carbon\Carbon::parse($rs['current_booking']->check_in_date)->format('d M') }}</p>
+ <p class="mb-0.5"><i class="fas fa-sign-out-alt text-orange-500 mr-1 w-3"></i>Out: {{ \Carbon\Carbon::parse($rs['current_booking']->check_out_date)->format('d M') }}</p>
+ <p class="text-emerald-600 font-semibold mt-1"><i class="fas fa-calendar-check mr-1 w-3"></i>Available: {{ \Carbon\Carbon::parse($rs['available_from'])->format('d M Y') }}</p>
+ </div>
+ </div>
+ @endif
  </div>
  @endforeach
  </div>
@@ -546,7 +564,7 @@
  <div class="text-xs text-gray-500 mt-1">{{ $booking->customer_phone }}</div>
  <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
  <div class="text-xs text-gray-500">
- <i class="fas fa-bed mr-1"></i>{{ $booking->room ? $booking->room->room_number : 'N/A' }}
+ <i class="fas fa-bed mr-1"></i>{{ $booking->getAllRooms()->pluck('room_number')->implode(', ') ?: 'N/A' }}
  <span class="mx-2">•</span>
  <i class="fas fa-calendar mr-1"></i>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M') }}
  </div>
@@ -578,7 +596,7 @@
  <div class="text-sm font-medium text-gray-900 truncate max-w-[150px]">{{ $booking->customer_name }}</div>
  <div class="text-xs text-gray-500">{{ $booking->customer_phone }}</div>
  </td>
- <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ $booking->room ? $booking->room->room_number : 'N/A' }}</td>
+ <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ $booking->getAllRooms()->pluck('room_number')->implode(', ') ?: 'N/A' }}</td>
  <td class="px-4 lg:px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d M Y') }}</td>
  <td class="px-4 lg:px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{{ number_format($booking->getCalculatedTotal()) }}</td>
  <td class="px-4 lg:px-6 py-4 whitespace-nowrap">

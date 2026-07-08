@@ -71,5 +71,16 @@ class AddonServiceController extends Controller
         return redirect()->route('admin.addon-services.index')
             ->with('success', 'Addon service deleted successfully!');
     }
+
+    public function clearConvention(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:CLEAR']);
+
+        $count = AddonService::whereIn('service_type', ['convention', 'both'])->count();
+        AddonService::whereIn('service_type', ['convention', 'both'])->delete();
+
+        return redirect()->route('admin.addon-services.index')
+            ->with('success', "{$count} convention addon services cleared successfully!");
+    }
 }
 

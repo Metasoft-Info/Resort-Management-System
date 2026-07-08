@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\PremiumBookingController;
 use App\Http\Controllers\Admin\PremiumConventionController;
 use App\Http\Controllers\Admin\ExtraChargeCategoryController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DiscountApprovalController;
 use App\Http\Controllers\NotificationController;
 
 // Public Website Routes
@@ -31,8 +32,11 @@ Route::get('/about', [HomeController::class, 'about'])->name('about');
 
 // Auth routes - Admin Login is the main entry point
 Route::get('/admin', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login.form');
 Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login');
 Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
+Route::get('/admin/profile', [AuthController::class, 'profile'])->name('admin.profile');
+Route::post('/admin/profile', [AuthController::class, 'updateProfile'])->name('admin.profile.update');
 
 // Admin routes (protected by auth middleware)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
@@ -47,6 +51,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Rooms
     Route::resource('rooms', RoomController::class);
+    Route::get('rooms-print', [RoomController::class, 'print'])->name('rooms.print');
     
     // Room Types
     Route::resource('room-types', RoomTypeController::class);
@@ -57,15 +62,19 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/bookings/{booking}/update-time', [BookingController::class, 'updateTime'])->name('bookings.update-time');
     Route::post('/bookings/{booking}/add-payment', [BookingController::class, 'addPayment'])->name('bookings.add-payment');
     Route::post('/bookings/{booking}/add-extra-charges', [BookingController::class, 'addExtraCharges'])->name('bookings.add-extra-charges');
+    Route::post('/bookings/{booking}/update-customer', [BookingController::class, 'updateCustomer'])->name('bookings.update-customer');
     Route::post('/bookings/{booking}/add-guest', [BookingController::class, 'addGuest'])->name('bookings.add-guest');
     Route::post('/bookings/{booking}/process-refund', [BookingController::class, 'processRefund'])->name('bookings.process-refund');
     Route::post('/bookings/{booking}/update-vat', [BookingController::class, 'updateVat'])->name('bookings.update-vat');
-    
+    Route::post('/bookings/{booking}/send-invoice-email', [BookingController::class, 'sendInvoiceEmail'])->name('bookings.send-invoice-email');
+    Route::post('/bookings/{booking}/send-reservation-email', [BookingController::class, 'sendReservationEmail'])->name('bookings.send-reservation-email');
+
     // Premium Booking (Advanced Room Booking)
     Route::get('/premium-booking', [PremiumBookingController::class, 'index'])->name('premium-booking.index');
     Route::post('/premium-booking/search', [PremiumBookingController::class, 'search'])->name('premium-booking.search');
     Route::post('/premium-booking/book', [PremiumBookingController::class, 'book'])->name('premium-booking.book');
     Route::get('/premium-booking/search-customer', [PremiumBookingController::class, 'searchCustomer'])->name('premium-booking.search-customer');
+    Route::post('/premium-booking/upload-doc', [PremiumBookingController::class, 'uploadDoc'])->name('premium-booking.upload-doc');
     
     // Convention Halls
     Route::resource('convention-halls', ConventionHallController::class);
@@ -88,6 +97,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     
     // Addon Services
     Route::resource('addon-services', AddonServiceController::class);
+    Route::post('/addon-services/clear-convention', [AddonServiceController::class, 'clearConvention'])->name('addon-services.clear-convention');
     
     // Extra Charge Categories
     Route::resource('extra-charge-categories', ExtraChargeCategoryController::class);
@@ -131,6 +141,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Today's Summary
     Route::get('/todays-summary', [TodaysSummaryController::class, 'index'])->name('todays-summary');
     
+    // Discount Approval
+    Route::get('/discount-approval', [DiscountApprovalController::class, 'index'])->name('discount-approval.index');
+    Route::get('/discount-approval/{type}/{id}', [DiscountApprovalController::class, 'show'])->name('discount-approval.show');
+    Route::post('/discount-approval/{type}/{id}/approve', [DiscountApprovalController::class, 'approve'])->name('discount-approval.approve');
+    Route::post('/discount-approval/{type}/{id}/reject', [DiscountApprovalController::class, 'reject'])->name('discount-approval.reject');
+
     // Reports
     Route::get('/reports/room-bookings', [ReportController::class, 'roomBookings'])->name('reports.room-bookings');
     Route::get('/reports/room-bookings/export', [ReportController::class, 'exportRoomBookings'])->name('reports.room-bookings.export');
@@ -142,10 +158,55 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/reports/combined/export', [ReportController::class, 'exportCombined'])->name('reports.combined.export');
     Route::get('/reports/convention-bookings', [ReportController::class, 'conventionBookings'])->name('reports.convention-bookings');
     Route::get('/reports/convention-bookings/export', [ReportController::class, 'exportConventionBookings'])->name('reports.convention-bookings.export');
+    Route::get('/reports/police-station', [ReportController::class, 'policeStation'])->name('reports.police-station');
+    Route::get('/reports/guest-extra-charges', [ReportController::class, 'guestExtraCharges'])->name('reports.guest-extra-charges');
     
     // Customers
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/convention', [CustomerController::class, 'conventionCustomers'])->name('customers.convention');
     Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::get('/customers/{phone}', [CustomerController::class, 'show'])->name('customers.show');
+
+    // Production deployment helper - run migrations and clear caches (admin only)
+    Route::get('/run-migrations', function () {
+        $output = [];
+        try {
+            \Artisan::call('migrate', ['--force' => true]);
+            $output[] = 'Migration: ' . trim(\Artisan::output());
+        } catch (\Exception $e) {
+            $output[] = 'Migration Error: ' . $e->getMessage();
+        }
+        try {
+            \Artisan::call('config:clear');
+            $output[] = 'Config cleared';
+        } catch (\Exception $e) {
+            $output[] = 'Config clear Error: ' . $e->getMessage();
+        }
+        try {
+            \Artisan::call('cache:clear');
+            $output[] = 'Cache cleared';
+        } catch (\Exception $e) {
+            $output[] = 'Cache clear Error: ' . $e->getMessage();
+        }
+        return '<pre style="font-family:monospace;padding:20px">' . implode("\n", $output) . '</pre>';
+    })->name('run-migrations');
+
+    // Fix payment_status for existing bookings where discount makes them paid
+    Route::get('/fix-payment-status', function () {
+        $fixed = 0;
+        $bookings = \App\Models\Booking::all();
+        foreach ($bookings as $booking) {
+            $remaining = max(0, $booking->getCalculatedRemaining());
+            $newStatus = $remaining <= 0 ? 'paid' : ($booking->getTotalDeposited() > 0 ? 'partial' : 'pending');
+            if ($booking->payment_status !== $newStatus || (float)$booking->remaining_payment !== (float)$remaining) {
+                $booking->update([
+                    'remaining_payment' => $remaining,
+                    'payment_status' => $newStatus,
+                ]);
+                $fixed++;
+            }
+        }
+        return '<pre>Fixed ' . $fixed . ' booking(s)</pre>';
+    });
 });
 

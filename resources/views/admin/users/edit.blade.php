@@ -27,6 +27,7 @@
  <select name="role" id="roleSelect" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" onchange="togglePermissions()">
  <option value="superadmin" {{ ($user->role ?? '') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
  <option value="admin" {{ ($user->role ?? 'admin') == 'admin' ? 'selected' : '' }}>Admin</option>
+ <option value="owner" {{ ($user->role ?? '') == 'owner' ? 'selected' : '' }}>Owner</option>
  <option value="manager" {{ ($user->role ?? '') == 'manager' ? 'selected' : '' }}>Manager</option>
  <option value="receptionist" {{ ($user->role ?? '') == 'receptionist' ? 'selected' : '' }}>Receptionist</option>
  <option value="staff" {{ ($user->role ?? '') == 'staff' ? 'selected' : '' }}>Staff</option>
@@ -116,6 +117,16 @@ function togglePermissions() {
  section.classList.add('hidden');
  } else {
  section.classList.remove('hidden');
+ }
+ // Pre-select Approval Discount for owner by default
+ if (role === 'owner') {
+  const hasAnyChecked = document.querySelectorAll('.permission-checkbox:checked').length > 0;
+  if (!hasAnyChecked) {
+   document.querySelectorAll('.permission-checkbox').forEach(cb => {
+    cb.checked = (cb.value === 'discount_approval');
+    updateCheckboxStyle(cb);
+   });
+  }
  }
 }
 

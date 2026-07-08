@@ -38,6 +38,25 @@ class PremiumBookingController extends Controller
     }
 
     /**
+     * Pre-upload documents before booking creation (auto-upload on file select)
+     */
+    public function uploadDoc(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:5120',
+            'field' => 'required|string|in:customer_photo,customer_nid_document,passport_document,visiting_card',
+        ]);
+
+        $path = $request->file('file')->store('bookings/documents', 'public');
+
+        return response()->json([
+            'success' => true,
+            'path' => $path,
+            'field' => $request->input('field'),
+        ]);
+    }
+
+    /**
      * Search for customer by phone, NID, or passport and return the most recently updated record
      */
     public function searchCustomer(Request $request)
@@ -78,14 +97,14 @@ class PremiumBookingController extends Controller
 
     public function search(Request $request)
     {
-        $checkIn = Carbon::parse($request->checkIn);
-        $checkOut = Carbon::parse($request->checkOut);
+        $checkIn = Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
+        $checkOut = Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
         $roomTypeId = $request->roomTypeId;
         $excludeBookingId = $request->excludeBookingId; // Exclude this booking from conflict check
         $nights = $checkIn->diffInDays($checkOut);
 
         // Get all rooms
-        $query = Room::with('roomType')->where('status', 'available');
+        $query = Room::with('roomType');
         
         if ($roomTypeId) {
             $query->where('room_type_id', $roomTypeId);
@@ -93,48 +112,26 @@ class PremiumBookingController extends Controller
 
         $rooms = $query->get();
 
-        // Filter out rooms that are already booked for these dates
-        // Check both legacy room_id and booking_rooms table
+        // Filter out rooms that are already booked for these dates/times
         $availableRooms = $rooms->filter(function ($room) use ($checkIn, $checkOut, $excludeBookingId) {
-            // Check legacy bookings
-            $legacyQuery = Booking::where('room_id', $room->id)
-                ->where('status', '!=', 'cancelled');
-            
-            // Exclude the current booking if adding rooms
+            $query = Booking::with('bookingRooms')
+                ->whereNotIn('status', ['cancelled', 'checked_out'])
+                ->where('check_in_date', '<', $checkOut->toDateString())
+                ->where('check_out_date', '>', $checkIn->toDateString());
+
             if ($excludeBookingId) {
-                $legacyQuery->where('id', '!=', $excludeBookingId);
+                $query->where('id', '!=', $excludeBookingId);
             }
-            
-            $hasLegacyConflict = $legacyQuery->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->where(function($q) use ($checkIn, $checkOut) {
-                        // Overlap: existing.start < new.end AND existing.end > new.start
-                        $q->where('check_in_date', '<', $checkOut)
-                          ->where('check_out_date', '>', $checkIn);
-                    });
-                })
-                ->exists();
 
-            if ($hasLegacyConflict) return false;
-
-            // Check booking_rooms table
-            $multiRoomQuery = BookingRoom::where('room_id', $room->id)
-                ->whereHas('booking', function($q) use ($checkIn, $checkOut, $excludeBookingId) {
-                    $q->where('status', '!=', 'cancelled');
-                    
-                    if ($excludeBookingId) {
-                        $q->where('id', '!=', $excludeBookingId);
-                    }
-                    
-                    $q->where(function ($query) use ($checkIn, $checkOut) {
-                        // Overlap: existing.start < new.end AND existing.end > new.start
-                        $query->where('check_in_date', '<', $checkOut)
-                              ->where('check_out_date', '>', $checkIn);
-                    });
+            $hasConflict = $query->get()
+                ->some(function ($booking) use ($checkIn, $checkOut, $room) {
+                    if (!in_array($room->id, array_map('intval', $booking->getAllRoomIds()))) return false;
+                    $existingCheckIn = $booking->getCheckInDateTime();
+                    $existingCheckOut = $booking->getCheckOutDateTime();
+                    return $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
                 });
-                
-            $hasMultiRoomConflict = $multiRoomQuery->exists();
 
-            return !$hasMultiRoomConflict;
+            return !$hasConflict;
         });
 
         return response()->json([
@@ -237,10 +234,14 @@ class PremiumBookingController extends Controller
                 'payment_method' => 'required|in:cash,card,bkash',
                 'bkash_number' => 'nullable|string',
                 'bank_name' => 'nullable|string',
-                'customer_photo' => 'nullable|image|max:2048',
-                'customer_nid_document' => 'nullable|file|max:2048',
-                'passport_document' => 'nullable|file|max:2048',
-                'visiting_card' => 'nullable|image|max:2048',
+                'customer_photo' => 'nullable',
+                'customer_photo.*' => 'nullable|image|max:5120',
+                'customer_nid_document' => 'nullable',
+                'customer_nid_document.*' => 'nullable|file|max:5120',
+                'passport_document' => 'nullable',
+                'passport_document.*' => 'nullable|file|max:5120',
+                'visiting_card' => 'nullable',
+                'visiting_card.*' => 'nullable|image|max:5120',
                 'additional_guests' => 'nullable|array',
                 'additional_guests.*.name' => 'nullable|string',
                 'additional_guests.*.nid' => 'nullable|string',
@@ -248,18 +249,36 @@ class PremiumBookingController extends Controller
                 'additional_guests.*.company_name' => 'nullable|string',
             ]);
 
-            // Handle file uploads
-            if ($request->hasFile('customer_photo')) {
-                $validated['customer_photo'] = $request->file('customer_photo')->store('bookings', 'public');
-            }
-            if ($request->hasFile('customer_nid_document')) {
-                $validated['customer_nid_document'] = $request->file('customer_nid_document')->store('bookings', 'public');
-            }
-            if ($request->hasFile('passport_document')) {
-                $validated['passport_document'] = $request->file('passport_document')->store('bookings', 'public');
-            }
-            if ($request->hasFile('visiting_card')) {
-                $validated['visiting_card'] = $request->file('visiting_card')->store('bookings', 'public');
+            // Handle file uploads - support pre-uploaded paths and multiple files
+            $docFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
+            foreach ($docFields as $field) {
+                $paths = [];
+
+                // Pre-uploaded paths from auto-upload (JSON array string)
+                $prePaths = $request->input($field . '_paths');
+                if ($prePaths) {
+                    $decoded = json_decode($prePaths, true);
+                    if (is_array($decoded)) {
+                        $paths = array_merge($paths, $decoded);
+                    }
+                }
+
+                // Direct file uploads (fallback - multiple files)
+                if ($request->hasFile($field)) {
+                    $files = $request->file($field);
+                    if (!is_array($files)) {
+                        $files = [$files];
+                    }
+                    foreach ($files as $f) {
+                        if ($f && $f->isValid()) {
+                            $paths[] = $f->store('bookings/documents', 'public');
+                        }
+                    }
+                }
+
+                if (!empty($paths)) {
+                    $validated[$field] = array_values(array_unique($paths));
+                }
             }
 
             // Set default values for advance/remaining
@@ -277,10 +296,26 @@ class PremiumBookingController extends Controller
             $validated['food_package_cost'] = 0;
             $validated['addons_cost'] = 0;
 
+            // Set discount approval status
+            $hasDiscount = ($validated['discount_type'] !== 'none' && ($validated['discount_amount'] > 0 || $validated['discount_percentage'] > 0));
+            if ($hasDiscount) {
+                if (Auth::user()->canApproveDiscounts()) {
+                    $validated['discount_status'] = 'approved';
+                    $validated['discount_approved_by'] = Auth::id();
+                    $validated['discount_approved_at'] = now();
+                } else {
+                    $validated['discount_status'] = 'pending';
+                    $validated['discount_requested_by'] = Auth::id();
+                }
+            }
+
             // Set payment status
             $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 
                                            ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
+            $validated['check_in_time'] = $validated['check_in_time'] ?? '12:00';
+            $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
             $validated['created_by_id'] = Auth::id();
+            $validated['updated_by_id'] = Auth::id();
 
             // Extract additional guests data before creating booking
             $additionalGuestsData = $request->input('additional_guests', []);
@@ -299,30 +334,26 @@ class PremiumBookingController extends Controller
             DB::beginTransaction();
 
             // IMPORTANT: Validate rooms are actually available before creating booking
-            $checkIn = Carbon::parse($validated['check_in_date']);
-            $checkOut = Carbon::parse($validated['check_out_date']);
+            $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
+            $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
             $unavailableRooms = [];
             
             $roomIds = !empty($roomsData) ? collect($roomsData)->pluck('roomId')->toArray() : ($singleRoomId ? [$singleRoomId] : []);
             
             foreach ($roomIds as $roomId) {
-                // Check if room is already booked for these dates (in booking_rooms table)
-                $hasConflict = BookingRoom::where('room_id', $roomId)
-                    ->whereHas('booking', function($q) use ($checkIn, $checkOut) {
-                        $q->where('status', '!=', 'cancelled')
-                          ->where('check_in_date', '<', $checkOut)
-                          ->where('check_out_date', '>', $checkIn);
-                    })->exists();
-                
-                // Also check legacy room_id booking
-                if (!$hasConflict) {
-                    $hasConflict = Booking::where('room_id', $roomId)
-                        ->where('status', '!=', 'cancelled')
-                        ->where('check_in_date', '<', $checkOut)
-                        ->where('check_out_date', '>', $checkIn)
-                        ->exists();
-                }
-                
+                // Check if room is already booked for these dates/times
+                $hasConflict = Booking::with('bookingRooms')
+                    ->whereNotIn('status', ['cancelled', 'checked_out'])
+                    ->where('check_in_date', '<', $checkOut->toDateString())
+                    ->where('check_out_date', '>', $checkIn->toDateString())
+                    ->get()
+                    ->some(function ($booking) use ($checkIn, $checkOut, $roomId) {
+                        if (!in_array((int)$roomId, array_map('intval', $booking->getAllRoomIds()))) return false;
+                        $existingCheckIn = $booking->getCheckInDateTime();
+                        $existingCheckOut = $booking->getCheckOutDateTime();
+                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                    });
+
                 if ($hasConflict) {
                     $room = Room::find($roomId);
                     $unavailableRooms[] = $room ? $room->room_number : $roomId;
@@ -452,6 +483,48 @@ class PremiumBookingController extends Controller
             
             DB::beginTransaction();
             
+            $checkIn = $booking->getCheckInDateTime();
+            $checkOut = $booking->getCheckOutDateTime();
+            $unavailableRooms = [];
+            
+            foreach ($roomsData as $roomData) {
+                $roomId = $roomData['roomId'];
+                
+                // Check if room is already in this booking
+                $exists = BookingRoom::where('booking_id', $bookingId)
+                    ->where('room_id', $roomId)
+                    ->exists();
+                    
+                if ($exists) continue;
+                
+                // Check conflict using datetime
+                $hasConflict = Booking::with('bookingRooms')
+                    ->where('id', '!=', $bookingId)
+                    ->whereNotIn('status', ['cancelled', 'checked_out'])
+                    ->where('check_in_date', '<', $checkOut->toDateString())
+                    ->where('check_out_date', '>', $checkIn->toDateString())
+                    ->get()
+                    ->some(function ($other) use ($checkIn, $checkOut, $roomId) {
+                        if (!in_array((int)$roomId, array_map('intval', $other->getAllRoomIds()))) return false;
+                        $existingCheckIn = $other->getCheckInDateTime();
+                        $existingCheckOut = $other->getCheckOutDateTime();
+                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                    });
+                
+                if ($hasConflict) {
+                    $room = Room::find($roomId);
+                    $unavailableRooms[] = $room ? $room->room_number : $roomId;
+                }
+            }
+            
+            if (!empty($unavailableRooms)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Room(s) ' . implode(', ', $unavailableRooms) . ' already booked for this booking period.'
+                ], 409);
+            }
+            
             // Add new rooms to booking_rooms table
             $addedRooms = [];
             $totalAdditionalAmount = 0;
@@ -486,8 +559,7 @@ class PremiumBookingController extends Controller
                 $booking->notes = trim($booking->notes) . " [Rooms: {$allRoomNumbers}]";
                 
                 // Update payment status
-                $booking->payment_status = $booking->advance_payment >= $booking->total_amount ? 'paid' : 
-                                          ($booking->advance_payment > 0 ? 'partial' : 'pending');
+                $booking->payment_status = $booking->getCalculatedPaymentStatus();
                 $booking->save();
             }
             

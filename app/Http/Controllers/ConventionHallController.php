@@ -29,11 +29,11 @@ class ConventionHallController extends Controller
             'price_per_day' => 'required|numeric',
             'amenities' => 'nullable|array',
             'event_types' => 'nullable|array',
-            'status' => 'required|in:available,booked,maintenance',
+            'is_available' => 'boolean',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $validated['is_available'] = $request->status === 'available';
+        $validated['is_available'] = $request->has('is_available');
         
         // Handle image uploads
         $images = [];
@@ -48,7 +48,7 @@ class ConventionHallController extends Controller
         ConventionHall::create($validated);
 
         return redirect()->route('admin.convention-halls.index')
-            ->with('success', 'কনভেনশন হল সফলভাবে যোগ হয়েছে!');
+            ->with('success', 'Convention hall added successfully!');
     }
 
     public function show(ConventionHall $conventionHall)
@@ -71,11 +71,11 @@ class ConventionHallController extends Controller
             'price_per_day' => 'required|numeric',
             'amenities' => 'nullable|array',
             'event_types' => 'nullable|array',
-            'status' => 'required|in:available,booked,maintenance',
+            'is_available' => 'boolean',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
 
-        $validated['is_available'] = $request->status === 'available';
+        $validated['is_available'] = $request->has('is_available');
         
         // Handle image uploads
         $images = $conventionHall->images ?? [];
@@ -103,7 +103,7 @@ class ConventionHallController extends Controller
         $conventionHall->update($validated);
 
         return redirect()->route('admin.convention-halls.index')
-            ->with('success', 'কনভেনশন হল সফলভাবে আপডেট হয়েছে!');
+            ->with('success', 'Convention hall updated successfully!');
     }
 
     public function destroy(ConventionHall $conventionHall)
@@ -118,7 +118,7 @@ class ConventionHallController extends Controller
         $conventionHall->delete();
 
         return redirect()->route('admin.convention-halls.index')
-            ->with('success', 'কনভেনশন হল সফলভাবে মুছে ফেলা হয়েছে!');
+            ->with('success', 'Convention hall deleted successfully!');
     }
 }
 

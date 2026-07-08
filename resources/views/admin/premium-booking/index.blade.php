@@ -211,23 +211,27 @@
  <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Photo</label>
- <input type="file" id="customer_photo" accept="image/*"
+ <input type="file" id="customer_photo" accept="image/*" multiple onchange="autoUploadFiles(this, 'customer_photo')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="customer_photo_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">NID</label>
- <input type="file" id="customer_nid_document" accept="image/*,application/pdf"
+ <input type="file" id="customer_nid_document" accept="image/*,application/pdf" multiple onchange="autoUploadFiles(this, 'customer_nid_document')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="customer_nid_document_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Passport</label>
- <input type="file" id="passport_document" accept="image/*,application/pdf"
+ <input type="file" id="passport_document" accept="image/*,application/pdf" multiple onchange="autoUploadFiles(this, 'passport_document')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="passport_document_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">V. Card</label>
- <input type="file" id="visiting_card" accept="image/*"
+ <input type="file" id="visiting_card" accept="image/*" multiple onchange="autoUploadFiles(this, 'visiting_card')"
  class="w-full px-2 sm:px-4 py-1 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm">
+ <div id="visiting_card_preview" class="mt-1 flex flex-wrap gap-1"></div>
  </div>
  </div>
  </div>
@@ -361,18 +365,37 @@
  <input type="number" id="discount_amount" step="0.01" value="0" onchange="recalculateAmount()"
  class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
  </div>
- <div>
- <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra ()</label>
- <input type="number" id="extra_charges" step="0.01" value="0" onchange="recalculateAmount()"
- class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <!-- Extra Charges Section with Categories -->
+ <div class="col-span-2 lg:col-span-3">
+ <label class="flex items-center text-xs sm:text-sm font-semibold text-gray-700 mb-2 cursor-pointer">
+ <input type="checkbox" id="enable_extra_charges" onchange="toggleExtraChargesSection()" class="mr-2 w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500">
+ <span>Extra Charges</span>
+ </label>
+ <div id="extraChargesSection" class="hidden">
+ <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-2">
+ <p class="text-xs text-gray-600 mb-2 font-semibold">Select categories and quantity:</p>
+ <div id="extraChargeCategoriesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 max-h-48 overflow-y-auto">
+ <div class="text-center text-gray-400 py-2 text-xs">Loading categories...</div>
  </div>
- <div class="col-span-2">
- <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Extra Description</label>
- <input type="text" id="extra_charges_description"
- class="w-full px-2 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <div id="selectedExtraChargesSummary" class="hidden">
+ <div class="border-t border-yellow-300 pt-2 mt-2">
+ <p class="text-xs font-semibold text-gray-700 mb-1">Selected:</p>
+ <div id="selectedExtraChargesList" class="space-y-1"></div>
+ <div class="flex justify-between items-center mt-2 pt-2 border-t border-yellow-300">
+ <span class="text-sm font-bold text-gray-700">Total Extra:</span>
+ <span class="text-sm font-bold text-primary-600" id="extraChargesTotalDisplay">0</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ <input type="hidden" id="extra_charges" value="0">
+ <input type="hidden" id="extra_charges_description" value="">
+ <input type="hidden" id="extra_charges_data" value="">
  </div>
  <div class="col-span-2 lg:col-span-3 bg-green-50 border-2 border-primary-500 rounded-lg p-3 sm:p-4">
  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+ <input type="hidden" id="base_amount" value="0">
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-primary-700 mb-1 sm:mb-2">Total *</label>
  <input type="number" id="total_amount" step="0.01" required readonly
@@ -449,12 +472,111 @@
  </form>
 </div>
 
+<!-- Upload Progress Overlay -->
+<div id="bookingUploadOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+ <div class="bg-white rounded-xl shadow-2xl p-6 w-80 text-center">
+  <div class="mb-3">
+   <i class="fas fa-cloud-upload-alt text-4xl text-primary-600 animate-bounce"></i>
+  </div>
+  <h3 class="text-lg font-bold text-gray-800 mb-1" id="bookingUploadTitle">Creating Booking...</h3>
+  <p id="bookingUploadPercent" class="text-2xl font-bold text-primary-600 mb-3">0%</p>
+  <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+   <div id="bookingUploadBar" class="bg-primary-600 h-4 rounded-full transition-all duration-200" style="width: 0%"></div>
+  </div>
+  <p class="text-xs text-gray-500 mt-2">Please do not close this window</p>
+ </div>
+</div>
+
 <script>
 let additionalGuests = [];
 let selectedRooms = [];
 let currentSearchDates = {};
 let lastToggleTime = 0; // Debounce for toggle
 let lastSearchDates = ''; // Track date changes
+
+// Auto-upload: stores pre-uploaded file paths per field
+let uploadedDocs = {
+ customer_photo: [],
+ customer_nid_document: [],
+ passport_document: [],
+ visiting_card: [],
+};
+
+// Auto-upload files immediately when selected
+function autoUploadFiles(input, field) {
+ const files = input.files;
+ if (!files || files.length === 0) return;
+
+ const previewDiv = document.getElementById(field + '_preview');
+ const uploadUrl = '{{ route("admin.premium-booking.upload-doc") }}';
+
+ for (let i = 0; i < files.length; i++) {
+  const file = files[i];
+  const fileIdx = uploadedDocs[field].length; // track position
+
+  // Create preview item with progress
+  const itemDiv = document.createElement('div');
+  itemDiv.className = 'relative inline-block';
+  itemDiv.innerHTML = `
+   <div class="w-12 h-12 rounded border border-gray-300 overflow-hidden flex items-center justify-center bg-gray-50">
+    ${file.type.startsWith('image/') ? `<img src="${URL.createObjectURL(file)}" class="w-full h-full object-cover">` : `<i class="fas fa-file-pdf text-xl text-red-500"></i>`}
+   </div>
+   <div class="absolute inset-0 bg-black/40 flex items-center justify-center rounded">
+    <span class="text-white text-[10px] font-bold" data-progress="${field}_${fileIdx}">0%</span>
+   </div>
+  `;
+  previewDiv.appendChild(itemDiv);
+
+  const progressSpan = itemDiv.querySelector(`[data-progress="${field}_${fileIdx}"]`);
+
+  // Upload via XHR with progress
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('field', field);
+
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener('progress', function(e) {
+   if (e.lengthComputable) {
+    const percent = Math.round((e.loaded / e.total) * 100);
+    progressSpan.textContent = percent + '%';
+   }
+  });
+
+  xhr.addEventListener('load', function() {
+   try {
+    const data = JSON.parse(xhr.responseText);
+    if (data.success) {
+     uploadedDocs[field].push(data.path);
+     // Remove progress overlay, show green checkmark
+     itemDiv.querySelector('.absolute').classList.add('hidden');
+     const checkDiv = document.createElement('div');
+     checkDiv.className = 'absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-4 h-4 flex items-center justify-center';
+     checkDiv.innerHTML = '<i class="fas fa-check text-[8px]"></i>';
+     itemDiv.appendChild(checkDiv);
+    } else {
+     progressSpan.textContent = '!';
+     itemDiv.querySelector('.bg-black\\/40').classList.add('bg-red-500');
+    }
+   } catch(e) {
+    progressSpan.textContent = '!';
+   }
+  });
+
+  xhr.addEventListener('error', function() {
+   progressSpan.textContent = '!';
+   itemDiv.querySelector('.bg-black\\/40').classList.add('bg-red-500');
+  });
+
+  xhr.open('POST', uploadUrl);
+  xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send(formData);
+ }
+
+ // Clear the input so user can select more files if needed
+ input.value = '';
+}
 
 // Helper function - ALWAYS use this to compare room IDs
 function normalizeRoomId(id) {
@@ -898,74 +1020,258 @@ function togglePaymentFields() {
  }
 }
 
+// Extra Charge Categories
+let extraChargeCategories = [];
+let selectedExtraChargeItems = [];
+
+function toggleExtraChargesSection() {
+ const checkbox = document.getElementById('enable_extra_charges');
+ const section = document.getElementById('extraChargesSection');
+ if (checkbox.checked) {
+ section.classList.remove('hidden');
+ loadExtraChargeCategories();
+ } else {
+ section.classList.add('hidden');
+ selectedExtraChargeItems = [];
+ updateExtraChargesSummary();
+ recalculateAmount();
+ }
+}
+
+async function loadExtraChargeCategories() {
+ const list = document.getElementById('extraChargeCategoriesList');
+ list.innerHTML = '<div class="text-center text-gray-400 py-2 text-xs">Loading categories...</div>';
+ try {
+ const response = await fetch('/admin/api/extra-charge-categories');
+ extraChargeCategories = await response.json();
+ renderCategoriesList();
+ } catch (error) {
+ list.innerHTML = '<div class="text-center text-red-500 py-2 text-xs">Failed to load</div>';
+ }
+}
+
+function renderCategoriesList() {
+ const container = document.getElementById('extraChargeCategoriesList');
+ if (extraChargeCategories.length === 0) {
+ container.innerHTML = '<div class="text-center text-gray-500 py-2 text-xs col-span-2">No categories available</div>';
+ return;
+ }
+ container.innerHTML = extraChargeCategories.map(cat => {
+ const isSelected = selectedExtraChargeItems.some(item => item.categoryId === cat.id);
+ return `
+ <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 ${isSelected ? 'ring-2 ring-yellow-400' : ''}" data-cat-id="${cat.id}">
+ <div class="flex-1 min-w-0">
+ <div class="flex items-center">
+ <input type="checkbox" id="cat_chk_${cat.id}" onchange="toggleCategorySelection(${cat.id})" ${isSelected ? 'checked' : ''} class="mr-2 w-4 h-4 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500">
+ <span class="text-sm font-medium text-gray-800 truncate">${cat.name}</span>
+ </div>
+ <span class="text-xs text-gray-500 ml-6">${parseFloat(cat.price).toFixed(2)}${cat.unit ? '/' + cat.unit : ''}</span>
+ </div>
+ <div class="flex items-center gap-1 ml-2">
+ <input type="number" min="1" value="1" id="cat_qty_${cat.id}" onchange="updateCategoryQuantity(${cat.id})"
+ class="w-12 px-1 py-1 text-xs border rounded text-center focus:ring-2 focus:ring-yellow-500"
+ ${!isSelected ? 'disabled' : ''}>
+ </div>
+ </div>
+ `;
+ }).join('');
+}
+
+function toggleCategorySelection(categoryId) {
+ const checkbox = document.getElementById('cat_chk_' + categoryId);
+ const qtyInput = document.getElementById('cat_qty_' + categoryId);
+ const category = extraChargeCategories.find(c => c.id === categoryId);
+ if (!category) return;
+
+ if (checkbox.checked) {
+ qtyInput.disabled = false;
+ const quantity = parseInt(qtyInput.value) || 1;
+ const existingIndex = selectedExtraChargeItems.findIndex(item => item.categoryId === categoryId);
+ if (existingIndex >= 0) {
+ selectedExtraChargeItems[existingIndex].quantity = quantity;
+ selectedExtraChargeItems[existingIndex].amount = parseFloat(category.price) * quantity;
+ } else {
+ selectedExtraChargeItems.push({
+ categoryId: category.id,
+ name: category.name,
+ price: parseFloat(category.price),
+ quantity: quantity,
+ amount: parseFloat(category.price) * quantity
+ });
+ }
+ } else {
+ qtyInput.disabled = true;
+ selectedExtraChargeItems = selectedExtraChargeItems.filter(item => item.categoryId !== categoryId);
+ }
+ updateExtraChargesSummary();
+ recalculateAmount();
+}
+
+function updateCategoryQuantity(categoryId) {
+ const qtyInput = document.getElementById('cat_qty_' + categoryId);
+ const quantity = parseInt(qtyInput.value) || 1;
+ const item = selectedExtraChargeItems.find(i => i.categoryId === categoryId);
+ if (item) {
+ item.quantity = quantity;
+ item.amount = item.price * quantity;
+ updateExtraChargesSummary();
+ recalculateAmount();
+ }
+}
+
+function updateExtraChargesSummary() {
+ const summaryDiv = document.getElementById('selectedExtraChargesSummary');
+ const listDiv = document.getElementById('selectedExtraChargesList');
+ const totalDisplay = document.getElementById('extraChargesTotalDisplay');
+
+ if (selectedExtraChargeItems.length === 0) {
+ summaryDiv.classList.add('hidden');
+ document.getElementById('extra_charges').value = '0';
+ document.getElementById('extra_charges_description').value = '';
+ document.getElementById('extra_charges_data').value = '';
+ return;
+ }
+
+ summaryDiv.classList.remove('hidden');
+ let total = 0;
+ listDiv.innerHTML = selectedExtraChargeItems.map(item => {
+ total += item.amount;
+ return `
+ <div class="flex justify-between text-xs">
+ <span class="text-gray-700">${item.name} × ${item.quantity} @ ${item.price.toFixed(2)}</span>
+ <span class="font-semibold text-gray-800">${item.amount.toFixed(2)}</span>
+ </div>
+ `;
+ }).join('');
+
+ totalDisplay.textContent = total.toFixed(2);
+ document.getElementById('extra_charges').value = total.toFixed(2);
+
+ const descriptions = selectedExtraChargeItems.map(item =>
+ `${item.name} × ${item.quantity} = ${item.amount.toFixed(2)}`
+ );
+ document.getElementById('extra_charges_description').value = descriptions.join('; ');
+ document.getElementById('extra_charges_data').value = JSON.stringify(selectedExtraChargeItems);
+}
+
 // Calculations
 function recalculateAmount() {
  if (selectedRooms.length === 0) return;
- 
+
  const discountType = document.getElementById('discount_type').value;
  document.getElementById('discount_percentage_div').classList.toggle('hidden', discountType !== 'percentage');
  document.getElementById('discount_amount_div').classList.toggle('hidden', discountType !== 'flat');
- 
- // Calculate base amount for all selected rooms
+
+ // Calculate base amount for all selected rooms (pure room rent)
  const baseAmount = selectedRooms.reduce((sum, room) => sum + (room.nights * room.pricePerNight), 0);
  document.getElementById('baseAmount').value = baseAmount.toFixed(2);
- 
- // total_amount stores only the base room rent (VAT is calculated dynamically in display)
- document.getElementById('total_amount').value = baseAmount.toFixed(2);
- 
- // VAT (stored separately, calculated dynamically in display)
+ document.getElementById('base_amount').value = baseAmount.toFixed(2);
+
+ // VAT
  const vatEnabled = document.getElementById('vat_enabled').checked;
  const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
  document.getElementById('vat_amount').value = vatAmount.toFixed(2);
- 
- // Calculate display grand total for UI only
- let displayTotal = baseAmount;
- if (vatEnabled) displayTotal += vatAmount;
- 
+
+ // Calculate grand total (base + vat - discount + extra)
+ let grandTotal = baseAmount + vatAmount;
+
  // Discount
+ let discountAmount = 0;
  if (discountType === 'percentage') {
- const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
- const discountAmount = (displayTotal * discountPercentage) / 100;
- displayTotal -= discountAmount;
+  const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+  discountAmount = (grandTotal * discountPercentage) / 100;
+  grandTotal -= discountAmount;
  } else if (discountType === 'flat') {
- const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
- displayTotal -= discountAmount;
+  discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+  grandTotal -= discountAmount;
  }
- 
+
  // Extra charges
  const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
- displayTotal += extraCharges;
- 
+ grandTotal += extraCharges;
+
+ // total_amount shows the GRAND TOTAL to user
+ document.getElementById('total_amount').value = grandTotal.toFixed(2);
+
  calculateRemaining();
 }
 
 function calculateRemaining() {
- const baseAmount = parseFloat(document.getElementById('total_amount').value) || 0;
+ // Read base room rent from hidden base_amount field
+ const baseAmount = parseFloat(document.getElementById('base_amount').value) || 0;
  const vatEnabled = document.getElementById('vat_enabled').checked;
  const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
- 
+
  let grandTotal = baseAmount + vatAmount;
- 
+
  // Apply discount
  const discountType = document.getElementById('discount_type').value;
  if (discountType === 'percentage') {
- const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
- grandTotal -= (grandTotal * discountPercentage) / 100;
+  const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+  grandTotal -= (grandTotal * discountPercentage) / 100;
  } else if (discountType === 'flat') {
- const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
- grandTotal -= discountAmount;
+  const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+  grandTotal -= discountAmount;
  }
- 
+
  // Add extra charges
  const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
  grandTotal += extraCharges;
- 
+
  const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
  document.getElementById('remaining_payment').value = (grandTotal - advance).toFixed(2);
 }
 
 // Prevent double submission
 let isSubmitting = false;
+
+// XHR with upload progress for booking submission
+function sendBookingXHR(formData, url, titleText) {
+ return new Promise((resolve, reject) => {
+  const overlay = document.getElementById('bookingUploadOverlay');
+  const progressBar = document.getElementById('bookingUploadBar');
+  const percentText = document.getElementById('bookingUploadPercent');
+  const titleTextEl = document.getElementById('bookingUploadTitle');
+  
+  titleTextEl.textContent = titleText;
+  progressBar.style.width = '0%';
+  percentText.textContent = '0%';
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  
+  const xhr = new XMLHttpRequest();
+  
+  xhr.upload.addEventListener('progress', function(e) {
+   if (e.lengthComputable) {
+    const percent = Math.round((e.loaded / e.total) * 100);
+    progressBar.style.width = percent + '%';
+    percentText.textContent = percent + '%';
+   }
+  });
+  
+  xhr.addEventListener('load', function() {
+   overlay.classList.add('hidden');
+   overlay.classList.remove('flex');
+   try {
+    const data = JSON.parse(xhr.responseText);
+    resolve(data);
+   } catch(e) {
+    reject(new Error('Invalid server response'));
+   }
+  });
+  
+  xhr.addEventListener('error', function() {
+   overlay.classList.add('hidden');
+   overlay.classList.remove('flex');
+   reject(new Error('Network error'));
+  });
+  
+  xhr.open('POST', url);
+  xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+  xhr.setRequestHeader('Accept', 'application/json');
+  xhr.send(formData);
+ });
+}
 
 // Form Submission - Single booking with multiple rooms
 async function submitBooking(e) {
@@ -1065,15 +1371,7 @@ async function submitBooking(e) {
  formData.append('existing_booking_id', existingBookingId);
  
  // For existing booking, only send rooms data
- const response = await fetch('{{ route("admin.premium-booking.book") }}', {
- method: 'POST',
- headers: {
- 'X-CSRF-TOKEN': '{{ csrf_token() }}'
- },
- body: formData
- });
-
- const data = await response.json();
+ const data = await sendBookingXHR(formData, '{{ route("admin.premium-booking.book") }}', 'Adding Rooms...');
  
  if (data.success) {
  showGlobalModal('success', data.message);
@@ -1105,18 +1403,13 @@ async function submitBooking(e) {
  formData.append('reference_name', document.getElementById('reference_name').value);
  formData.append('reference_phone', document.getElementById('reference_phone').value);
  
- // Documents
- const customerPhoto = document.getElementById('customer_photo').files[0];
- if (customerPhoto) formData.append('customer_photo', customerPhoto);
- 
- const customerNidDoc = document.getElementById('customer_nid_document').files[0];
- if (customerNidDoc) formData.append('customer_nid_document', customerNidDoc);
- 
- const passportDoc = document.getElementById('passport_document').files[0];
- if (passportDoc) formData.append('passport_document', passportDoc);
- 
- const visitingCard = document.getElementById('visiting_card').files[0];
- if (visitingCard) formData.append('visiting_card', visitingCard);
+ // Documents - send pre-uploaded paths (files already uploaded on select)
+ const docFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
+ docFields.forEach(function(field) {
+  if (uploadedDocs[field].length > 0) {
+   formData.append(field + '_paths', JSON.stringify(uploadedDocs[field]));
+  }
+ });
  
  // Booking details
  formData.append('number_of_guests', document.getElementById('number_of_guests').value);
@@ -1124,8 +1417,8 @@ async function submitBooking(e) {
  formData.append('status', document.getElementById('status').value);
  formData.append('notes', document.getElementById('notes').value);
  
- // Payment - full amounts for single booking
- formData.append('total_amount', document.getElementById('total_amount').value);
+ // Payment - send base_amount as total_amount to backend (backend expects base room rent)
+ formData.append('total_amount', document.getElementById('base_amount').value);
  formData.append('vat_enabled', document.getElementById('vat_enabled').checked ? '1' : '0');
  formData.append('vat_amount', document.getElementById('vat_amount').value);
  formData.append('discount_type', document.getElementById('discount_type').value);
@@ -1133,6 +1426,19 @@ async function submitBooking(e) {
  formData.append('discount_amount', document.getElementById('discount_amount').value || '0');
  formData.append('extra_charges', document.getElementById('extra_charges').value || '0');
  formData.append('extra_charges_description', document.getElementById('extra_charges_description').value);
+ const extraChargesData = document.getElementById('extra_charges_data').value;
+ if (extraChargesData) {
+  try {
+   const parsed = JSON.parse(extraChargesData);
+   parsed.forEach((item, index) => {
+    formData.append(`extra_charges_data[${index}][category_id]`, item.categoryId || '');
+    formData.append(`extra_charges_data[${index}][name]`, item.name || '');
+    formData.append(`extra_charges_data[${index}][price]`, item.price || 0);
+    formData.append(`extra_charges_data[${index}][quantity]`, item.quantity || 1);
+    formData.append(`extra_charges_data[${index}][amount]`, item.amount || 0);
+   });
+  } catch (e) {}
+ }
  formData.append('advance_payment', document.getElementById('advance_payment').value);
  formData.append('remaining_payment', document.getElementById('remaining_payment').value);
  formData.append('payment_method', document.getElementById('payment_method').value);
@@ -1144,29 +1450,29 @@ async function submitBooking(e) {
  formData.append('additional_guests', JSON.stringify(guestList));
  }
  
- const response = await fetch('{{ route("admin.premium-booking.book") }}', {
- method: 'POST',
- headers: {
- 'X-CSRF-TOKEN': '{{ csrf_token() }}'
- },
- body: formData
- });
-
- const data = await response.json();
+ const data = await sendBookingXHR(formData, '{{ route("admin.premium-booking.book") }}', 'Creating Booking...');
  
  if (data.success) {
  const roomCount = selectedRooms.length;
  showGlobalModal('success', `Booking created successfully with ${roomCount} room${roomCount > 1 ? 's' : ''}!`);
  setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
  } else {
- showGlobalModal('error', data.message || 'Booking failed!');
+ // Show detailed error including validation errors
+ let errorMsg = data.message || 'Booking failed!';
+ if (data.errors && typeof data.errors === 'object') {
+  const errList = Object.values(data.errors).flat();
+  if (errList.length > 0) {
+   errorMsg += ':\n• ' + errList.join('\n• ');
+  }
+ }
+ showGlobalModal('error', errorMsg);
  submitBtn.innerHTML = originalText;
  submitBtn.disabled = false;
  isSubmitting = false;
  }
  } catch (error) {
  console.error('Booking error:', error);
- showGlobalModal('error', 'Error creating booking');
+ showGlobalModal('error', 'Booking failed. Please check console for details.');
  submitBtn.innerHTML = originalText;
  submitBtn.disabled = false;
  isSubmitting = false;

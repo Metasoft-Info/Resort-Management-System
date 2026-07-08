@@ -4,48 +4,66 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Booking;
+use App\Models\Room;
 use Carbon\Carbon;
 
 class AutoCheckoutBookings extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'bookings:auto-checkout';
+    protected $description = 'Automatically check-in and check-out bookings based on date+time';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Automatically checkout bookings that are past their check-out date';
-
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
-        $today = Carbon::today();
-        
-        // Find bookings that should be checked out
-        $bookings = Booking::where('status', 'checked_in')
-            ->whereDate('check_out_date', '<', $today)
+        $now = Carbon::now('Asia/Dhaka');
+
+        // ---- AUTO CHECK-IN ----
+        $checkInBookings = Booking::where('status', 'confirmed')
+            ->whereDate('check_in_date', '<=', $now->toDateString())
             ->get();
 
-        $count = 0;
-        foreach ($bookings as $booking) {
-            $booking->update([
-                'status' => 'checked_out'
-            ]);
-            $count++;
-            
-            $this->info("Auto checked-out booking #{$booking->id} - {$booking->customer_name}");
+        $checkInCount = 0;
+        foreach ($checkInBookings as $booking) {
+            if ($booking->shouldBeCheckedIn($now)) {
+                $booking->update(['status' => 'checked_in']);
+                $this->markRoomsOccupied($booking);
+                $checkInCount++;
+                $this->info("Auto checked-in booking #{$booking->id} - {$booking->customer_name}");
+            }
         }
+        $this->info("Total bookings auto checked-in: {$checkInCount}");
 
-        $this->info("Total bookings auto checked-out: {$count}");
-        
+        // ---- AUTO CHECK-OUT ----
+        $checkOutBookings = Booking::where('status', 'checked_in')
+            ->whereDate('check_out_date', '<=', $now->toDateString())
+            ->get();
+
+        $checkOutCount = 0;
+        foreach ($checkOutBookings as $booking) {
+            if ($booking->shouldBeCheckedOut($now)) {
+                $booking->update(['status' => 'checked_out']);
+                $this->markRoomsAvailable($booking);
+                $checkOutCount++;
+                $this->info("Auto checked-out booking #{$booking->id} - {$booking->customer_name}");
+            }
+        }
+        $this->info("Total bookings auto checked-out: {$checkOutCount}");
+
         return Command::SUCCESS;
+    }
+
+    private function markRoomsOccupied(Booking $booking)
+    {
+        $roomIds = $booking->getAllRoomIds();
+        if (!empty($roomIds)) {
+            Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
+        }
+    }
+
+    private function markRoomsAvailable(Booking $booking)
+    {
+        $roomIds = $booking->getAllRoomIds();
+        if (!empty($roomIds)) {
+            Room::whereIn('id', $roomIds)->update(['status' => 'available']);
+        }
     }
 }

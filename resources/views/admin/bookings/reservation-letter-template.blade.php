@@ -4,8 +4,9 @@
  
  <!-- Header with Logo - Centered -->
  <div style="text-align: center; margin-bottom: 10px;">
- @if($resortInfo && $resortInfo->header_logo)
- <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 65px; margin: 0 auto 5px; display: block;">
+ @php $logoPath = ($resortInfo && $resortInfo->header_logo) ? asset('storage/' . $resortInfo->header_logo) : null; @endphp
+ @if($logoPath)
+ <img src="{{ $logoPath }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 65px; margin: 0 auto 5px; display: block;">
  @else
  <div style="width: 65px; height: 65px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">Lake View</div>
  @endif
@@ -89,7 +90,8 @@
  $extraCharges = $booking->extra_charges ?? 0;
  $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
  $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
- $remainingPayment = $grandTotal - $booking->advance_payment;
+ $totalDeposited = $booking->getTotalDeposited();
+$remainingPayment = max(0, $grandTotal - $totalDeposited);
  
  // Convert to words
  $amountInWords = \App\Helpers\NumberToWords::convertTaka($grandTotal);
@@ -176,8 +178,8 @@
  <td style="padding: 2px 5px; text-align: right; border-top: 1px solid #000;">{{ number_format($grandTotal, 0) }}</td>
  </tr>
  <tr style="color: #060;">
- <td style="padding: 2px 5px; text-align: right;">Advance Paid:</td>
- <td style="padding: 2px 5px; text-align: right;">{{ number_format($booking->advance_payment, 0) }}</td>
+ <td style="padding: 2px 5px; text-align: right;">Total Paid:</td>
+ <td style="padding: 2px 5px; text-align: right;">{{ number_format($totalDeposited, 0) }}</td>
  </tr>
  <tr style="font-weight: bold; color: #c00;">
  <td style="padding: 2px 5px; text-align: right;">Due Amount:</td>

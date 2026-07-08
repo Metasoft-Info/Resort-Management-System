@@ -96,37 +96,37 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0;">Room Charges:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">৳{{ number_format($invoiceBaseAmount, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">BDT {{ number_format($invoiceBaseAmount, 0) }}</td>
                                 </tr>
                                 @if($invoiceExtraCharges > 0)
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0;">Extra Charges @if($booking->extra_charges_description)({{ $booking->extra_charges_description }})@endif:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">৳{{ number_format($invoiceExtraCharges, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">BDT {{ number_format($invoiceExtraCharges, 0) }}</td>
                                 </tr>
                                 @endif
                                 @if($invoiceVatAmount > 0)
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0;">VAT (15%):</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">৳{{ number_format($invoiceVatAmount, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right;">BDT {{ number_format($invoiceVatAmount, 0) }}</td>
                                 </tr>
                                 @endif
                                 @if($invoiceDiscountAmount > 0)
                                 <tr>
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; color: #dc2626;">Discount @if($booking->discount_type === 'percentage')({{ $booking->discount_percentage }}%)@endif:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #dc2626;">- ৳{{ number_format($invoiceDiscountAmount, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #dc2626;">- BDT {{ number_format($invoiceDiscountAmount, 0) }}</td>
                                 </tr>
                                 @endif
                                 <tr style="background-color: #dcfce7;">
                                     <td style="padding: 12px; font-weight: bold;">Grand Total:</td>
-                                    <td style="padding: 12px; text-align: right; font-weight: bold; color: #166534; font-size: 18px;">৳{{ number_format($invoiceGrandTotal, 0) }}</td>
+                                    <td style="padding: 12px; text-align: right; font-weight: bold; color: #166534; font-size: 18px;">BDT {{ number_format($invoiceGrandTotal, 0) }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0;">Advance Paid:</td>
-                                    <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0; text-align: right; color: #166534;">৳{{ number_format($booking->advance_payment, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0; text-align: right; color: #166534;">BDT {{ number_format($booking->advance_payment, 0) }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 12px; font-weight: bold; background-color: #fef2f2;">Amount Paid at Checkout:</td>
-                                    <td style="padding: 12px; text-align: right; font-weight: bold; background-color: #fef2f2; color: #166534;">৳{{ number_format($invoiceRemainingPayment, 0) }}</td>
+                                    <td style="padding: 12px; text-align: right; font-weight: bold; background-color: #fef2f2; color: #166534;">BDT {{ number_format($invoiceRemainingPayment, 0) }}</td>
                                 </tr>
                             </table>
 

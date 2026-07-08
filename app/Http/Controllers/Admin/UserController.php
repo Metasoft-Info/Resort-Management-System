@@ -27,7 +27,7 @@ class UserController extends Controller {
         $validated['permissions'] = $request->input('permissions', []);
         $validated['is_active'] = $request->has('is_active');
         User::create($validated);
-        return redirect()->route('admin.users.index')->with('success', 'ব্যবহারকারী তৈরি হয়েছে!');
+        return redirect()->route('admin.users.index')->with('success', 'User created successfully!');
     }
     public function edit(User $user) {
         $menuSettings = AdminMenuSetting::where('is_active', true)->orderBy('order')->get();
@@ -46,13 +46,13 @@ class UserController extends Controller {
         $validated['permissions'] = $request->input('permissions', []);
         $validated['is_active'] = $request->has('is_active');
         $user->update($validated);
-        return redirect()->route('admin.users.index')->with('success', 'ব্যবহারকারী আপডেট হয়েছে!');
+        return redirect()->route('admin.users.index')->with('success', 'User updated successfully!');
     }
     public function destroy(User $user) {
         if ($user->id === auth()->id()) {
-            return redirect()->route('admin.users.index')->with('error', 'আপনি নিজেকে মুছতে পারবেন না!');
+            return redirect()->route('admin.users.index')->with('error', 'You cannot delete yourself!');
         }
         $user->delete();
-        return redirect()->route('admin.users.index')->with('success', 'ব্যবহারকারী মুছে ফেলা হয়েছে!');
+        return redirect()->route('admin.users.index')->with('success', 'User deleted successfully!');
     }
 }

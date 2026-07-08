@@ -1,19 +1,93 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
-use App\Models\{Booking, ConventionBooking, RoomType, Room, ConventionHall, ResortInfo};
+use App\Models\{Booking, ConventionBooking, RoomType, Room, ConventionHall, ResortInfo, ExtraChargeCategory};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
-        $query = Booking::with(['room.roomType']);
-        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
-        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+        $today = date('Y-m-d');
+        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'payments']);
+
+        // Due Only filter: show only checked-out bookings with remaining payment > 0
+        if ($request->due_only) {
+            $query->where('status', 'checked_out');
+            // We'll filter by remaining > 0 after fetching since it's calculated
+        } elseif ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+            $isSingleDate = ($start === $end);
+
+            $query->where(function ($q) use ($start, $end, $isSingleDate) {
+                if ($isSingleDate) {
+                    // Single date: only show activity on this specific date
+                    $q->whereDate('check_in_date', $start)
+                      ->orWhereDate('check_out_date', $start)
+                      ->orWhere(function ($qq) use ($start) {
+                          $qq->whereDate('check_in_date', '<=', $start)
+                             ->whereDate('check_out_date', '>', $start)
+                             ->where('status', 'checked_in');
+                      })
+                      ->orWhere(function ($qq) use ($start) {
+                          $qq->where('status', 'cancelled')
+                             ->whereDate('check_in_date', $start);
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($start) {
+                          $pq->whereDate('created_at', $start)
+                             ->where('type', '!=', 'refund');
+                      });
+                } else {
+                    $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                      ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                      ->orWhere(function ($qq) use ($start, $end) {
+                          $qq->whereDate('check_in_date', '<=', $end)
+                             ->whereDate('check_out_date', '>=', $start)
+                             ->where('status', 'checked_in');
+                      })
+                      ->orWhere(function ($qq) use ($start, $end) {
+                          $qq->where('status', 'cancelled')
+                             ->whereDate('check_in_date', '<=', $end)
+                             ->whereDate('check_in_date', '>=', $start);
+                      })
+                      ->orWhereHas('payments', function ($pq) use ($start, $end) {
+                          $pq->whereDate('created_at', '>=', $start)
+                             ->whereDate('created_at', '<=', $end)
+                             ->where('type', '!=', 'refund');
+                      });
+                }
+            });
+        } else {
+            $query->where(function ($q) use ($today) {
+                $q->where('status', 'checked_in')
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'checked_out')
+                         ->whereDate('check_out_date', $today);
+                  })
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'cancelled')
+                         ->whereDate('check_in_date', '>=', $today);
+                  });
+            });
+        }
+
         if($request->status) $query->where('status', $request->status);
         if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
         if($request->room_id) $query->where('room_id', $request->room_id);
         if($request->payment_status) $query->where('payment_status', $request->payment_status);
+        if($request->discount_status) {
+            if($request->discount_status === 'has_discount') {
+                $query->where(function($q) {
+                    $q->whereNotNull('discount_status')
+                      ->orWhere('discount_amount', '>', 0)
+                      ->orWhere(function($sq) {
+                          $sq->where('discount_type', 'percentage')->where('discount_percentage', '>', 0);
+                      });
+                });
+            } else {
+                $query->where('discount_status', $request->discount_status);
+            }
+        }
         if($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('customer_name', 'like', "%{$request->search}%")
@@ -24,23 +98,82 @@ class ReportController extends Controller {
         }
         
         $summaryBookings = (clone $query)->get();
+        
+        // Filter by remaining > 0 for due_only mode
+        if ($request->due_only) {
+            $summaryBookings = $summaryBookings->filter(fn($b) => $b->getCalculatedRemaining() > 0);
+        }
+        
         $totalBookings = $summaryBookings->count();
         $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
         $totalAdvance = $summaryBookings->sum('advance_payment');
-        $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
+
+        // Determine the filter date for counts
+        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
+        $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
+
+        // Booking count breakdown - use filtered date, not actual today
+        $checkedInCount = $summaryBookings->where('status', 'checked_in')->count();
+        $checkedOutCount = $summaryBookings->where('status', 'checked_out')->count();
+        $confirmedCount = $summaryBookings->where('status', 'confirmed')->count();
+        $cancelledCount = $summaryBookings->where('status', 'cancelled')->count();
+        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date && $b->check_in_date->format('Y-m-d') == $filterEndDate)->count();
+        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date && $b->check_out_date->format('Y-m-d') == $filterEndDate)->count();
         
-        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        if ($request->due_only) {
+            $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
+            $totalRemaining = $summaryBookings->sum(fn($b) => $b->getCalculatedRemaining());
+            // Manual pagination for due_only since we filter in collection
+            $dueBookings = $summaryBookings->sortByDesc('check_in_date')->values();
+            $perPage = 20;
+            $currentPage = request()->get('page', 1);
+            $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
+                $dueBookings->forPage($currentPage, $perPage),
+                $dueBookings->count(),
+                $perPage,
+                $currentPage,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+        } else {
+            // Use date-range filtered payment calculations for summary
+            $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
+            $totalRemaining = $summaryBookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
+            $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        }
         $roomTypes = RoomType::all();
         $rooms = Room::orderBy('room_number')->get();
         $resortInfo = ResortInfo::first();
         
-        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo'));
+        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalDeposited', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo', 'filterEndDate', 'filterStartDate', 'checkedInCount', 'checkedOutCount', 'confirmedCount', 'cancelledCount', 'checkInTodayCount', 'checkOutTodayCount'));
     }
     
     public function exportRoomBookings(Request $request) {
+        $today = date('Y-m-d');
         $query = Booking::with(['room.roomType']);
-        if($request->start_date) $query->whereDate('check_in_date', '>=', $request->start_date);
-        if($request->end_date) $query->whereDate('check_in_date', '<=', $request->end_date);
+
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start)
+                         ->where('status', 'checked_in');
+                  });
+            });
+        } else {
+            $query->where(function ($q) use ($today) {
+                $q->where('status', 'checked_in')
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'checked_out')
+                         ->whereDate('check_out_date', $today);
+                  });
+            });
+        }
+
         if($request->status) $query->where('status', $request->status);
         if($request->room_type_id) $query->whereHas('room', fn($q) => $q->where('room_type_id', $request->room_type_id));
         if($request->room_id) $query->where('room_id', $request->room_id);
@@ -54,9 +187,13 @@ class ReportController extends Controller {
         }
         
         $bookings = $query->orderBy('check_in_date', 'desc')->get();
+        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
+        $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
         
-        $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Total Amount,Advance,Remaining,Payment Status,Status\n";
+        $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Total Amount,Advance,Deposited,Remaining,Payment Status,Status (As of {$filterEndDate})\n";
         foreach ($bookings as $b) {
+            $deposited = $b->getTotalDepositedInRange($filterStartDate, $filterEndDate);
+            $remaining = $b->getGrandTotal() - $deposited;
             $csvContent .= "\"{$b->id}\",";
             $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
             $csvContent .= "\"{$b->customer_phone}\",";
@@ -67,9 +204,10 @@ class ReportController extends Controller {
             $csvContent .= "\"{$b->check_out_date}\",";
             $csvContent .= "\"{$b->total_amount}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
-            $csvContent .= "\"{$b->remaining_payment}\",";
+            $csvContent .= "\"{$deposited}\",";
+            $csvContent .= "\"{$remaining}\",";
             $csvContent .= "\"{$b->payment_status}\",";
-            $csvContent .= "\"{$b->status}\"\n";
+            $csvContent .= "\"" . $b->getStatusAsOfDate($filterEndDate) . "\"\n";
         }
         
         $filename = 'room-bookings-report-' . date('Y-m-d') . '.csv';
@@ -225,13 +363,13 @@ class ReportController extends Controller {
     public function combined(Request $request) {
         $roomTypeFilter = $request->room_type_id;
         
-        $roomBookingsQuery = Booking::with(['room.roomType'])
+        $roomBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->orderBy('check_in_date', 'desc');
-        $advanceBookingsQuery = Booking::with(['room.roomType'])
+        $advanceBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('check_in_date', '>', date('Y-m-d'))
             ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
             ->orderBy('check_in_date', 'asc');
-        $unpaidBookingsQuery = Booking::with(['room.roomType'])
+        $unpaidBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('status', 'checked_in')
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'paid')
@@ -284,11 +422,11 @@ class ReportController extends Controller {
     public function exportCombined(Request $request) {
         $roomTypeFilter = $request->room_type_id;
         
-        $roomBookingsQuery = Booking::with(['room.roomType']);
-        $advanceBookingsQuery = Booking::with(['room.roomType'])
+        $roomBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType']);
+        $advanceBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('check_in_date', '>', date('Y-m-d'))
             ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
-        $unpaidBookingsQuery = Booking::with(['room.roomType'])
+        $unpaidBookingsQuery = Booking::with(['room.roomType', 'bookingRooms.room.roomType'])
             ->where('status', 'checked_in')
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'paid')
@@ -395,6 +533,88 @@ class ReportController extends Controller {
         $resortInfo = ResortInfo::first();
         
         return view('admin.reports.convention-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'halls', 'resortInfo'));
+    }
+
+    public function policeStation(Request $request) {
+        $today = date('Y-m-d');
+        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'additionalGuests', 'createdBy']);
+
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start)
+                         ->where('status', 'checked_in');
+                  });
+            });
+        } else {
+            $query->where(function ($q) use ($today) {
+                $q->where('status', 'checked_in')
+                  ->orWhere(function ($qq) use ($today) {
+                      $qq->where('status', 'checked_out')
+                         ->whereDate('check_out_date', $today);
+                  });
+            });
+        }
+
+        if ($request->status) $query->where('status', $request->status);
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                  ->orWhere('customer_nid', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
+            });
+        }
+
+        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        $roomTypes = RoomType::all();
+        $rooms = Room::orderBy('room_number')->get();
+        $resortInfo = ResortInfo::first();
+
+        return view('admin.reports.police-station', compact('bookings', 'roomTypes', 'rooms', 'resortInfo'));
+    }
+
+    public function guestExtraCharges(Request $request) {
+        $today = date('Y-m-d');
+        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'createdBy'])
+            ->where(function($q) {
+                $q->where('extra_charges', '>', 0)
+                  ->orWhereNotNull('extra_charges_data');
+            });
+
+        if ($request->start_date || $request->end_date) {
+            $start = $request->start_date ?: $today;
+            $end = $request->end_date ?: $start;
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
+                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
+                  ->orWhere(function ($qq) use ($start, $end) {
+                      $qq->whereDate('check_in_date', '<=', $end)
+                         ->whereDate('check_out_date', '>=', $start);
+                  });
+            });
+        }
+
+        if ($request->status) $query->where('status', $request->status);
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('customer_name', 'like', "%{$request->search}%")
+                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
+            });
+        }
+
+        $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
+        $categories = ExtraChargeCategory::active()->orderBy('order')->get();
+        $rooms = Room::orderBy('room_number')->get();
+        $resortInfo = ResortInfo::first();
+
+        return view('admin.reports.guest-extra-charges', compact('bookings', 'categories', 'rooms', 'resortInfo'));
     }
     
     public function exportConventionBookings(Request $request) {

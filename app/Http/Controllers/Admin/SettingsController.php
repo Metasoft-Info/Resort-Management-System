@@ -28,6 +28,8 @@ class SettingsController extends Controller {
     }
 
     public function updateResortInfo(Request $request) {
+        \Log::info('updateResortInfo called', ['email' => $request->input('email')]);
+        
         $validated = $request->validate([
             'resort_name' => 'required|string|max:255',
             'resort_tagline' => 'nullable|string|max:255',
@@ -43,6 +45,9 @@ class SettingsController extends Controller {
             'twitter_url' => 'nullable|url',
             'copyright_text' => 'nullable|string',
             'facilities' => 'nullable|string',
+        ], [
+            'email.required' => 'Email field is required',
+            'email.email' => 'Please enter a valid email address',
         ]);
 
         $resortInfo = ResortInfo::first() ?? new ResortInfo();
@@ -73,8 +78,10 @@ class SettingsController extends Controller {
 
         if ($resortInfo->exists) {
             $resortInfo->update($validated);
+            \Log::info('Resort info updated', ['email_after' => $resortInfo->fresh()->email]);
         } else {
             ResortInfo::create($validated);
+            \Log::info('New resort info created');
         }
 
         return back()->with('success', 'Resort information updated successfully!');
@@ -214,7 +221,7 @@ class SettingsController extends Controller {
         }
 
         $resortInfo->save();
-        return back()->with('success', 'লোগো সফলভাবে আপডেট হয়েছে!');
+        return back()->with('success', 'Logo updated successfully!');
     }
 
     public function deleteLogo(Request $request, $type) {
@@ -228,7 +235,7 @@ class SettingsController extends Controller {
             }
         }
 
-        return back()->with('success', 'লোগো মুছে ফেলা হয়েছে!');
+        return back()->with('success', 'Logo deleted successfully!');
     }
 
     // Admin Menu Settings
@@ -241,12 +248,12 @@ class SettingsController extends Controller {
         // System menus are always active
         AdminMenuSetting::where('is_system', true)->update(['is_active' => true]);
 
-        return back()->with('success', 'মেনু সেটিংস আপডেট হয়েছে!');
+        return back()->with('success', 'Menu settings updated!');
     }
 
     public function seedMenus() {
         AdminMenuSetting::seedDefaultMenus();
-        return back()->with('success', 'ডিফল্ট মেনু লোড হয়েছে!');
+        return back()->with('success', 'Default menu loaded!');
     }
 
     // Reset Room Bookings Only

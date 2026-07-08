@@ -259,7 +259,7 @@
             <td style="width: 55%; vertical-align: top;">
                 <p style="margin: 2px 0;"><strong>In Word:</strong> {{ $amountInWords }}</p>
                 @if($invoiceExtraCharges > 0)
-                <p style="margin: 2px 0;"><strong>Extra:</strong> {{ $booking->extra_charges_description ?? '' }} - ৳{{ number_format($invoiceExtraCharges, 0) }}</p>
+                <p style="margin: 2px 0;"><strong>Extra:</strong> {{ $booking->extra_charges_description ?? '' }} - BDT {{ number_format($invoiceExtraCharges, 0) }}</p>
                 @endif
                 <p style="margin: 2px 0;"><strong>Payment:</strong> {{ ucfirst($booking->payment_method ?? 'Cash') }}</p>
             </td>
@@ -292,12 +292,12 @@
                         <td style="text-align: right; padding-top: 3px;">{{ number_format($invoiceGrandTotal, 0) }}/-</td>
                     </tr>
                     <tr style="color: #060;">
-                        <td style="text-align: right;">Advance:</td>
-                        <td style="text-align: right;">{{ number_format($booking->advance_payment, 0) }}/-</td>
+                        <td style="text-align: right;">Total Paid:</td>
+                        <td style="text-align: right;">{{ number_format($booking->getTotalDeposited(), 0) }}/-</td>
                     </tr>
                     <tr style="font-weight: bold; color: #c00;">
                         <td style="text-align: right;"><strong>Due:</strong></td>
-                        <td style="text-align: right;">{{ number_format($booking->remaining_payment, 0) }}/-</td>
+                        <td style="text-align: right;">{{ number_format(max(0, $booking->getCalculatedRemaining()), 0) }}/-</td>
                     </tr>
                 </table>
             </td>
@@ -319,7 +319,7 @@
             <tr>
                 <td>{{ $payment->created_at->format('d/m/Y') }}</td>
                 <td>{{ ucfirst($payment->method) }}</td>
-                <td style="text-align: right;">৳{{ number_format($payment->amount, 0) }}</td>
+                <td style="text-align: right;">BDT {{ number_format($payment->amount, 0) }}</td>
                 <td>{{ $payment->note ?? '-' }}</td>
             </tr>
             @endforeach
