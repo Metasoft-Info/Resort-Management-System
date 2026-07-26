@@ -571,7 +571,7 @@
  </div>
 
  <!-- Add Payment Form -->
- @if($booking->remaining_payment > 0 && $booking->status != 'cancelled')
+ @if($groupTotals['remaining_payment'] > 0 && $booking->status != 'cancelled')
  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
  <div class="bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-4">
  <h2 class="text-lg font-bold text-white flex items-center gap-2">
