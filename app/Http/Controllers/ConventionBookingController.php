@@ -363,16 +363,20 @@ class ConventionBookingController extends Controller
             $bookingData['hall_rent'] = $perHallRent;
             $bookingData['discount'] = $perHallDiscount;
 
+            // For multiple halls: only first booking gets food, addons, and advance
+            // Subsequent halls are hall-rent-only bookings
+            if ($idx > 0) {
+                $bookingData['food_cost'] = 0;
+                $bookingData['food_package_id'] = null;
+                $bookingData['addons_cost'] = 0;
+                $bookingData['selected_addons'] = [];
+                $bookingData['addon_quantities'] = [];
+                $bookingData['advance_payment'] = 0;
+            }
+
             $totals = $this->calculateTotals($bookingData);
             $bookingData = array_merge($bookingData, $totals);
             $bookingData['status'] = $request->status ?? 'confirmed';
-
-            // For multiple halls, only first booking gets the advance payment
-            if ($idx > 0) {
-                $bookingData['advance_payment'] = 0;
-                $totals = $this->calculateTotals($bookingData);
-                $bookingData = array_merge($bookingData, $totals);
-            }
 
             $booking = ConventionBooking::create($bookingData);
             $createdBookings[] = $booking;
