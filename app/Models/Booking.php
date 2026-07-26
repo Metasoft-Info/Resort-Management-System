@@ -428,6 +428,20 @@ class Booking extends Model
             ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance')
             ->sum('amount');
 
+        $hasAdvanceInRange = $advanceRecord !== null;
+
+        if (!$hasAdvanceInRange) {
+            // Legacy/no advance record: include stored advance only if booking was created within range
+            $bookingDate = \Carbon\Carbon::parse($this->created_at)->startOfDay();
+            $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+            $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+            $hasAdvanceInRange = $bookingDate->between($start, $end);
+        }
+
+        if (!$hasAdvanceInRange) {
+            return (float) $extraPayments;
+        }
+
         if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
             return $advanceInDb + (float) $extraPayments;
         }
