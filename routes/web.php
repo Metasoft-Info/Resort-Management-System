@@ -89,6 +89,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/convention-bookings/{conventionBooking}/add-payment', [ConventionBookingController::class, 'addPayment'])->name('convention-bookings.add-payment');
     Route::post('/convention-bookings/{conventionBooking}/update-status', [ConventionBookingController::class, 'updateStatus'])->name('convention-bookings.update-status');
     Route::post('/convention-bookings/{conventionBooking}/update-addons', [ConventionBookingController::class, 'updateAddons'])->name('convention-bookings.update-addons');
+    Route::post('/convention-bookings/{conventionBooking}/add-halls', [ConventionBookingController::class, 'addHalls'])->name('convention-bookings.add-halls');
     
     // Premium Convention (Advanced Hall Booking)
     Route::get('/premium-convention', [PremiumConventionController::class, 'index'])->name('premium-convention.index');

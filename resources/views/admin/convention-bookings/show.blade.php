@@ -32,6 +32,11 @@
  <button onclick="printConventionInvoice()" class="px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition shadow-lg">
  <i class="fas fa-print mr-2"></i>Print Invoice
  </button>
+ @if($availableHalls->count() > 0 && $booking->status != 'cancelled')
+ <button onclick="openAddHallsModal()" class="px-5 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg">
+ <i class="fas fa-plus mr-2"></i>Add Halls
+ </button>
+ @endif
  <a href="{{ route('admin.convention-bookings.edit', $booking) }}" class="px-5 py-2.5 bg-white text-violet-600 rounded-xl font-bold hover:bg-violet-50 transition shadow-lg">
  <i class="fas fa-edit mr-2"></i>Edit
  </a>
@@ -742,7 +747,66 @@
  </div>
 </div>
 
+@if($availableHalls->count() > 0 && $booking->status != 'cancelled')
+<!-- Add More Halls Modal -->
+<div id="addHallsModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+ <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+ <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex justify-between items-center">
+ <h3 class="text-xl font-bold text-white"><i class="fas fa-plus-circle mr-2"></i>Add More Halls</h3>
+ <button onclick="closeAddHallsModal()" class="text-white hover:text-amber-100 text-xl">
+ <i class="fas fa-times"></i>
+ </button>
+ </div>
+ <form action="{{ route('admin.convention-bookings.add-halls', $booking) }}" method="POST" class="p-6">
+ @csrf
+ <p class="text-gray-600 mb-4">Select free halls for <strong>{{ \Carbon\Carbon::parse($booking->event_date)->format('d M, Y') }}</strong> -
+ @if($booking->time_slot == 'morning') Morning
+ @elseif($booking->time_slot == 'night') Night
+ @else Full Day
+ @endif
+ slot:</p>
+ <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto mb-6">
+ @foreach($availableHalls as $hall)
+ <label class="flex items-center gap-3 p-4 border-2 border-gray-300 rounded-xl cursor-pointer hover:border-amber-500 hover:bg-amber-50 transition add-hall-card">
+ <input type="checkbox" name="hall_ids[]" value="{{ $hall->id }}" class="w-5 h-5 text-amber-600 rounded" onchange="toggleAddHallCard(this)">
+ <div>
+ <div class="font-semibold text-gray-800">{{ $hall->name }}</div>
+ <div class="text-amber-600 font-bold">BDT {{ number_format($hall->price_per_day, 0) }}</div>
+ </div>
+ </label>
+ @endforeach
+ </div>
+ <div class="flex gap-3">
+ <button type="button" onclick="closeAddHallsModal()" class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-100 transition">Cancel</button>
+ <button type="submit" class="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition">Add Selected Halls</button>
+ </div>
+ </form>
+ </div>
+</div>
+@endif
+
 <script>
+function toggleAddHallCard(checkbox) {
+ const card = checkbox.closest('.add-hall-card');
+ if (checkbox.checked) {
+ card.classList.add('border-amber-500', 'bg-amber-50');
+ card.classList.remove('border-gray-300');
+ } else {
+ card.classList.remove('border-amber-500', 'bg-amber-50');
+ card.classList.add('border-gray-300');
+ }
+}
+
+function openAddHallsModal() {
+ document.getElementById('addHallsModal').classList.remove('hidden');
+ document.getElementById('addHallsModal').classList.add('flex');
+}
+
+function closeAddHallsModal() {
+ document.getElementById('addHallsModal').classList.add('hidden');
+ document.getElementById('addHallsModal').classList.remove('flex');
+}
+
 function togglePaymentMethodFields() {
  const method = document.getElementById('payment_method_select').value;
  const bkashField = document.getElementById('bkash_payment_field');
