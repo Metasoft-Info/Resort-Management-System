@@ -97,14 +97,19 @@
  </thead>
  <tbody>
  @php $sl = 1; @endphp
- <!-- Hall Rent for all related bookings -->
+ @php
+ $allHallBookings = collect([$booking])->merge($relatedBookingsForInvoice)->sortBy('id');
+ @endphp
+ <!-- Hall Rent for all related bookings (each hall as separate row) -->
+ @foreach($allHallBookings as $hallBooking)
  <tr>
  <td style="border: 1px solid #000; padding: 5px; text-align: center;">{{ $sl++ }}</td>
- <td style="border: 1px solid #000; padding: 5px;">Convention Hall Rent - {{ $booking->conventionHall->name }}{{ $relatedBookingsForInvoice->count() > 0 ? ' + ' . $relatedBookingsForInvoice->pluck('conventionHall.name')->implode(', ') : '' }}</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: center;">{{ $relatedBookingsForInvoice->count() + 1 }}</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: right;">-</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($invoiceTotals['hall_rent'], 0) }}/-</td>
+ <td style="border: 1px solid #000; padding: 5px;">Convention Hall Rent - {{ $hallBooking->conventionHall->name ?? 'N/A' }}</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: center;">1</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($hallBooking->hall_rent, 0) }}/-</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($hallBooking->hall_rent, 0) }}/-</td>
  </tr>
+ @endforeach
 
  <!-- Food Package -->
  @if($booking->foodPackage && $invoiceTotals['food_cost'] > 0)
