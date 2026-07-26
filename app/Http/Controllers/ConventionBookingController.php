@@ -10,6 +10,7 @@ use App\Models\AddonService;
 use App\Models\ActivityLog;
 use App\Models\Booking;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ConventionBookingController extends Controller
@@ -419,7 +420,7 @@ class ConventionBookingController extends Controller
         // Find related bookings for same customer + event (multi-hall support)
         $relatedBookings = ConventionBooking::where('id', '!=', $booking->id)
             ->where('customer_phone', $booking->customer_phone)
-            ->whereDate('event_date', $booking->event_date)
+            ->whereDate('event_date', $booking->event_date->toDateString())
             ->where('time_slot', $booking->time_slot)
             ->where('status', '!=', 'cancelled')
             ->with(['conventionHall', 'payments'])
@@ -445,7 +446,7 @@ class ConventionBookingController extends Controller
         $eventDate = Carbon::parse($booking->event_date)->startOfDay();
         $timeSlot = $booking->time_slot;
 
-        $bookedByOthers = ConventionBooking::whereDate('event_date', $eventDate)
+        $bookedByOthers = ConventionBooking::whereDate('event_date', $eventDate->toDateString())
             ->where('status', '!=', 'cancelled')
             ->where(function($query) use ($timeSlot) {
                 $query->where('time_slot', 'full_day')
@@ -488,7 +489,7 @@ class ConventionBookingController extends Controller
         // Find related hall bookings for the same customer + event
         $relatedBookings = ConventionBooking::where('id', '!=', $conventionBooking->id)
             ->where('customer_phone', $conventionBooking->customer_phone)
-            ->whereDate('event_date', $conventionBooking->event_date)
+            ->whereDate('event_date', $conventionBooking->event_date->toDateString())
             ->where('time_slot', $conventionBooking->time_slot)
             ->where('status', '!=', 'cancelled')
             ->with('conventionHall')
@@ -506,7 +507,7 @@ class ConventionBookingController extends Controller
         $eventDate = Carbon::parse($conventionBooking->event_date)->startOfDay();
         $timeSlot = $conventionBooking->time_slot;
 
-        $bookedByOthers = ConventionBooking::whereDate('event_date', $eventDate)
+        $bookedByOthers = ConventionBooking::whereDate('event_date', $eventDate->toDateString())
             ->where('status', '!=', 'cancelled')
             ->where(function($query) use ($timeSlot) {
                 $query->where('time_slot', 'full_day')
@@ -654,38 +655,14 @@ class ConventionBookingController extends Controller
         $createdCount = 0;
         $skippedHalls = [];
 
-        // Find all related bookings for this event
-        $relatedBookings = ConventionBooking::where('id', '!=', $conventionBooking->id)
-            ->where('customer_phone', $conventionBooking->customer_phone)
-            ->whereDate('event_date', $conventionBooking->event_date)
-            ->where('time_slot', $conventionBooking->time_slot)
-            ->where('status', '!=', 'cancelled')
-            ->get();
-
-        $allBookings = collect([$conventionBooking])->merge($relatedBookings);
-        $bookedHallIds = $allBookings->pluck('hall_id')->unique()->values()->toArray();
-
         $eventDate = Carbon::parse($conventionBooking->event_date)->startOfDay();
         $timeSlot = $conventionBooking->time_slot;
 
-        foreach ($hallIds as $hallId) {
-            $hallId = intval($hallId);
+        $createdHalls = [];
 
-            // Skip if already booked in this group
-            if (in_array($hallId, $bookedHallIds)) {
-                $skippedHalls[] = 'Already in this group';
-                continue;
-            }
-
-            $hall = ConventionHall::find($hallId);
-            if (!$hall) {
-                $skippedHalls[] = 'Hall not found';
-                continue;
-            }
-
-            // Check availability for date + slot
-            $conflict = ConventionBooking::where('hall_id', $hallId)
-                ->whereDate('event_date', $eventDate)
+        DB::transaction(function () use ($conventionBooking, $hallIds, $eventDate, $timeSlot, &$createdCount, &$skippedHalls, &$createdHalls) {
+            // Lock existing bookings for this date/slot to prevent race conditions
+            $existingIds = ConventionBooking::whereDate('event_date', $eventDate->toDateString())
                 ->where('status', '!=', 'cancelled')
                 ->where(function($query) use ($timeSlot) {
                     $query->where('time_slot', 'full_day')
@@ -697,58 +674,87 @@ class ConventionBookingController extends Controller
                               }
                           });
                 })
-                ->exists();
+                ->lockForUpdate()
+                ->pluck('hall_id')
+                ->unique()
+                ->toArray();
 
-            if ($conflict) {
-                $skippedHalls[] = $hall->name . ' is not available';
-                continue;
+            // Include current group's halls
+            $relatedBookings = ConventionBooking::where('id', '!=', $conventionBooking->id)
+                ->where('customer_phone', $conventionBooking->customer_phone)
+                ->whereDate('event_date', $eventDate->toDateString())
+                ->where('time_slot', $timeSlot)
+                ->where('status', '!=', 'cancelled')
+                ->lockForUpdate()
+                ->get();
+
+            $allBookings = collect([$conventionBooking])->merge($relatedBookings);
+            $bookedHallIds = $allBookings->pluck('hall_id')->unique()->values()->toArray();
+
+            foreach ($hallIds as $hallId) {
+                $hallId = intval($hallId);
+
+                // Skip if already booked in this group or by anyone else
+                if (in_array($hallId, $bookedHallIds) || in_array($hallId, $existingIds)) {
+                    $skippedHalls[] = 'Already booked';
+                    continue;
+                }
+
+                $hall = ConventionHall::find($hallId);
+                if (!$hall) {
+                    $skippedHalls[] = 'Hall not found';
+                    continue;
+                }
+
+                // Build new booking from existing booking data
+                $bookingData = [
+                    'hall_id' => $hallId,
+                    'hall_rent' => $hall->price_per_day,
+                    'customer_name' => $conventionBooking->customer_name,
+                    'customer_phone' => $conventionBooking->customer_phone,
+                    'customer_whatsapp' => $conventionBooking->customer_whatsapp,
+                    'customer_email' => $conventionBooking->customer_email,
+                    'customer_nid' => $conventionBooking->customer_nid,
+                    'customer_address' => $conventionBooking->customer_address,
+                    'organization_name' => $conventionBooking->organization_name,
+                    'event_date' => $conventionBooking->event_date,
+                    'time_slot' => $conventionBooking->time_slot,
+                    'event_type' => $conventionBooking->event_type,
+                    'event_description' => $conventionBooking->event_description,
+                    'number_of_guests' => $conventionBooking->number_of_guests,
+                    'food_package_id' => null,
+                    'food_cost' => 0,
+                    'selected_addons' => [],
+                    'addon_quantities' => [],
+                    'addons_cost' => 0,
+                    'discount' => 0,
+                    'discount_type' => $conventionBooking->discount_type ?? 'flat',
+                    'discount_value' => 0,
+                    'vat_percentage' => $conventionBooking->vat_percentage ?? 0,
+                    'advance_payment' => 0,
+                    'payment_method' => $conventionBooking->payment_method,
+                    'bkash_number' => $conventionBooking->bkash_number,
+                    'bank_name' => $conventionBooking->bank_name,
+                    'notes' => $conventionBooking->notes,
+                    'status' => $conventionBooking->status,
+                    'created_by_id' => auth()->id(),
+                    'updated_by_id' => auth()->id(),
+                ];
+
+                $newTotals = $this->calculateTotals($bookingData);
+                $bookingData = array_merge($bookingData, $newTotals);
+
+                ConventionBooking::create($bookingData);
+                $createdCount++;
+                $createdHalls[] = $hall->name;
+                $bookedHallIds[] = $hallId;
+                $existingIds[] = $hallId;
             }
-
-            // Build new booking from existing booking data
-            $bookingData = [
-                'hall_id' => $hallId,
-                'hall_rent' => $hall->price_per_day,
-                'customer_name' => $conventionBooking->customer_name,
-                'customer_phone' => $conventionBooking->customer_phone,
-                'customer_whatsapp' => $conventionBooking->customer_whatsapp,
-                'customer_email' => $conventionBooking->customer_email,
-                'customer_nid' => $conventionBooking->customer_nid,
-                'customer_address' => $conventionBooking->customer_address,
-                'organization_name' => $conventionBooking->organization_name,
-                'event_date' => $conventionBooking->event_date,
-                'time_slot' => $conventionBooking->time_slot,
-                'event_type' => $conventionBooking->event_type,
-                'event_description' => $conventionBooking->event_description,
-                'number_of_guests' => $conventionBooking->number_of_guests,
-                'food_package_id' => null,
-                'food_cost' => 0,
-                'selected_addons' => [],
-                'addon_quantities' => [],
-                'addons_cost' => 0,
-                'discount' => 0,
-                'discount_type' => $conventionBooking->discount_type ?? 'flat',
-                'discount_value' => 0,
-                'vat_percentage' => $conventionBooking->vat_percentage ?? 0,
-                'advance_payment' => 0,
-                'payment_method' => $conventionBooking->payment_method,
-                'bkash_number' => $conventionBooking->bkash_number,
-                'bank_name' => $conventionBooking->bank_name,
-                'notes' => $conventionBooking->notes,
-                'status' => $conventionBooking->status,
-                'created_by_id' => auth()->id(),
-                'updated_by_id' => auth()->id(),
-            ];
-
-            $newTotals = $this->calculateTotals($bookingData);
-            $bookingData = array_merge($bookingData, $newTotals);
-
-            ConventionBooking::create($bookingData);
-            $createdCount++;
-            $bookedHallIds[] = $hallId;
-        }
+        });
 
         if ($createdCount > 0) {
             $msg = $createdCount . ' additional hall(s) added successfully!';
+            $msg .= ' (' . implode(', ', $createdHalls) . ')';
             $type = 'success';
         } else {
             $msg = 'No halls were added.';
