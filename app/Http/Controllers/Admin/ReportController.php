@@ -113,12 +113,80 @@ class ReportController extends Controller {
         $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
 
         // Booking count breakdown - use filtered date, not actual today
-        $checkedInCount = $summaryBookings->where('status', 'checked_in')->count();
-        $checkedOutCount = $summaryBookings->where('status', 'checked_out')->count();
         $confirmedCount = $summaryBookings->where('status', 'confirmed')->count();
         $cancelledCount = $summaryBookings->where('status', 'cancelled')->count();
-        $checkInTodayCount = $summaryBookings->filter(fn($b) => $b->check_in_date && $b->check_in_date->format('Y-m-d') == $filterEndDate)->count();
-        $checkOutTodayCount = $summaryBookings->filter(fn($b) => $b->status === 'checked_out' && $b->check_out_date && $b->check_out_date->format('Y-m-d') == $filterEndDate)->count();
+
+        $isSingleDate = ($filterStartDate === $filterEndDate);
+
+        if ($isSingleDate) {
+            // Old Guest: checked in before the filter date and still staying (count by bookings, not unique guests)
+            $oldGuestCount = $summaryBookings->filter(fn($b) =>
+                $b->status === 'checked_in' &&
+                $b->check_in_date &&
+                $b->check_in_date->format('Y-m-d') < $filterEndDate
+            )->count();
+
+            // In Guest: checked in on the filter date
+            $inGuestCount = $summaryBookings->filter(fn($b) =>
+                $b->check_in_date &&
+                $b->check_in_date->format('Y-m-d') == $filterEndDate
+            )->count();
+
+            // Checkout: checked out on the filter date (regardless of payment status)
+            $checkoutCount = $summaryBookings->filter(fn($b) =>
+                $b->status === 'checked_out' &&
+                $b->check_out_date &&
+                $b->check_out_date->format('Y-m-d') == $filterEndDate
+            )->count();
+
+            // Due Clear: checked out before the filter date but made a payment on the filter date (came back to clear due)
+            $dueClearCount = $summaryBookings->filter(fn($b) =>
+                $b->status === 'checked_out' &&
+                $b->check_out_date &&
+                $b->check_out_date->format('Y-m-d') < $filterEndDate &&
+                $b->payments->contains(fn($p) =>
+                    $p->type !== 'refund' &&
+                    $p->created_at &&
+                    $p->created_at->format('Y-m-d') == $filterEndDate
+                )
+            )->count();
+        } else {
+            // Date range mode
+            // Old Guest: checked in before the range start and still staying
+            $oldGuestCount = $summaryBookings->filter(fn($b) =>
+                $b->status === 'checked_in' &&
+                $b->check_in_date &&
+                $b->check_in_date->format('Y-m-d') < $filterStartDate
+            )->count();
+
+            // In Guest: checked in within the date range
+            $inGuestCount = $summaryBookings->filter(fn($b) =>
+                $b->check_in_date &&
+                $b->check_in_date->format('Y-m-d') >= $filterStartDate &&
+                $b->check_in_date->format('Y-m-d') <= $filterEndDate
+            )->count();
+
+            // Checkout: checked out within the date range (regardless of payment status)
+            $checkoutCount = $summaryBookings->filter(fn($b) =>
+                $b->status === 'checked_out' &&
+                $b->check_out_date &&
+                $b->check_out_date->format('Y-m-d') >= $filterStartDate &&
+                $b->check_out_date->format('Y-m-d') <= $filterEndDate
+            )->count();
+
+            // Due Clear: checked out before the range but made a payment within the date range (came back to clear due)
+            $dueClearCount = $summaryBookings->filter(fn($b) =>
+                $b->status === 'checked_out' &&
+                $b->check_out_date &&
+                $b->check_out_date->format('Y-m-d') < $filterStartDate &&
+                $b->payments->contains(fn($p) =>
+                    $p->type !== 'refund' &&
+                    $p->created_at &&
+                    $p->created_at->format('Y-m-d') >= $filterStartDate &&
+                    $p->created_at->format('Y-m-d') <= $filterEndDate
+                )
+            )->count();
+        }
         
         if ($request->due_only) {
             $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDeposited());
@@ -144,7 +212,7 @@ class ReportController extends Controller {
         $rooms = Room::orderBy('room_number')->get();
         $resortInfo = ResortInfo::first();
         
-        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalDeposited', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo', 'filterEndDate', 'filterStartDate', 'checkedInCount', 'checkedOutCount', 'confirmedCount', 'cancelledCount', 'checkInTodayCount', 'checkOutTodayCount'));
+        return view('admin.reports.room-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalDeposited', 'totalRemaining', 'roomTypes', 'rooms', 'resortInfo', 'filterEndDate', 'filterStartDate', 'oldGuestCount', 'inGuestCount', 'checkoutCount', 'dueClearCount', 'confirmedCount', 'cancelledCount'));
     }
     
     public function exportRoomBookings(Request $request) {

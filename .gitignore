@@ -24,3 +24,5 @@ yarn-error.log
 /.zed
 tufanconx_tufanresort.sql
 tufanconx_tufanresort*.sql
+
+package-lock.json
