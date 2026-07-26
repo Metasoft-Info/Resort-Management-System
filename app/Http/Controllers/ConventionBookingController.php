@@ -439,6 +439,20 @@ class ConventionBookingController extends Controller
             'remaining_payment' => $allBookings->sum('remaining_payment'),
         ];
 
+        // Halls available to add to this event
+        $allHalls = ConventionHall::all();
+        $bookedHallIds = $allBookings->pluck('hall_id')->unique()->values()->toArray();
+        $existingBookings = ConventionBooking::whereDate('event_date', $booking->event_date)
+            ->where('time_slot', $booking->time_slot)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+        $availableHalls = $allHalls->filter(function ($hall) use ($bookedHallIds, $existingBookings) {
+            if (in_array($hall->id, $bookedHallIds)) return false;
+            $hallBookings = $existingBookings->where('hall_id', $hall->id);
+            $fullDayBooked = $hallBookings->contains('time_slot', 'full_day');
+            return !$fullDayBooked && $hallBookings->count() === 0;
+        })->values();
+
         // Return JSON for AJAX requests
         if ($request->has('ajax') || $request->ajax()) {
             return response()->json([
@@ -448,7 +462,7 @@ class ConventionBookingController extends Controller
             ]);
         }
 
-        return view('admin.convention-bookings.show', compact('booking', 'relatedBookings', 'groupTotals'));
+        return view('admin.convention-bookings.show', compact('booking', 'relatedBookings', 'groupTotals', 'availableHalls'));
     }
 
     public function edit(ConventionBooking $conventionBooking)
@@ -456,7 +470,43 @@ class ConventionBookingController extends Controller
         $halls = ConventionHall::all();
         $foodPackages = FoodPackage::all();
         $addonServices = AddonService::forConvention()->get();
-        return view('admin.convention-bookings.edit', compact('conventionBooking', 'halls', 'foodPackages', 'addonServices'));
+
+        // Find related hall bookings for the same customer + event
+        $relatedBookings = ConventionBooking::where('id', '!=', $conventionBooking->id)
+            ->where('customer_phone', $conventionBooking->customer_phone)
+            ->whereDate('event_date', $conventionBooking->event_date)
+            ->where('time_slot', $conventionBooking->time_slot)
+            ->where('status', '!=', 'cancelled')
+            ->with('conventionHall')
+            ->orderBy('id')
+            ->get();
+
+        // Halls already booked in this group
+        $bookedHallIds = collect([$conventionBooking->hall_id])
+            ->merge($relatedBookings->pluck('hall_id'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Halls available for this date + slot (not booked by anyone, excluding current group)
+        $eventDate = $conventionBooking->event_date;
+        $timeSlot = $conventionBooking->time_slot;
+        $existingBookings = ConventionBooking::whereDate('event_date', $eventDate)
+            ->where('time_slot', $timeSlot)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        // Calculate availability per hall for this slot
+        $availableHalls = $halls->filter(function ($hall) use ($existingBookings, $bookedHallIds) {
+            // If already in this group, skip
+            if (in_array($hall->id, $bookedHallIds)) return false;
+            $hallBookings = $existingBookings->where('hall_id', $hall->id);
+            // Available if no booking, or only morning/night (not full_day)
+            $fullDayBooked = $hallBookings->contains('time_slot', 'full_day');
+            return !$fullDayBooked && $hallBookings->count() === 0;
+        })->values();
+
+        return view('admin.convention-bookings.edit', compact('conventionBooking', 'halls', 'foodPackages', 'addonServices', 'relatedBookings', 'availableHalls'));
     }
 
     public function update(Request $request, ConventionBooking $conventionBooking)
@@ -510,8 +560,123 @@ class ConventionBookingController extends Controller
 
         $conventionBooking->update($validated);
 
-        return redirect()->route('admin.convention-bookings.index')
-            ->with('success', 'Convention booking updated successfully!');
+        // Create additional hall bookings if requested
+        $additionalHallIds = $request->input('additional_hall_ids', []);
+        $createdCount = 0;
+        if (is_array($additionalHallIds) && count($additionalHallIds) > 0) {
+            foreach ($additionalHallIds as $hallId) {
+                $hall = ConventionHall::find($hallId);
+                if (!$hall) continue;
+
+                // Check hall is still available for this date + slot
+                $conflict = ConventionBooking::where('hall_id', $hallId)
+                    ->whereDate('event_date', $validated['event_date'])
+                    ->where('time_slot', $validated['time_slot'])
+                    ->where('status', '!=', 'cancelled')
+                    ->exists();
+
+                if ($conflict) continue;
+
+                $bookingData = $validated;
+                $bookingData['hall_id'] = $hallId;
+                $bookingData['hall_rent'] = $hall->price_per_day;
+                // Additional halls: no food/addons, no discount, no advance
+                $bookingData['food_cost'] = 0;
+                $bookingData['food_package_id'] = null;
+                $bookingData['addons_cost'] = 0;
+                $bookingData['selected_addons'] = [];
+                $bookingData['addon_quantities'] = [];
+                $bookingData['discount'] = 0;
+                $bookingData['discount_value'] = 0;
+                $bookingData['advance_payment'] = 0;
+                $bookingData['created_by_id'] = auth()->id();
+                $bookingData['updated_by_id'] = auth()->id();
+
+                $newTotals = $this->calculateTotals($bookingData);
+                $bookingData = array_merge($bookingData, $newTotals);
+                $bookingData['status'] = $conventionBooking->status;
+
+                ConventionBooking::create($bookingData);
+                $createdCount++;
+            }
+        }
+
+        $msg = $createdCount > 0
+            ? 'Booking updated and ' . $createdCount . ' additional hall(s) booked successfully!'
+            : 'Convention booking updated successfully!';
+
+        return redirect()->route('admin.convention-bookings.show', $conventionBooking)
+            ->with('success', $msg);
+    }
+
+    public function addHalls(Request $request, ConventionBooking $conventionBooking)
+    {
+        $validated = $request->validate([
+            'hall_ids' => 'required|array|min:1',
+            'hall_ids.*' => 'exists:convention_halls,id',
+        ]);
+
+        $hallIds = $validated['hall_ids'];
+        $createdCount = 0;
+
+        // Find all related bookings for this event
+        $relatedBookings = ConventionBooking::where('id', '!=', $conventionBooking->id)
+            ->where('customer_phone', $conventionBooking->customer_phone)
+            ->whereDate('event_date', $conventionBooking->event_date)
+            ->where('time_slot', $conventionBooking->time_slot)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $allBookings = collect([$conventionBooking])->merge($relatedBookings);
+        $bookedHallIds = $allBookings->pluck('hall_id')->unique()->values()->toArray();
+
+        foreach ($hallIds as $hallId) {
+            // Skip if already booked in this group
+            if (in_array($hallId, $bookedHallIds)) continue;
+
+            $hall = ConventionHall::find($hallId);
+            if (!$hall) continue;
+
+            // Check availability for date + slot
+            $conflict = ConventionBooking::where('hall_id', $hallId)
+                ->whereDate('event_date', $conventionBooking->event_date)
+                ->where('time_slot', $conventionBooking->time_slot)
+                ->where('status', '!=', 'cancelled')
+                ->exists();
+
+            if ($conflict) continue;
+
+            // Copy first booking data and adjust
+            $bookingData = $conventionBooking->toArray();
+            unset($bookingData['id'], $bookingData['created_at'], $bookingData['updated_at']);
+
+            $bookingData['hall_id'] = $hallId;
+            $bookingData['hall_rent'] = $hall->price_per_day;
+            $bookingData['food_cost'] = 0;
+            $bookingData['food_package_id'] = null;
+            $bookingData['addons_cost'] = 0;
+            $bookingData['selected_addons'] = [];
+            $bookingData['addon_quantities'] = [];
+            $bookingData['discount'] = 0;
+            $bookingData['discount_value'] = 0;
+            $bookingData['advance_payment'] = 0;
+            $bookingData['created_by_id'] = auth()->id();
+            $bookingData['updated_by_id'] = auth()->id();
+
+            $newTotals = $this->calculateTotals($bookingData);
+            $bookingData = array_merge($bookingData, $newTotals);
+
+            ConventionBooking::create($bookingData);
+            $createdCount++;
+            $bookedHallIds[] = $hallId;
+        }
+
+        $msg = $createdCount > 0
+            ? $createdCount . ' additional hall(s) added successfully!'
+            : 'No halls were added. They may be already booked.';
+
+        return redirect()->route('admin.convention-bookings.show', $conventionBooking)
+            ->with('success', $msg);
     }
 
     public function addPayment(Request $request, ConventionBooking $conventionBooking)

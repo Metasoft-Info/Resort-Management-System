@@ -50,6 +50,36 @@
  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600"
  onchange="calculateTotal()">
  </div>
+ @if($relatedBookings->count() > 0)
+ <div class="md:col-span-2">
+ <label class="block text-gray-700 font-semibold mb-2">Other Halls Booked for This Event</label>
+ <div class="flex flex-wrap gap-2 p-3 bg-violet-50 rounded-lg border border-violet-200">
+ @foreach($relatedBookings as $related)
+ <a href="{{ route('admin.convention-bookings.edit', $related) }}" class="px-3 py-1.5 bg-violet-600 text-white rounded-full text-sm font-semibold hover:bg-violet-700 transition">
+ <i class="fas fa-building mr-1"></i>{{ $related->conventionHall->name ?? 'N/A' }}
+ </a>
+ @endforeach
+ </div>
+ <p class="text-xs text-violet-600 mt-1">Click to edit individual hall booking</p>
+ </div>
+ @endif
+ @if($availableHalls->count() > 0)
+ <div class="md:col-span-2">
+ <label class="block text-gray-700 font-semibold mb-2">Add More Free Halls for This Event</label>
+ <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3" id="additionalHallsGrid">
+ @foreach($availableHalls as $hall)
+ <label class="flex items-center gap-3 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition additional-hall-card" data-hall-id="{{ $hall->id }}" data-price="{{ $hall->price_per_day }}">
+ <input type="checkbox" name="additional_hall_ids[]" value="{{ $hall->id }}" class="w-5 h-5 text-primary-600 rounded" onchange="toggleAdditionalHall(this, {{ $hall->price_per_day }})">
+ <div>
+ <div class="font-semibold text-gray-800">{{ $hall->name }}</div>
+ <div class="text-primary-600 font-bold text-sm">BDT {{ number_format($hall->price_per_day, 0) }}</div>
+ </div>
+ </label>
+ @endforeach
+ </div>
+ <p class="text-xs text-gray-500 mt-1">Selected additional halls will be booked with same customer, date and slot</p>
+ </div>
+ @endif
  <div>
  <label class="block text-gray-700 font-semibold mb-2">Customer Name *</label>
  <input type="text" name="customer_name" value="{{ $conventionBooking->customer_name }}" required
@@ -320,6 +350,17 @@ function updateHallRent() {
  document.getElementById('hallRent').value = price;
  document.getElementById('displayHallRent').textContent = 'BDT ' + price.toFixed(2);
  calculateTotal();
+}
+
+function toggleAdditionalHall(checkbox, price) {
+ const card = checkbox.closest('.additional-hall-card');
+ if (checkbox.checked) {
+ card.classList.add('border-primary-500', 'bg-primary-50');
+ card.classList.remove('border-gray-300');
+ } else {
+ card.classList.remove('border-primary-500', 'bg-primary-50');
+ card.classList.add('border-gray-300');
+ }
 }
 
 function selectFoodPackage(id, name, pricePerPerson) {
