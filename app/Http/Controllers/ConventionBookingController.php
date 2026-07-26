@@ -56,7 +56,7 @@ class ConventionBookingController extends Controller
 
     public function index(Request $request)
     {
-        $query = ConventionBooking::with('conventionHall');
+        $query = ConventionBooking::with(['conventionHall', 'payments']);
 
         // Filter by status
         if ($request->filled('status')) {
@@ -96,8 +96,41 @@ class ConventionBookingController extends Controller
             $query->whereDate('created_at', '<=', $request->created_to);
         }
 
-        $bookings = $query->latest()->paginate(15);
-        return view('admin.convention-bookings.index', compact('bookings'));
+        $bookings = $query->latest()->get();
+
+        // Group by customer + event date + time slot for multi-hall display
+        $grouped = $bookings->groupBy(function ($booking) {
+            return $booking->customer_phone . '|' . $booking->event_date->toDateString() . '|' . $booking->time_slot;
+        })->map(function ($group) {
+            $first = $group->first();
+            return [
+                'first' => $first,
+                'bookings' => $group,
+                'halls' => $group->pluck('conventionHall')->filter(),
+                'hall_names' => $group->pluck('conventionHall.name')->filter()->unique()->values(),
+                'total_amount' => $group->sum('total_amount'),
+                'remaining_payment' => $group->sum('remaining_payment'),
+                'guest_count' => $first->number_of_guests,
+                'event_date' => $first->event_date,
+                'time_slot' => $first->time_slot,
+                'event_type' => $first->event_type,
+                'status' => $first->status,
+                'ids' => $group->pluck('id'),
+            ];
+        })->values();
+
+        // Paginate grouped results
+        $perPage = 15;
+        $currentPage = $request->input('page', 1);
+        $paginatedGroups = new \Illuminate\Pagination\LengthAwarePaginator(
+            $grouped->forPage($currentPage, $perPage),
+            $grouped->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('admin.convention-bookings.index', compact('paginatedGroups'));
     }
 
     public function findByPhone(Request $request)
