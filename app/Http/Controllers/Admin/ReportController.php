@@ -590,17 +590,60 @@ class ReportController extends Controller {
                   ->orWhere('organization_name', 'like', "%{$request->search}%");
             });
         }
-        
-        $totalBookings = (clone $query)->count();
-        $totalRevenue = (clone $query)->sum('total_amount');
-        $totalAdvance = (clone $query)->sum('advance_payment');
-        $totalRemaining = (clone $query)->sum('remaining_payment');
-        
-        $bookings = $query->orderBy('event_date', 'desc')->paginate(20)->withQueryString();
+
+        $allBookings = $query->orderBy('event_date', 'desc')->orderBy('id')->get();
+
+        // Group by customer + event date + time slot for multi-hall display
+        $grouped = $allBookings->groupBy(function($b) {
+            return $b->customer_phone . '|' . $b->event_date . '|' . $b->time_slot;
+        })->map(function($group) {
+            $first = $group->first();
+            $paymentStatusPriority = ['unpaid' => 3, 'partial' => 2, 'paid' => 1];
+            $groupPaymentStatus = $group->sortByDesc(function($b) use ($paymentStatusPriority) {
+                return $paymentStatusPriority[$b->payment_status] ?? 0;
+            })->first()->payment_status;
+
+            return (object)[
+                'id' => $first->id,
+                'ids' => $group->pluck('id')->toArray(),
+                'event_date' => $first->event_date,
+                'customer_phone' => $first->customer_phone,
+                'customer_name' => $first->customer_name,
+                'organization_name' => $first->organization_name,
+                'time_slot' => $first->time_slot,
+                'halls' => $group->pluck('conventionHall.name')->filter()->values(),
+                'hall_count' => $group->count(),
+                'total_amount' => $group->sum('total_amount'),
+                'advance_payment' => $group->sum('advance_payment'),
+                'vat_amount' => $group->sum('vat_amount'),
+                'remaining_payment' => $group->sum('remaining_payment'),
+                'payment_status' => $groupPaymentStatus,
+                'notes' => $first->notes,
+            ];
+        })->values();
+
+        $totalBookings = $grouped->count();
+        $totalRevenue = $grouped->sum('total_amount');
+        $totalAdvance = $grouped->sum('advance_payment');
+        $totalRemaining = $grouped->sum('remaining_payment');
+        $totalVat = $grouped->sum('vat_amount');
+
+        // Paginate grouped collection
+        $page = $request->get('page', 1);
+        $perPage = 20;
+        $paginatedGroups = new \Illuminate\Pagination\LengthAwarePaginator(
+            $grouped->forPage($page, $perPage),
+            $grouped->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $bookings = $paginatedGroups;
         $halls = ConventionHall::all();
         $resortInfo = ResortInfo::first();
-        
-        return view('admin.reports.convention-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'halls', 'resortInfo'));
+
+        return view('admin.reports.convention-bookings', compact('bookings', 'totalRevenue', 'totalBookings', 'totalAdvance', 'totalRemaining', 'totalVat', 'halls', 'resortInfo'));
     }
 
     public function policeStation(Request $request) {
