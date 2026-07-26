@@ -83,10 +83,11 @@
  <div id="hallsContainer" class="hidden mb-6">
  <label class="block text-gray-700 font-semibold mb-4">
  Available Convention Hall *
- <span class="ml-2 text-sm text-violet-600 font-normal">✅ Showing available halls for selected date & time</span>
+ <span class="ml-2 text-sm text-violet-600 font-normal">✅ Click to select one or more halls</span>
  </label>
  <div id="hallsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
- <input type="hidden" name="hall_id" id="selectedHallId">
+ <input type="hidden" name="hall_ids" id="selectedHallIds" value="">
+ <input type="hidden" name="hall_id" id="selectedHallId" value="">
  <input type="hidden" name="hall_rent" id="hallRent" value="0">
  </div>
 
@@ -435,7 +436,7 @@ function validateForm() {
  const requiredFields = [
  { id: 'eventDate', name: 'Event Date' },
  { id: 'timeSlot', name: 'Time Slot' },
- { id: 'selectedHallId', name: 'Convention Hall' },
+ { id: 'selectedHallIds', name: 'Convention Hall (select at least one)' },
  { id: 'customerPhone', name: 'Phone Number' },
  { id: 'customerName', name: 'Customer Name' },
  { id: 'numberOfGuests', name: 'Guest Count' }
@@ -464,7 +465,7 @@ function nextStep(step) {
  const step1Fields = [
  { id: 'eventDate', name: 'Event Date' },
  { id: 'timeSlot', name: 'Time Slot' },
- { id: 'selectedHallId', name: 'Convention Hall' },
+ { id: 'selectedHallIds', name: 'Convention Hall (select at least one)' },
  { id: 'customerPhone', name: 'Phone Number' },
  { id: 'customerName', name: 'Customer Name' },
  { id: 'numberOfGuests', name: 'Guest Count' }
@@ -523,6 +524,11 @@ async function checkAvailability() {
  console.log('Search response:', data); // Debug log
  const container = document.getElementById('hallsList');
  container.innerHTML = '';
+ selectedHalls = []; // Reset selected halls
+ document.getElementById('selectedHallIds').value = '';
+ document.getElementById('selectedHallId').value = '';
+ document.getElementById('hallRent').value = 0;
+ document.getElementById('displayHallRent').textContent = 'BDT 0';
  
  if (data.availableHalls.length === 0) {
  container.innerHTML = '<div class="col-span-2 bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center"><p class="text-red-800 font-semibold">❌ Hall </p></div>';
@@ -574,23 +580,38 @@ async function checkAvailability() {
  }
 }
 
+let selectedHalls = [];
+
 function selectHall(hallId, price, timeSlot) {
- document.querySelectorAll('.hall-card').forEach(card => {
+ const card = event.target.closest('.hall-card');
+ if (!card) return;
+
+ const idx = selectedHalls.findIndex(h => h.id === hallId);
+ if (idx > -1) {
+ // Deselect
+ selectedHalls.splice(idx, 1);
  card.classList.remove('border-violet-500', 'bg-violet-50');
  card.classList.add('border-gray-300');
- });
- 
- const clickedCard = event.target.closest('.hall-card');
- if (clickedCard) {
- clickedCard.classList.remove('border-gray-300');
- clickedCard.classList.add('border-violet-500', 'bg-violet-50');
+ } else {
+ // Select
+ selectedHalls.push({ id: hallId, price: price, name: card.querySelector('h4') ? card.querySelector('h4').textContent : '' });
+ card.classList.remove('border-gray-300');
+ card.classList.add('border-violet-500', 'bg-violet-50');
  }
 
- let finalPrice = price;
+ // Update hidden fields
+ document.getElementById('selectedHallIds').value = selectedHalls.map(h => h.id).join(',');
+ document.getElementById('selectedHallId').value = selectedHalls.length > 0 ? selectedHalls[0].id : '';
 
- document.getElementById('selectedHallId').value = hallId;
- document.getElementById('hallRent').value = finalPrice;
- document.getElementById('displayHallRent').textContent = 'BDT ' + finalPrice.toFixed(2);
+ // Sum hall rents
+ const totalRent = selectedHalls.reduce((sum, h) => sum + h.price, 0);
+ document.getElementById('hallRent').value = totalRent;
+ document.getElementById('displayHallRent').textContent = 'BDT ' + totalRent.toFixed(2);
+
+ // Update summary if on step 3
+ if (!document.getElementById('step3').classList.contains('hidden')) {
+ calculateTotal();
+ }
 }
 
 async function searchCustomer(phone) {

@@ -4,9 +4,9 @@
     <div>Print/Report Time: {{ now()->format('d-m-Y h:i A') }} | Developed by Mir Javed Jeetu | 01811480222</div>
     <div class="mt-0.5">
         @if(!empty($resortInfo))
-            {{ $resortInfo->name ?? 'TUFAN RESORT' }} | {{ $resortInfo->phone ?? '+88 01958-216728' }}
+            {{ $resortInfo->name ?? 'TUFAN RESORT' }} | {{ $resortInfo->phone ?? '01958216727' }}
         @else
-            TUFAN RESORT | +88 01958-216728
+            TUFAN RESORT | 01958216727
         @endif
     </div>
 </div>

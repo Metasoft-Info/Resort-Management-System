@@ -211,10 +211,13 @@ class ConventionBookingController extends Controller
         $foodCost = round(floatval($data['food_cost'] ?? 0));
         $addonsCost = round(floatval($data['addons_cost'] ?? 0));
         $discount = round(floatval($data['discount'] ?? 0));
-        $vatAmount = round(floatval($data['vat_amount'] ?? 0)); // Round to nearest whole
+        $vatPercentage = floatval($data['vat_percentage'] ?? 0);
         $advancePayment = round(floatval($data['advance_payment'] ?? 0));
 
-        $totalAmount = round($hallRent + $foodCost + $addonsCost - $discount + $vatAmount);
+        // Subtract discount from subtotal, then calculate VAT on the discounted amount
+        $subtotal = $hallRent + $foodCost + $addonsCost - $discount;
+        $vatAmount = round($subtotal * ($vatPercentage / 100));
+        $totalAmount = round($subtotal + $vatAmount);
         $remainingPayment = round($totalAmount - $advancePayment);
         
         // If remaining is 5 or less due to rounding, consider it paid
@@ -243,7 +246,8 @@ class ConventionBookingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'hall_id' => 'required|exists:convention_halls,id',
+            'hall_id' => 'nullable|exists:convention_halls,id',
+            'hall_ids' => 'nullable|string',
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'nullable|email|max:255',
             'customer_phone' => 'required|string|max:20',
@@ -282,6 +286,18 @@ class ConventionBookingController extends Controller
             'notes' => 'nullable|string',
             'status' => 'nullable|in:pending,confirmed,completed,cancelled',
         ]);
+
+        // Parse multiple hall IDs if provided
+        $hallIds = [];
+        if (!empty($validated['hall_ids'])) {
+            $hallIds = array_filter(explode(',', $validated['hall_ids']), fn($id) => is_numeric($id));
+        }
+        if (empty($hallIds) && !empty($validated['hall_id'])) {
+            $hallIds = [$validated['hall_id']];
+        }
+        if (empty($hallIds)) {
+            return redirect()->back()->withErrors(['hall_id' => 'At least one hall must be selected.'])->withInput();
+        }
 
         // Map selected_food_package_id to food_package_id
         if (isset($validated['selected_food_package_id'])) {
@@ -329,35 +345,66 @@ class ConventionBookingController extends Controller
             }
         }
 
-        $totals = $this->calculateTotals($validated);
-        $validated = array_merge($validated, $totals);
-        $validated['status'] = $request->status ?? 'confirmed';
+        // Remove hall_ids and hall_id from validated (not DB columns)
+        $hallRentTotal = floatval($validated['hall_rent'] ?? 0);
+        $discountTotal = floatval($validated['discount'] ?? 0);
+        unset($validated['hall_ids'], $validated['hall_id']);
 
-        $booking = ConventionBooking::create($validated);
-        
-        ActivityLog::log('Created convention booking', 'ConventionBooking', $booking->id, [
-            'customer_name' => $booking->customer_name,
-            'hall_id' => $booking->hall_id,
-            'event_date' => $booking->event_date,
-            'total_amount' => $booking->total_amount
-        ]);
+        // Calculate per-hall rent and discount
+        $hallCount = count($hallIds);
+        $perHallRent = round($hallRentTotal / $hallCount);
+        $perHallDiscount = round($discountTotal / $hallCount);
 
-        // Add advance payment if provided
-        if ($booking->advance_payment > 0) {
-            ConventionPayment::create([
-                'convention_booking_id' => $booking->id,
-                'amount' => $booking->advance_payment,
-                'payment_method' => $validated['payment_method'],
-                'bkash_number' => $validated['bkash_number'] ?? null,
-                'bank_name' => $validated['bank_name'] ?? null,
-                'payment_date' => now(),
-                'notes' => 'Initial advance payment',
-                'received_by_id' => auth()->id()
+        $createdBookings = [];
+
+        foreach ($hallIds as $idx => $hallId) {
+            $bookingData = $validated;
+            $bookingData['hall_id'] = $hallId;
+            $bookingData['hall_rent'] = $perHallRent;
+            $bookingData['discount'] = $perHallDiscount;
+
+            $totals = $this->calculateTotals($bookingData);
+            $bookingData = array_merge($bookingData, $totals);
+            $bookingData['status'] = $request->status ?? 'confirmed';
+
+            // For multiple halls, only first booking gets the advance payment
+            if ($idx > 0) {
+                $bookingData['advance_payment'] = 0;
+                $totals = $this->calculateTotals($bookingData);
+                $bookingData = array_merge($bookingData, $totals);
+            }
+
+            $booking = ConventionBooking::create($bookingData);
+            $createdBookings[] = $booking;
+
+            ActivityLog::log('Created convention booking', 'ConventionBooking', $booking->id, [
+                'customer_name' => $booking->customer_name,
+                'hall_id' => $booking->hall_id,
+                'event_date' => $booking->event_date,
+                'total_amount' => $booking->total_amount
             ]);
+
+            // Add advance payment if provided (only for first booking)
+            if ($idx === 0 && $booking->advance_payment > 0) {
+                ConventionPayment::create([
+                    'convention_booking_id' => $booking->id,
+                    'amount' => $booking->advance_payment,
+                    'payment_method' => $validated['payment_method'],
+                    'bkash_number' => $validated['bkash_number'] ?? null,
+                    'bank_name' => $validated['bank_name'] ?? null,
+                    'payment_date' => now(),
+                    'notes' => 'Initial advance payment',
+                    'received_by_id' => auth()->id()
+                ]);
+            }
         }
 
+        $msg = count($createdBookings) > 1
+            ? count($createdBookings) . ' convention bookings created successfully!'
+            : 'Convention booking created successfully!';
+
         return redirect()->route('admin.convention-bookings.index')
-            ->with('success', 'Convention booking created successfully!');
+            ->with('success', $msg);
     }
 
     public function show(Request $request, ConventionBooking $conventionBooking)

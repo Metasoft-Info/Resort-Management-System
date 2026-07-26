@@ -133,8 +133,23 @@
         min-height: auto !important;
         box-sizing: border-box !important;
         padding: 4mm 5mm !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
         overflow: visible !important;
+        text-align: left !important;
+    }
+
+    /* Center the report content on the printed page */
+    .report-header-card,
+    .report-table-container,
+    .bg-white.rounded-lg.shadow,
+    .bg-white.rounded-xl.shadow-lg {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    /* Center summary cards in print */
+    .grid[class*="print:grid-cols"] {
+        justify-items: center !important;
     }
 
     /* Horizontal flow: header at left, table/content at right */

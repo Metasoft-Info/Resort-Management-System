@@ -3,7 +3,9 @@
 <div class="p-6">
     @include('admin.reports.partials.shared-header', [
         'title' => 'Convention Booking Report',
-        'subtitle' => 'Hall Booking, Payment & Outstanding Summary'
+        'subtitle' => 'Hall Booking, Payment & Outstanding Summary',
+        'headingName' => 'Tufan Convention Center',
+        'headingTagline' => "It's Institution of Tufan Company Limited"
     ])
     @include('admin.reports.partials.shared-styles')
 
@@ -529,7 +531,7 @@ function showConventionInfo(bookingId) {
                     <!-- Print Footer -->
                     <div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
                         <p>Print Date: ${new Date().toLocaleDateString('en-GB')} | Developed by Mir Javed Jeetu | 01811480222</p>
-                        <p style="margin-top: 2px;">TUFAN RESORT | +88 01958-216728</p>
+                        <p style="margin-top: 2px;">TUFAN RESORT | 01958216727</p>
                     </div>
                 </div>
             `;

@@ -89,7 +89,7 @@
     <div class="header">
         <h1>Tufan Convention & Resort</h1>
         <p>It's Institution of Tufan Company Limited</p>
-        <p>Kamalnagar, Satkhira Sadar | Phone: +88 01958-216728</p>
+        <p>Kamalnagar, Satkhira Sadar | Phone: 01958216727</p>
     </div>
 
     <div class="meta">

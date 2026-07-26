@@ -1,18 +1,18 @@
 @php
     $reportTitle = $title ?? 'Report';
     $reportSubtitle = $subtitle ?? null;
+    $headingName = $headingName ?? ($resortInfo->resort_name ?? 'TUFAN RESORT');
+    $headingTagline = $headingTagline ?? "It's Institution of Tufan Company Limited";
 @endphp
 
 <div class="report-header-card shadow-sm p-2 mb-2">
     <div class="text-center border-b border-gray-300 pb-1 mb-1">
         @if(!empty($resortInfo) && $resortInfo->header_logo)
-            <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" class="h-9 mx-auto mb-0.5">
-            <h1 class="text-base font-bold text-gray-800 tracking-wide leading-tight">TUFAN RESORT</h1>
-        @else
-            <h1 class="text-base font-bold text-gray-800 tracking-wide leading-tight">{{ $resortInfo->resort_name ?? 'TUFAN RESORT' }}</h1>
+            <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $headingName }}" class="h-9 mx-auto mb-0.5">
         @endif
+        <h1 class="text-base font-bold text-gray-800 tracking-wide leading-tight">{{ $headingName }}</h1>
 
-        <p class="text-[11px] italic text-gray-700 leading-tight">It's Institution of Tufan Company Limited</p>
+        <p class="text-[11px] italic text-gray-700 leading-tight">{{ $headingTagline }}</p>
 
         @if(!empty($resortInfo) && $resortInfo->address)
             <p class="text-[11px] text-gray-600 leading-tight">{{ $resortInfo->address }}</p>
@@ -24,7 +24,7 @@
                 @if($resortInfo->email && $resortInfo->phone) | @endif
                 @if($resortInfo->phone)Phone: {{ $resortInfo->phone }}@endif
             @else
-                E-mail: info@tufanconventionresort.com | Phone: 01958-216728
+                E-mail: info@tufanconventionresort.com | Phone: 01958216727
             @endif
         </p>
     </div>
