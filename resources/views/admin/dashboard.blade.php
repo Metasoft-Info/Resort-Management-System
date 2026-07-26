@@ -345,9 +345,21 @@
  </a>
  @else
  @php $mb = $day['morning_booking'] ?? null; @endphp
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $mb ? 'Booking #' . $mb->id . ': ' . $mb->customer_name . ' | ' . $mb->event_type . ' | ' . $mb->number_of_guests . ' guests | ' . ucfirst($mb->time_slot) : '' }}">
+ <span class="group relative flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help">
  <i class="fas fa-sun text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Morning</span>
+ @if($mb)
+ <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="text-gray-800 text-xs relative">
+ <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $mb->customer_name ?? 'N/A' }}</p>
+ <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $mb->customer_phone ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-building text-gray-400 mr-1 w-3"></i>{{ $mb->event_type ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-users text-gray-400 mr-1 w-3"></i>{{ $mb->number_of_guests ?? 0 }} guests</p>
+ <p class="text-emerald-600 font-semibold mt-1"><i class="fas fa-money-bill mr-1 w-3"></i>Bill: {{ number_format($mb->total_amount ?? 0, 0) }}</p>
+ </div>
+ </div>
+ @endif
  </span>
  @endif
  <!-- Full Day Slot -->
@@ -359,16 +371,34 @@
  </a>
  @elseif(($day['full_day'] ?? 'booked') == 'unavailable')
  <!-- Unavailable: morning/night booked separately -->
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500 cursor-help" title="Full day unavailable - morning or night already booked">
+ <span class="group relative flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500 cursor-help">
  <i class="fas fa-calendar-day text-[10px] text-gray-400"></i>
  <span class="ml-1 text-[10px] text-gray-400">Full Day</span>
+ <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="text-gray-800 text-xs relative">
+ <p class="text-gray-600">Full day unavailable - morning or night already booked</p>
+ </div>
+ </div>
  </span>
  @else
  @php $fdb = $day['full_day_booking'] ?? null; @endphp
  <!-- Actually booked as full_day -->
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $fdb ? 'Booking #' . $fdb->id . ': ' . $fdb->customer_name . ' | ' . $fdb->event_type . ' | ' . $fdb->number_of_guests . ' guests | Full Day' : '' }}">
+ <span class="group relative flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help">
  <i class="fas fa-calendar-day text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Full Day</span>
+ @if($fdb)
+ <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="text-gray-800 text-xs relative">
+ <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $fdb->customer_name ?? 'N/A' }}</p>
+ <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $fdb->customer_phone ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-building text-gray-400 mr-1 w-3"></i>{{ $fdb->event_type ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-users text-gray-400 mr-1 w-3"></i>{{ $fdb->number_of_guests ?? 0 }} guests</p>
+ <p class="text-emerald-600 font-semibold mt-1"><i class="fas fa-money-bill mr-1 w-3"></i>Bill: {{ number_format($fdb->total_amount ?? 0, 0) }}</p>
+ </div>
+ </div>
+ @endif
  </span>
  @endif
  <!-- Night Slot -->
@@ -380,9 +410,21 @@
  </a>
  @else
  @php $nb = $day['night_booking'] ?? null; @endphp
- <span class="flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help" title="{{ $nb ? 'Booking #' . $nb->id . ': ' . $nb->customer_name . ' | ' . $nb->event_type . ' | ' . $nb->number_of_guests . ' guests | ' . ucfirst($nb->time_slot) : '' }}">
+ <span class="group relative flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-rose-500/20 cursor-help">
  <i class="fas fa-moon text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Nights</span>
+ @if($nb)
+ <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="text-gray-800 text-xs relative">
+ <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $nb->customer_name ?? 'N/A' }}</p>
+ <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $nb->customer_phone ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-building text-gray-400 mr-1 w-3"></i>{{ $nb->event_type ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-users text-gray-400 mr-1 w-3"></i>{{ $nb->number_of_guests ?? 0 }} guests</p>
+ <p class="text-emerald-600 font-semibold mt-1"><i class="fas fa-money-bill mr-1 w-3"></i>Bill: {{ number_format($nb->total_amount ?? 0, 0) }}</p>
+ </div>
+ </div>
+ @endif
  </span>
  @endif
  </div>

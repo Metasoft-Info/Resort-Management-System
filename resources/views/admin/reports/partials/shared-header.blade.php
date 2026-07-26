@@ -3,6 +3,8 @@
     $reportSubtitle = $subtitle ?? null;
     $headingName = $headingName ?? ($resortInfo->resort_name ?? 'TUFAN RESORT');
     $headingTagline = $headingTagline ?? "It's Institution of Tufan Company Limited";
+    $contactEmail = $contactEmail ?? ($resortInfo->email ?? 'info@tufanconventionresort.com');
+    $contactPhone = $contactPhone ?? ($resortInfo->phone ?? '01958216727');
 @endphp
 
 <div class="report-header-card shadow-sm p-2 mb-2">
@@ -19,13 +21,9 @@
         @endif
 
         <p class="text-[10px] text-gray-500 leading-tight">
-            @if(!empty($resortInfo))
-                @if($resortInfo->email)E-mail: {{ $resortInfo->email }}@endif
-                @if($resortInfo->email && $resortInfo->phone) | @endif
-                @if($resortInfo->phone)Phone: {{ $resortInfo->phone }}@endif
-            @else
-                E-mail: info@tufanconventionresort.com | Phone: 01958216727
-            @endif
+            @if($contactEmail)E-mail: {{ $contactEmail }}@endif
+            @if($contactEmail && $contactPhone) | @endif
+            @if($contactPhone)Phone: {{ $contactPhone }}@endif
         </p>
     </div>
 

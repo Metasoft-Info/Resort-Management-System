@@ -5,7 +5,9 @@
         'title' => 'Convention Booking Report',
         'subtitle' => 'Hall Booking, Payment & Outstanding Summary',
         'headingName' => 'Tufan Convention Center',
-        'headingTagline' => "It's Institution of Tufan Company Limited"
+        'headingTagline' => "It's Institution of Tufan Company Limited",
+        'contactEmail' => 'info@tufanconventionresort.com',
+        'contactPhone' => '01958216727'
     ])
     @include('admin.reports.partials.shared-styles')
 
@@ -92,7 +94,7 @@
         </div>
         <div class="bg-primary-50 rounded-lg p-4 text-center border border-primary-200 print:p-2">
             <p class="text-gray-600 text-xs">VAT</p>
-            <p class="text-xl font-bold text-primary-700 print:text-base">BDT {{ number_format($bookings->sum('vat_amount'), 0) }}</p>
+            <p class="text-xl font-bold text-primary-700 print:text-base">BDT {{ number_format($totalVat, 0) }}</p>
         </div>
         <div class="bg-red-50 rounded-lg p-4 text-center border border-red-200 print:p-2">
             <p class="text-gray-600 text-xs">Remaining</p>
@@ -135,7 +137,18 @@
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->customer_phone }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->organization_name ?? '-' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">{{ $booking->conventionHall->name ?? 'N/A' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700">
+                            @if($booking->hall_count > 1)
+                                <div class="space-y-1">
+                                    @foreach($booking->halls as $hallName)
+                                    <div class="text-xs">{{ $hallName }}</div>
+                                    @endforeach
+                                    <div class="text-[10px] text-gray-500">({{ $booking->hall_count }} halls)</div>
+                                </div>
+                            @else
+                                {{ $booking->halls->first() ?? 'N/A' }}
+                            @endif
+                        </td>
                         <td class="border border-gray-400 px-2 py-1">
                             @if($booking->time_slot == 'morning') Morning
                             @elseif($booking->time_slot == 'night') Nights
@@ -172,7 +185,7 @@
                         <td colspan="6" class="border border-gray-400 px-2 py-2 text-right">Total:</td>
                         <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($totalRevenue, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-primary-700">{{ number_format($totalAdvance, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($bookings->sum('vat_amount'), 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right">{{ number_format($totalVat, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-red-600">{{ number_format($totalRemaining, 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 print:hidden"></td>
@@ -184,7 +197,10 @@
 
     <div class="mt-6 print:hidden">{{ $bookings->links() }}</div>
 
-    @include('admin.reports.partials.shared-footer')
+    @include('admin.reports.partials.shared-footer', [
+        'footerName' => 'Tufan Convention Center',
+        'footerPhone' => '01958216727'
+    ])
 </div>
 
 <!-- Convention Info Modal -->
