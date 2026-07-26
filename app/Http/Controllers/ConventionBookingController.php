@@ -415,15 +415,40 @@ class ConventionBookingController extends Controller
     {
         $conventionBooking->load(['conventionHall', 'foodPackage', 'payments']);
         $booking = $conventionBooking;
-        
+
+        // Find related bookings for same customer + event (multi-hall support)
+        $relatedBookings = ConventionBooking::where('id', '!=', $booking->id)
+            ->where('customer_phone', $booking->customer_phone)
+            ->whereDate('event_date', $booking->event_date)
+            ->where('time_slot', $booking->time_slot)
+            ->where('status', '!=', 'cancelled')
+            ->with(['conventionHall', 'payments'])
+            ->orderBy('id')
+            ->get();
+
+        $allBookings = collect([$booking])->merge($relatedBookings);
+
+        $groupTotals = [
+            'hall_rent' => $allBookings->sum('hall_rent'),
+            'food_cost' => $allBookings->sum('food_cost'),
+            'addons_cost' => $allBookings->sum('addons_cost'),
+            'discount' => $allBookings->sum('discount'),
+            'vat_amount' => $allBookings->sum('vat_amount'),
+            'total_amount' => $allBookings->sum('total_amount'),
+            'advance_payment' => $allBookings->sum('advance_payment'),
+            'remaining_payment' => $allBookings->sum('remaining_payment'),
+        ];
+
         // Return JSON for AJAX requests
         if ($request->has('ajax') || $request->ajax()) {
             return response()->json([
-                'booking' => $booking
+                'booking' => $booking,
+                'related_bookings' => $relatedBookings,
+                'group_totals' => $groupTotals
             ]);
         }
-        
-        return view('admin.convention-bookings.show', compact('booking'));
+
+        return view('admin.convention-bookings.show', compact('booking', 'relatedBookings', 'groupTotals'));
     }
 
     public function edit(ConventionBooking $conventionBooking)
