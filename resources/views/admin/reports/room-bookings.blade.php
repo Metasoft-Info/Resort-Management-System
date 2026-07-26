@@ -79,18 +79,22 @@
     <!-- Booking Count Summary -->
     <div class="bg-white rounded-xl shadow-lg p-5 mb-4 print:shadow-none print:border print:border-gray-400 print:rounded-none">
         <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Booking Summary</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 print:grid-cols-3 print:gap-2 print:text-xs">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 print:grid-cols-4 print:gap-2 print:text-xs">
             <div class="bg-green-50 rounded-lg p-3 text-center border border-green-200 print:p-1 print:border-gray-400">
                 <p class="text-gray-500 text-xs">Old Guest</p>
-                <p class="text-2xl font-bold text-green-700 print:text-base">{{ $checkedInCount }}</p>
+                <p class="text-2xl font-bold text-green-700 print:text-base">{{ $oldGuestCount }}</p>
             </div>
             <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-200 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Check-In</p>
-                <p class="text-2xl font-bold text-blue-700 print:text-base">{{ $checkInTodayCount }}</p>
+                <p class="text-gray-500 text-xs">In Guest</p>
+                <p class="text-2xl font-bold text-blue-700 print:text-base">{{ $inGuestCount }}</p>
             </div>
             <div class="bg-gray-50 rounded-lg p-3 text-center border border-gray-300 print:p-1 print:border-gray-400">
-                <p class="text-gray-500 text-xs">Check-Out</p>
-                <p class="text-2xl font-bold text-gray-700 print:text-base">{{ $checkOutTodayCount }}</p>
+                <p class="text-gray-500 text-xs">Checkout</p>
+                <p class="text-2xl font-bold text-gray-700 print:text-base">{{ $checkoutCount }}</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-3 text-center border border-orange-200 print:p-1 print:border-gray-400">
+                <p class="text-gray-500 text-xs">Due Clear</p>
+                <p class="text-2xl font-bold text-orange-700 print:text-base">{{ $dueClearCount }}</p>
             </div>
         </div>
     </div>
@@ -212,7 +216,12 @@
                             @if($pointInTimeStatus == 'checked_in')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Check-In</span>
                             @elseif($pointInTimeStatus == 'checked_out')
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">Check-Out</span>
+                                @php $checkoutDateStr = \Carbon\Carbon::parse($booking->check_out_date)->format('Y-m-d'); @endphp
+                                @if($checkoutDateStr == $filterEndDate)
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">Check-Out</span>
+                                @else
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">Due Clear</span>
+                                @endif
                             @elseif($pointInTimeStatus == 'confirmed')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">Confirmed</span>
                             @elseif($pointInTimeStatus == 'pending')
