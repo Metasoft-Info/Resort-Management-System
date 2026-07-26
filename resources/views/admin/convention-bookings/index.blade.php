@@ -12,7 +12,7 @@
  <i class="fas fa-building-columns mr-3 text-violet-200"></i>
  Convention Hall Booking
  </h1>
- <p class="text-violet-100 mt-2 text-sm lg:text-base">Total Booking: <span class="font-bold text-white">{{ $bookings->total() }}</span> </p>
+ <p class="text-violet-100 mt-2 text-sm lg:text-base">Total Booking: <span class="font-bold text-white">{{ $paginatedGroups->total() }}</span> </p>
  </div>
  <a href="{{ route('admin.premium-convention.index') }}" class="inline-flex items-center justify-center px-6 py-3 bg-white text-violet-700 rounded-xl hover:bg-violet-50 transition font-bold shadow-lg hover:shadow-xl text-sm lg:text-base">
  <i class="fas fa-plus-circle mr-2"></i>
@@ -121,30 +121,37 @@
  </tr>
  </thead>
  <tbody class="divide-y divide-gray-100">
- @forelse($bookings as $booking)
+ @forelse($paginatedGroups as $group)
+ @php
+ $first = $group['first'];
+ @endphp
  <tr class="hover:bg-violet-50/50 transition">
  <td class="px-4 py-4">
  <span class="inline-flex items-center px-3 py-1 rounded-full bg-violet-100 text-violet-700 font-bold text-sm">
- #{{ $booking->id }}
+ #{{ $first->id }}
  </span>
  </td>
  <td class="px-4 py-4">
- <div class="font-semibold text-gray-800">{{ $booking->customer_name }}</div>
+ <div class="font-semibold text-gray-800">{{ $first->customer_name }}</div>
  <div class="text-xs text-gray-500 flex items-center mt-1">
- <i class="fas fa-phone mr-1"></i>{{ $booking->customer_phone }}
+ <i class="fas fa-phone mr-1"></i>{{ $first->customer_phone }}
  </div>
- @if($booking->organization_name)
+ @if($first->organization_name)
  <div class="text-xs text-violet-600 flex items-center mt-1">
- <i class="fas fa-building mr-1"></i>{{ $booking->organization_name }}
+ <i class="fas fa-building mr-1"></i>{{ $first->organization_name }}
  </div>
  @endif
  </td>
  <td class="px-4 py-4">
- <div class="font-semibold text-gray-700">{{ $booking->conventionHall->name ?? 'N/A' }}</div>
+ <div class="font-semibold text-gray-700">
+ @foreach($group['hall_names'] as $index => $hallName)
+ {{ $hallName }}{{ $index < count($group['hall_names']) - 1 ? ' + ' : '' }}
+ @endforeach
+ </div>
  <div class="text-xs text-gray-500">
- @if($booking->time_slot == 'morning')
+ @if($first->time_slot == 'morning')
  🌅 Morning
- @elseif($booking->time_slot == 'night')
+ @elseif($first->time_slot == 'night')
  🌙 Nights
  @else
  🌞 Full Day
@@ -153,25 +160,25 @@
  </td>
  <td class="px-4 py-4">
  <div class="text-sm font-medium text-gray-800">
- {{ \Carbon\Carbon::parse($booking->event_date)->format('d M, Y') }}
+ {{ $group['event_date']->format('d M, Y') }}
  </div>
  <div class="text-xs mt-1">
  <span class="inline-flex items-center px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
- {{ ucfirst($booking->event_type) }}
+ {{ ucfirst($group['event_type']) }}
  </span>
  </div>
  </td>
  <td class="px-4 py-4">
  <div class="flex items-center">
  <i class="fas fa-users text-gray-400 mr-2"></i>
- <span class="font-semibold text-gray-700">{{ $booking->number_of_guests }}</span>
+ <span class="font-semibold text-gray-700">{{ $group['guest_count'] }}</span>
  </div>
  </td>
  <td class="px-4 py-4">
- <div class="font-bold text-violet-600">{{ number_format($booking->total_amount, 0) }}</div>
+ <div class="font-bold text-violet-600">{{ number_format($group['total_amount'], 0) }}</div>
  @php
- $paid = $booking->payments->sum('amount') ?? 0;
- $due = $booking->total_amount - $paid;
+ $paid = $group['bookings']->pluck('payments')->flatten()->sum('amount') ?? 0;
+ $due = $group['total_amount'] - $paid;
  @endphp
  @if($due > 0)
  <div class="text-xs text-red-500 mt-1">Remaining: {{ number_format($due, 0) }}</div>
@@ -180,15 +187,15 @@
  @endif
  </td>
  <td class="px-4 py-4">
- @if($booking->status == 'confirmed')
+ @if($group['status'] == 'confirmed')
  <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
  <i class="fas fa-check-circle mr-1"></i>Confirmed
  </span>
- @elseif($booking->status == 'pending')
+ @elseif($group['status'] == 'pending')
  <span class="inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
  <i class="fas fa-clock mr-1"></i>Pending
  </span>
- @elseif($booking->status == 'completed')
+ @elseif($group['status'] == 'completed')
  <span class="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
  <i class="fas fa-flag-checkered mr-1"></i>Completed
  </span>
@@ -200,17 +207,17 @@
  </td>
  <td class="px-4 py-4">
  <div class="flex items-center justify-center gap-2">
- <a href="{{ route('admin.convention-bookings.show', $booking) }}" 
+ <a href="{{ route('admin.convention-bookings.show', $first) }}" 
  class="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 hover:bg-violet-200 flex items-center justify-center transition" 
  title="Details">
  <i class="fas fa-eye text-sm"></i>
  </a>
- <a href="{{ route('admin.convention-bookings.edit', $booking) }}" 
+ <a href="{{ route('admin.convention-bookings.edit', $first) }}" 
  class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center transition" 
  title="Edit">
  <i class="fas fa-edit text-sm"></i>
  </a>
- <form action="{{ route('admin.convention-bookings.destroy', $booking) }}" method="POST" class="inline" onsubmit="return confirm('Booking #{{ $booking->id }} Do you want to delete?')">
+ <form action="{{ route('admin.convention-bookings.destroy', $first) }}" method="POST" class="inline" onsubmit="return confirm('Booking #{{ $first->id }} Do you want to delete?')">
  @csrf
  @method('DELETE')
  <button type="submit" 
@@ -245,9 +252,9 @@
 </div>
 
 <!-- Pagination -->
-@if($bookings->hasPages())
+@if($paginatedGroups->hasPages())
 <div class="mt-6 flex justify-center">
- {{ $bookings->links() }}
+ {{ $paginatedGroups->links() }}
 </div>
 @endif
 @endsection
