@@ -442,15 +442,29 @@ class ConventionBookingController extends Controller
         // Halls available to add to this event
         $allHalls = ConventionHall::all();
         $bookedHallIds = $allBookings->pluck('hall_id')->unique()->values()->toArray();
-        $existingBookings = ConventionBooking::whereDate('event_date', $booking->event_date)
-            ->where('time_slot', $booking->time_slot)
+        $eventDate = Carbon::parse($booking->event_date)->startOfDay();
+        $timeSlot = $booking->time_slot;
+
+        $bookedByOthers = ConventionBooking::whereDate('event_date', $eventDate)
             ->where('status', '!=', 'cancelled')
-            ->get();
-        $availableHalls = $allHalls->filter(function ($hall) use ($bookedHallIds, $existingBookings) {
-            if (in_array($hall->id, $bookedHallIds)) return false;
-            $hallBookings = $existingBookings->where('hall_id', $hall->id);
-            $fullDayBooked = $hallBookings->contains('time_slot', 'full_day');
-            return !$fullDayBooked && $hallBookings->count() === 0;
+            ->where(function($query) use ($timeSlot) {
+                $query->where('time_slot', 'full_day')
+                      ->orWhere(function($q) use ($timeSlot) {
+                          if ($timeSlot === 'full_day') {
+                              $q->whereIn('time_slot', ['morning', 'night', 'full_day']);
+                          } else {
+                              $q->where('time_slot', $timeSlot);
+                          }
+                      });
+            })
+            ->pluck('hall_id')
+            ->unique()
+            ->toArray();
+
+        $unavailableHallIds = array_unique(array_merge($bookedHallIds, $bookedByOthers));
+
+        $availableHalls = $allHalls->filter(function ($hall) use ($unavailableHallIds) {
+            return !in_array($hall->id, $unavailableHallIds);
         })->values();
 
         // Return JSON for AJAX requests
@@ -489,21 +503,30 @@ class ConventionBookingController extends Controller
             ->toArray();
 
         // Halls available for this date + slot (not booked by anyone, excluding current group)
-        $eventDate = $conventionBooking->event_date;
+        $eventDate = Carbon::parse($conventionBooking->event_date)->startOfDay();
         $timeSlot = $conventionBooking->time_slot;
-        $existingBookings = ConventionBooking::whereDate('event_date', $eventDate)
-            ->where('time_slot', $timeSlot)
-            ->where('status', '!=', 'cancelled')
-            ->get();
 
-        // Calculate availability per hall for this slot
-        $availableHalls = $halls->filter(function ($hall) use ($existingBookings, $bookedHallIds) {
-            // If already in this group, skip
-            if (in_array($hall->id, $bookedHallIds)) return false;
-            $hallBookings = $existingBookings->where('hall_id', $hall->id);
-            // Available if no booking, or only morning/night (not full_day)
-            $fullDayBooked = $hallBookings->contains('time_slot', 'full_day');
-            return !$fullDayBooked && $hallBookings->count() === 0;
+        $bookedByOthers = ConventionBooking::whereDate('event_date', $eventDate)
+            ->where('status', '!=', 'cancelled')
+            ->where(function($query) use ($timeSlot) {
+                $query->where('time_slot', 'full_day')
+                      ->orWhere(function($q) use ($timeSlot) {
+                          if ($timeSlot === 'full_day') {
+                              $q->whereIn('time_slot', ['morning', 'night', 'full_day']);
+                          } else {
+                              $q->where('time_slot', $timeSlot);
+                          }
+                      });
+            })
+            ->pluck('hall_id')
+            ->unique()
+            ->toArray();
+
+        // Exclude current group's halls + others' booked halls
+        $unavailableHallIds = array_unique(array_merge($bookedHallIds, $bookedByOthers));
+
+        $availableHalls = $halls->filter(function ($hall) use ($unavailableHallIds) {
+            return !in_array($hall->id, $unavailableHallIds);
         })->values();
 
         return view('admin.convention-bookings.edit', compact('conventionBooking', 'halls', 'foodPackages', 'addonServices', 'relatedBookings', 'availableHalls'));
@@ -569,10 +592,21 @@ class ConventionBookingController extends Controller
                 if (!$hall) continue;
 
                 // Check hall is still available for this date + slot
+                $eventDate = Carbon::parse($validated['event_date'])->startOfDay();
+                $timeSlot = $validated['time_slot'];
                 $conflict = ConventionBooking::where('hall_id', $hallId)
-                    ->whereDate('event_date', $validated['event_date'])
-                    ->where('time_slot', $validated['time_slot'])
+                    ->whereDate('event_date', $eventDate)
                     ->where('status', '!=', 'cancelled')
+                    ->where(function($query) use ($timeSlot) {
+                        $query->where('time_slot', 'full_day')
+                              ->orWhere(function($q) use ($timeSlot) {
+                                  if ($timeSlot === 'full_day') {
+                                      $q->whereIn('time_slot', ['morning', 'night', 'full_day']);
+                                  } else {
+                                      $q->where('time_slot', $timeSlot);
+                                  }
+                              });
+                    })
                     ->exists();
 
                 if ($conflict) continue;
@@ -638,10 +672,21 @@ class ConventionBookingController extends Controller
             if (!$hall) continue;
 
             // Check availability for date + slot
+            $eventDate = Carbon::parse($conventionBooking->event_date)->startOfDay();
+            $timeSlot = $conventionBooking->time_slot;
             $conflict = ConventionBooking::where('hall_id', $hallId)
-                ->whereDate('event_date', $conventionBooking->event_date)
-                ->where('time_slot', $conventionBooking->time_slot)
+                ->whereDate('event_date', $eventDate)
                 ->where('status', '!=', 'cancelled')
+                ->where(function($query) use ($timeSlot) {
+                    $query->where('time_slot', 'full_day')
+                          ->orWhere(function($q) use ($timeSlot) {
+                              if ($timeSlot === 'full_day') {
+                                  $q->whereIn('time_slot', ['morning', 'night', 'full_day']);
+                              } else {
+                                  $q->where('time_slot', $timeSlot);
+                              }
+                          });
+                })
                 ->exists();
 
             if ($conflict) continue;
