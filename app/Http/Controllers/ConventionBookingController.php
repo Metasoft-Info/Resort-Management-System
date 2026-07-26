@@ -470,7 +470,7 @@ class ConventionBookingController extends Controller
             'vat_amount' => $allBookings->sum('vat_amount'),
             'total_amount' => $allBookings->sum('total_amount'),
             'advance_payment' => $allBookings->sum('advance_payment'),
-            'remaining_payment' => $allBookings->sum('remaining_payment'),
+            'remaining_payment' => max(0, $allBookings->sum('total_amount') - $allBookings->sum('advance_payment')),
         ];
 
         // Halls available to add to this event
@@ -813,10 +813,29 @@ class ConventionBookingController extends Controller
             'note' => 'nullable|string',
         ]);
 
-        // Create payment record
+        $amount = round(floatval($validated['amount']));
+
+        // Find related bookings for group payment distribution
+        $relatedBookings = ConventionBooking::where('id', '!=', $conventionBooking->id)
+            ->where('customer_phone', $conventionBooking->customer_phone)
+            ->whereDate('event_date', $conventionBooking->event_date->toDateString())
+            ->where('time_slot', $conventionBooking->time_slot)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        $allBookings = collect([$conventionBooking])->merge($relatedBookings);
+        $groupRemaining = $allBookings->sum('remaining_payment');
+        $amountToApply = min($amount, $groupRemaining);
+
+        if ($amountToApply <= 0) {
+            return redirect()->route('admin.convention-bookings.show', $conventionBooking)
+                ->with('error', 'No remaining amount to pay.');
+        }
+
+        // Create one payment record on the primary booking for the full amount
         ConventionPayment::create([
             'convention_booking_id' => $conventionBooking->id,
-            'amount' => $validated['amount'],
+            'amount' => $amountToApply,
             'payment_method' => $validated['method'],
             'bkash_number' => $validated['bkash_number'] ?? null,
             'bank_name' => $validated['bank_name'] ?? null,
@@ -825,24 +844,47 @@ class ConventionBookingController extends Controller
             'received_by_id' => auth()->id(),
         ]);
 
-        // Update booking
-        $newAdvance = $conventionBooking->advance_payment + $validated['amount'];
-        $remainingPayment = max(0, $conventionBooking->total_amount - $newAdvance);
-        
-        if ($remainingPayment <= 0) {
-            $paymentStatus = 'paid';
-        } elseif ($newAdvance > 0) {
-            $paymentStatus = 'partial';
-        } else {
-            $paymentStatus = 'pending';
-        }
+        // Distribute payment across all bookings proportionally by true remaining amount
+        $bookingsToUpdate = $allBookings->values()->map(function ($booking) {
+            $booking->true_remaining = max(0, round(floatval($booking->total_amount)) - round(floatval($booking->advance_payment)));
+            return $booking;
+        });
+        $totalRemaining = $bookingsToUpdate->sum('true_remaining');
 
-        $conventionBooking->update([
-            'advance_payment' => $newAdvance,
-            'remaining_payment' => $remainingPayment,
-            'payment_status' => $paymentStatus,
-            'updated_by_id' => auth()->id(),
-        ]);
+        if ($totalRemaining > 0) {
+            $allocatedSoFar = 0;
+            foreach ($bookingsToUpdate as $index => $booking) {
+                $bookingRemaining = round(floatval($booking->true_remaining));
+                $isLast = ($index === $bookingsToUpdate->count() - 1);
+
+                if ($isLast) {
+                    $allocated = $amountToApply - $allocatedSoFar;
+                } else {
+                    $allocated = floor($amountToApply * ($bookingRemaining / $totalRemaining));
+                }
+
+                $allocated = max(0, min($allocated, $bookingRemaining, $amountToApply - $allocatedSoFar));
+                $allocatedSoFar += $allocated;
+
+                $newAdvance = round(floatval($booking->advance_payment)) + $allocated;
+                $newRemaining = max(0, round(floatval($booking->total_amount)) - $newAdvance);
+
+                if ($newRemaining <= 0) {
+                    $paymentStatus = 'paid';
+                } elseif ($newAdvance > 0) {
+                    $paymentStatus = 'partial';
+                } else {
+                    $paymentStatus = 'pending';
+                }
+
+                $booking->update([
+                    'advance_payment' => $newAdvance,
+                    'remaining_payment' => $newRemaining,
+                    'payment_status' => $paymentStatus,
+                    'updated_by_id' => auth()->id(),
+                ]);
+            }
+        }
 
         return redirect()->route('admin.convention-bookings.show', $conventionBooking)
             ->with('success', 'Payment added successfully!');
