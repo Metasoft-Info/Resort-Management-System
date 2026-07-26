@@ -26,7 +26,7 @@
  </span>
  </div>
  <h1 class="text-3xl font-bold mb-1">Convention Booking #{{ $booking->id }}</h1>
- <p class="text-violet-200">{{ $booking->customer_name }} • {{ $booking->conventionHall->name }}</p>
+ <p class="text-violet-200">{{ $booking->customer_name }} • {{ $booking->conventionHall->name }}{{ $relatedBookings->count() > 0 ? ' + ' . $relatedBookings->count() . ' more hall(s)' : '' }}</p>
  </div>
  <div class="flex flex-wrap gap-3">
  <button onclick="printConventionInvoice()" class="px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition shadow-lg">
@@ -50,15 +50,15 @@
  </div>
  <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-blue-500">
  <p class="text-gray-500 text-sm">Total Amount</p>
- <p class="text-xl font-bold text-gray-800">{{ number_format($booking->total_amount, 0) }}</p>
+ <p class="text-xl font-bold text-gray-800">{{ number_format($groupTotals['total_amount'], 0) }}</p>
  </div>
  <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-emerald-500">
  <p class="text-gray-500 text-sm">Paid</p>
- <p class="text-xl font-bold text-emerald-600">{{ number_format($booking->advance_payment, 0) }}</p>
+ <p class="text-xl font-bold text-emerald-600">{{ number_format($groupTotals['advance_payment'], 0) }}</p>
  </div>
  <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-red-500">
  <p class="text-gray-500 text-sm">Due</p>
- <p class="text-xl font-bold text-red-600">{{ number_format($booking->remaining_payment, 0) }}</p>
+ <p class="text-xl font-bold text-red-600">{{ number_format($groupTotals['remaining_payment'], 0) }}</p>
  </div>
  </div>
 
@@ -160,10 +160,20 @@
  </div>
  <div class="p-6">
  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
- <div class="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 text-center">
+ <div class="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 text-center md:col-span-2 lg:col-span-3">
  <i class="fas fa-hotel text-3xl text-violet-500 mb-2"></i>
- <p class="text-xs text-gray-500">Convention Hall</p>
- <p class="font-bold text-gray-800">{{ $booking->conventionHall->name }}</p>
+ <p class="text-xs text-gray-500 mb-2">Convention Hall(s)</p>
+ <div class="space-y-2">
+ <div class="flex items-center justify-center gap-2 flex-wrap">
+ <span class="px-3 py-1 bg-violet-600 text-white rounded-full text-sm font-bold">{{ $booking->conventionHall->name }}</span>
+ @foreach($relatedBookings as $related)
+ <span class="px-3 py-1 bg-violet-100 text-violet-800 rounded-full text-sm font-bold">{{ $related->conventionHall->name ?? 'N/A' }}</span>
+ @endforeach
+ </div>
+ @if($relatedBookings->count() > 0)
+ <p class="text-sm text-violet-700 font-semibold">{{ $relatedBookings->count() + 1 }} halls booked for this event</p>
+ @endif
+ </div>
  </div>
  <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 text-center">
  <i class="fas fa-calendar-day text-3xl text-blue-500 mb-2"></i>
@@ -313,7 +323,10 @@
  </h2>
  </div>
  <div class="p-6">
- @if($booking->payments && $booking->payments->count() > 0)
+ @php
+ $allPayments = $booking->payments->merge($relatedBookings->pluck('payments')->flatten())->sortBy('payment_date')->values();
+ @endphp
+ @if($allPayments->count() > 0)
  <div class="overflow-x-auto">
  <table class="min-w-full">
  <thead>
@@ -326,7 +339,7 @@
  </tr>
  </thead>
  <tbody class="divide-y">
- @foreach($booking->payments as $index => $payment)
+ @foreach($allPayments as $index => $payment)
  <tr class="hover:bg-violet-50 transition">
  <td class="py-3 text-gray-600">{{ $index + 1 }}</td>
  <td class="py-3 text-gray-800 font-medium">{{ \Carbon\Carbon::parse($payment->payment_date)->format('d M, Y') }}</td>
@@ -354,7 +367,7 @@
  <tfoot>
  <tr class="border-t-2 bg-emerald-50">
  <td colspan="3" class="py-3 font-bold text-gray-700">Total Paid</td>
- <td class="py-3 text-emerald-600 font-bold text-lg">{{ number_format($booking->payments->sum('amount'), 0) }}</td>
+ <td class="py-3 text-emerald-600 font-bold text-lg">{{ number_format($allPayments->sum('amount'), 0) }}</td>
  <td></td>
  </tr>
  </tfoot>
@@ -492,53 +505,53 @@
  <div class="p-6 space-y-3">
  <div class="flex justify-between items-center">
  <span class="text-gray-600">Hall Rent</span>
- <span class="font-semibold">{{ number_format($booking->hall_rent, 0) }}</span>
+ <span class="font-semibold">{{ number_format($groupTotals['hall_rent'], 0) }}</span>
  </div>
- @if($booking->food_cost > 0)
+ @if($groupTotals['food_cost'] > 0)
  <div class="flex justify-between items-center">
  <span class="text-gray-600">Food Cost</span>
- <span class="font-semibold">{{ number_format($booking->food_cost, 0) }}</span>
+ <span class="font-semibold">{{ number_format($groupTotals['food_cost'], 0) }}</span>
  </div>
  @endif
- @if($booking->addons_cost > 0)
+ @if($groupTotals['addons_cost'] > 0)
  <div class="flex justify-between items-center">
  <span class="text-gray-600">Addon Cost</span>
- <span class="font-semibold">{{ number_format($booking->addons_cost, 0) }}</span>
+ <span class="font-semibold">{{ number_format($groupTotals['addons_cost'], 0) }}</span>
  </div>
  @endif
- 
- @if($booking->discount > 0)
+
+ @if($groupTotals['discount'] > 0)
  <div class="flex justify-between items-center text-red-600">
  <span>Discount</span>
- <span class="font-semibold">-{{ number_format($booking->discount, 0) }}</span>
+ <span class="font-semibold">-{{ number_format($groupTotals['discount'], 0) }}</span>
  </div>
  @endif
- 
- @if($booking->vat_amount > 0)
+
+ @if($groupTotals['vat_amount'] > 0)
  <div class="flex justify-between items-center">
  <span class="text-gray-600">VAT ({{ $booking->vat_percentage ?? 0 }}%)</span>
- <span class="font-semibold">{{ number_format($booking->vat_amount, 0) }}</span>
+ <span class="font-semibold">{{ number_format($groupTotals['vat_amount'], 0) }}</span>
  </div>
  @endif
- 
+
  <div class="border-t-2 border-dashed pt-3 mt-3">
  <div class="flex justify-between items-center text-lg">
  <span class="font-bold text-gray-800">Grand Total</span>
- <span class="font-bold text-violet-600">{{ number_format($booking->total_amount, 0) }}</span>
+ <span class="font-bold text-violet-600">{{ number_format($groupTotals['total_amount'], 0) }}</span>
  </div>
  </div>
- 
+
  <div class="bg-emerald-50 rounded-lg p-3">
  <div class="flex justify-between items-center">
  <span class="text-emerald-700 font-semibold">Total Paid</span>
- <span class="font-bold text-emerald-600">{{ number_format($booking->advance_payment, 0) }}</span>
+ <span class="font-bold text-emerald-600">{{ number_format($groupTotals['advance_payment'], 0) }}</span>
  </div>
  </div>
- 
+
  <div class="bg-red-50 rounded-lg p-3">
  <div class="flex justify-between items-center">
  <span class="text-red-700 font-semibold">Due Amount</span>
- <span class="font-bold text-red-600 text-xl">{{ number_format($booking->remaining_payment, 0) }}</span>
+ <span class="font-bold text-red-600 text-xl">{{ number_format($groupTotals['remaining_payment'], 0) }}</span>
  </div>
  </div>
  </div>
@@ -558,7 +571,7 @@
  <div class="space-y-4">
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Amount (BDT)</label>
- <input type="number" name="amount" step="1" max="{{ $booking->remaining_payment }}" required 
+ <input type="number" name="amount" step="1" max="{{ $groupTotals['remaining_payment'] }}" required 
  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
  placeholder="Enter amount">
  </div>

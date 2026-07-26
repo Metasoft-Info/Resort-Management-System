@@ -83,10 +83,12 @@
  <div id="hallsContainer" class="hidden mb-6">
  <label class="block text-gray-700 font-semibold mb-4">
  Available Convention Hall *
- <span class="ml-2 text-sm text-violet-600 font-normal">✅ Showing available halls for selected date & time</span>
+ <span class="ml-2 text-sm text-violet-600 font-normal">✅ Click to select one or more halls</span>
+ <span id="selectedHallsBadge" class="ml-2 px-3 py-1 bg-violet-600 text-white text-xs font-bold rounded-full hidden">0 selected</span>
  </label>
  <div id="hallsList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
- <input type="hidden" name="hall_id" id="selectedHallId">
+ <input type="hidden" name="hall_ids" id="selectedHallIds" value="">
+ <input type="hidden" name="hall_id" id="selectedHallId" value="">
  <input type="hidden" name="hall_rent" id="hallRent" value="0">
  </div>
 
@@ -359,6 +361,15 @@
  <!-- Right: Summary -->
  <div class="bg-gradient-to-br from-violet-50 to-purple-50 p-6 rounded-xl border border-violet-100">
  <h3 class="text-xl font-bold mb-4 text-violet-800">Booking Summary</h3>
+
+ <!-- Selected Halls List -->
+ <div class="mb-4">
+ <p class="font-semibold text-violet-800 mb-2">Selected Hall(s):</p>
+ <div id="selectedHallsList" class="space-y-1">
+ <p class="text-sm text-gray-500 italic">No hall selected</p>
+ </div>
+ </div>
+
  <div class="space-y-3">
  <div class="flex justify-between">
  <span>Hall Rent:</span>
@@ -435,7 +446,7 @@ function validateForm() {
  const requiredFields = [
  { id: 'eventDate', name: 'Event Date' },
  { id: 'timeSlot', name: 'Time Slot' },
- { id: 'selectedHallId', name: 'Convention Hall' },
+ { id: 'selectedHallIds', name: 'Convention Hall (select at least one)' },
  { id: 'customerPhone', name: 'Phone Number' },
  { id: 'customerName', name: 'Customer Name' },
  { id: 'numberOfGuests', name: 'Guest Count' }
@@ -464,7 +475,7 @@ function nextStep(step) {
  const step1Fields = [
  { id: 'eventDate', name: 'Event Date' },
  { id: 'timeSlot', name: 'Time Slot' },
- { id: 'selectedHallId', name: 'Convention Hall' },
+ { id: 'selectedHallIds', name: 'Convention Hall (select at least one)' },
  { id: 'customerPhone', name: 'Phone Number' },
  { id: 'customerName', name: 'Customer Name' },
  { id: 'numberOfGuests', name: 'Guest Count' }
@@ -523,6 +534,12 @@ async function checkAvailability() {
  console.log('Search response:', data); // Debug log
  const container = document.getElementById('hallsList');
  container.innerHTML = '';
+ selectedHalls = []; // Reset selected halls
+ document.getElementById('selectedHallIds').value = '';
+ document.getElementById('selectedHallId').value = '';
+ document.getElementById('hallRent').value = 0;
+ document.getElementById('displayHallRent').textContent = 'BDT 0';
+ updateSelectedHallsList();
  
  if (data.availableHalls.length === 0) {
  container.innerHTML = '<div class="col-span-2 bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center"><p class="text-red-800 font-semibold">❌ Hall </p></div>';
@@ -544,7 +561,7 @@ async function checkAvailability() {
  container.innerHTML += `
  <div class="relative border-2 border-gray-300 rounded-xl overflow-hidden cursor-pointer hover:border-purple-400 hover:shadow-lg transition hall-card"
  data-hall-id="${hall.id}" data-price="${hall.price_per_day}"
- onclick="selectHall(${hall.id}, ${hall.price_per_day}, '${slot}')">
+ onclick="selectHall(${hall.id}, ${hall.price_per_day}, '${slot}', event)">
  ${imageHtml}
  <div class="p-4">
  <h4 class="font-bold text-lg text-gray-800">${hall.name}</h4>
@@ -561,7 +578,7 @@ async function checkAvailability() {
  const hallToSelect = data.availableHalls.find(h => h.id == window.preSelectedHallId);
  if (hallToSelect) {
  setTimeout(() => {
- selectHall(hallToSelect.id, hallToSelect.price_per_day, slot);
+ selectHall(hallToSelect.id, hallToSelect.price_per_day, slot, null);
  }, 100);
  }
  window.preSelectedHallId = null; // Clear after use
@@ -574,23 +591,84 @@ async function checkAvailability() {
  }
 }
 
-function selectHall(hallId, price, timeSlot) {
- document.querySelectorAll('.hall-card').forEach(card => {
+let selectedHalls = [];
+
+function selectHall(hallId, price, timeSlot, ev) {
+ // Get event object - support both passed event and global event
+ const evt = ev || window.event;
+ if (!evt) {
+ console.error('No event available in selectHall');
+ return;
+ }
+ const card = evt.target.closest ? evt.target.closest('.hall-card') : null;
+ if (!card) {
+ // Fallback: find card by data-hall-id
+ const allCards = document.querySelectorAll('.hall-card');
+ for (let c of allCards) {
+ if (c.dataset.hallId == hallId) { card = c; break; }
+ }
+ }
+ if (!card) return;
+
+ const idx = selectedHalls.findIndex(h => h.id === hallId);
+ if (idx > -1) {
+ // Deselect
+ selectedHalls.splice(idx, 1);
  card.classList.remove('border-violet-500', 'bg-violet-50');
  card.classList.add('border-gray-300');
- });
- 
- const clickedCard = event.target.closest('.hall-card');
- if (clickedCard) {
- clickedCard.classList.remove('border-gray-300');
- clickedCard.classList.add('border-violet-500', 'bg-violet-50');
+ } else {
+ // Select
+ const hallName = card.querySelector('h4') ? card.querySelector('h4').textContent : ('Hall #' + hallId);
+ selectedHalls.push({ id: hallId, price: price, name: hallName });
+ card.classList.remove('border-gray-300');
+ card.classList.add('border-violet-500', 'bg-violet-50');
  }
 
- let finalPrice = price;
+ // Update hidden fields
+ document.getElementById('selectedHallIds').value = selectedHalls.map(h => h.id).join(',');
+ document.getElementById('selectedHallId').value = selectedHalls.length > 0 ? selectedHalls[0].id : '';
 
- document.getElementById('selectedHallId').value = hallId;
- document.getElementById('hallRent').value = finalPrice;
- document.getElementById('displayHallRent').textContent = 'BDT ' + finalPrice.toFixed(2);
+ // Sum hall rents
+ const totalRent = selectedHalls.reduce((sum, h) => sum + h.price, 0);
+ document.getElementById('hallRent').value = totalRent;
+ document.getElementById('displayHallRent').textContent = 'BDT ' + totalRent.toFixed(2);
+
+ // Update selected halls list in summary
+ updateSelectedHallsList();
+
+ // Always recalculate
+ calculateTotal();
+}
+
+function updateSelectedHallsList() {
+ const listDiv = document.getElementById('selectedHallsList');
+ const badge = document.getElementById('selectedHallsBadge');
+
+ // Update badge
+ if (badge) {
+ if (selectedHalls.length > 0) {
+ badge.textContent = selectedHalls.length + ' selected';
+ badge.classList.remove('hidden');
+ } else {
+ badge.classList.add('hidden');
+ }
+ }
+
+ if (!listDiv) return;
+
+ if (selectedHalls.length === 0) {
+ listDiv.innerHTML = '<p class="text-sm text-gray-500 italic">No hall selected</p>';
+ return;
+ }
+
+ let html = '';
+ selectedHalls.forEach((h, i) => {
+ html += `<div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border border-violet-200">
+ <span class="text-sm font-semibold text-gray-800">${i + 1}. ${h.name}</span>
+ <span class="text-sm text-violet-600 font-bold">BDT ${h.price.toLocaleString()}</span>
+ </div>`;
+ });
+ listDiv.innerHTML = html;
 }
 
 async function searchCustomer(phone) {

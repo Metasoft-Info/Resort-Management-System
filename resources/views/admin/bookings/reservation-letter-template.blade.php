@@ -234,7 +234,7 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <p style="margin: 2px 0; font-weight: bold;">Thanking you,</p>
  <p style="margin: 2px 0; font-weight: bold;">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</p>
  <p style="margin: 2px 0;">{{ $resortInfo->address ?? 'Kamalnagar, Satkhira' }}</p>
- <p style="margin: 2px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }} | Phone: {{ $resortInfo->phone ?? '01958-216728' }}</p>
+ <p style="margin: 2px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }} | Phone: {{ $resortInfo->phone ?? '01958216727' }}</p>
  </div>
 
  <!-- Developer Credit -->

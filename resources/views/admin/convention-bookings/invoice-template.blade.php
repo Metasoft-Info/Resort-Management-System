@@ -9,10 +9,10 @@
  @else
  <div style="width: 70px; height: 70px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">TUFAN</div>
  @endif
- <h1 style="font-size: 22px; font-weight: bold; margin: 4px 0; letter-spacing: 2px; text-transform: uppercase;">TUFAN CONVENTION & RESORT</h1>
+ <h1 style="font-size: 22px; font-weight: bold; margin: 4px 0; letter-spacing: 2px; text-transform: uppercase;">Tufan Convention Center</h1>
  <p style="font-size: 11px; margin: 2px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
  <p style="font-size: 12px; margin: 2px 0;">{{ $resortInfo->address ?? 'Kamalnagar, Satkhira Sadar' }}</p>
- <p style="font-size: 12px; margin: 2px 0;">Mobile: {{ $resortInfo->phone ?? '+88 01958-216728' }} | Email: {{ $resortInfo->email ?? 'info@tufanconventionresort.com' }}</p>
+ <p style="font-size: 12px; margin: 2px 0;">Mobile: {{ $resortInfo->phone ?? '01958216727' }} | Email: {{ $resortInfo->email ?? 'info@tufanconventionresort.com' }}</p>
  </div>
 
  <!-- BILL Title -->
@@ -72,6 +72,17 @@
  @php
  $addons = is_array($booking->selected_addons) ? $booking->selected_addons : json_decode($booking->selected_addons, true);
  $quantities = is_array($booking->addon_quantities) ? $booking->addon_quantities : json_decode($booking->addon_quantities, true);
+ $relatedBookingsForInvoice = $relatedBookings ?? collect();
+ $invoiceTotals = $groupTotals ?? [
+ 'hall_rent' => $booking->hall_rent,
+ 'food_cost' => $booking->food_cost,
+ 'addons_cost' => $booking->addons_cost,
+ 'discount' => $booking->discount,
+ 'vat_amount' => $booking->vat_amount,
+ 'total_amount' => $booking->total_amount,
+ 'advance_payment' => $booking->advance_payment,
+ 'remaining_payment' => $booking->remaining_payment,
+ ];
  @endphp
 
  <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px;">
@@ -86,28 +97,28 @@
  </thead>
  <tbody>
  @php $sl = 1; @endphp
- <!-- Hall Rent -->
+ <!-- Hall Rent for all related bookings -->
  <tr>
  <td style="border: 1px solid #000; padding: 5px; text-align: center;">{{ $sl++ }}</td>
- <td style="border: 1px solid #000; padding: 5px;">Convention Hall Rent - {{ $booking->conventionHall->name }}</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: center;">1</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($booking->hall_rent, 0) }}/-</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($booking->hall_rent, 0) }}/-</td>
+ <td style="border: 1px solid #000; padding: 5px;">Convention Hall Rent - {{ $booking->conventionHall->name }}{{ $relatedBookingsForInvoice->count() > 0 ? ' + ' . $relatedBookingsForInvoice->pluck('conventionHall.name')->implode(', ') : '' }}</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: center;">{{ $relatedBookingsForInvoice->count() + 1 }}</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: right;">-</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($invoiceTotals['hall_rent'], 0) }}/-</td>
  </tr>
 
  <!-- Food Package -->
- @if($booking->foodPackage && $booking->food_cost > 0)
+ @if($booking->foodPackage && $invoiceTotals['food_cost'] > 0)
  <tr>
  <td style="border: 1px solid #000; padding: 5px; text-align: center;">{{ $sl++ }}</td>
  <td style="border: 1px solid #000; padding: 5px;">Food Package: {{ $booking->foodPackage->name }} ({{ $booking->number_of_guests }} persons × {{ number_format($booking->foodPackage->price_per_person, 0) }})</td>
  <td style="border: 1px solid #000; padding: 5px; text-align: center;">{{ $booking->number_of_guests }}</td>
  <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($booking->foodPackage->price_per_person, 0) }}/-</td>
- <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($booking->food_cost, 0) }}/-</td>
+ <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($invoiceTotals['food_cost'], 0) }}/-</td>
  </tr>
  @endif
 
  <!-- Addon Services -->
- @if($addons && count($addons) > 0)
+ @if($addons && count($addons) > 0 && $invoiceTotals['addons_cost'] > 0)
  @foreach($addons as $addonId)
  @php
  $addon = \App\Models\AddonService::find($addonId);
@@ -129,12 +140,12 @@
 
  <!-- Summary Section -->
  @php
- $subtotal = $booking->hall_rent + $booking->food_cost + $booking->addons_cost;
- $discountAmount = $booking->discount ?? 0;
- $vatAmount = $booking->vat_amount ?? 0;
- $grandTotal = $booking->total_amount;
- $paidAmount = $booking->advance_payment ?? 0;
- $dueAmount = $booking->remaining_payment ?? 0;
+ $subtotal = $invoiceTotals['hall_rent'] + $invoiceTotals['food_cost'] + $invoiceTotals['addons_cost'];
+ $discountAmount = $invoiceTotals['discount'] ?? 0;
+ $vatAmount = $invoiceTotals['vat_amount'] ?? 0;
+ $grandTotal = $invoiceTotals['total_amount'];
+ $paidAmount = $invoiceTotals['advance_payment'] ?? 0;
+ $dueAmount = $invoiceTotals['remaining_payment'] ?? 0;
  @endphp
 
  <table style="width: 100%; margin-bottom: 12px; font-size: 12px;">
@@ -171,18 +182,18 @@
  <table style="width: 100%; font-size: 13px; border: 1px solid #000;">
  <tr>
  <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">Hall Rent:</td>
- <td style="padding: 4px 8px; text-align: right; width: 100px; border-bottom: 1px solid #ddd;">{{ number_format($booking->hall_rent, 0) }}/-</td>
+ <td style="padding: 4px 8px; text-align: right; width: 100px; border-bottom: 1px solid #ddd;">{{ number_format($invoiceTotals['hall_rent'], 0) }}/-</td>
  </tr>
- @if($booking->food_cost > 0)
+ @if($invoiceTotals['food_cost'] > 0)
  <tr>
  <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">Food Cost:</td>
- <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">{{ number_format($booking->food_cost, 0) }}/-</td>
+ <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">{{ number_format($invoiceTotals['food_cost'], 0) }}/-</td>
  </tr>
  @endif
- @if($booking->addons_cost > 0)
+ @if($invoiceTotals['addons_cost'] > 0)
  <tr>
  <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">Addon Services:</td>
- <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">{{ number_format($booking->addons_cost, 0) }}/-</td>
+ <td style="padding: 4px 8px; text-align: right; border-bottom: 1px solid #ddd;">{{ number_format($invoiceTotals['addons_cost'], 0) }}/-</td>
  </tr>
  @endif
  <tr style="font-weight: bold;">
@@ -247,8 +258,8 @@
 
  <!-- Footer -->
  <div style="text-align: center; padding: 8px 0; border-top: 2px solid #000; margin-top: 5px; background: #f8f8f8;">
- <p style="font-size: 14px; font-weight: bold; color: #000; margin: 0 0 4px;">Thank you for choosing TUFAN CONVENTION & RESORT</p>
- <p style="font-size: 11px; color: #333; margin: 2px 0;">For booking call: {{ $resortInfo->phone ?? '+88 01958-216728' }}</p>
+ <p style="font-size: 14px; font-weight: bold; color: #000; margin: 0 0 4px;">Thank you for choosing Tufan Convention Center</p>
+ <p style="font-size: 11px; color: #333; margin: 2px 0;">For booking call: {{ $resortInfo->phone ?? '01958216727' }}</p>
  <p style="font-size: 9px; color: #666; margin: 4px 0 0; border-top: 1px dashed #ccc; padding-top: 4px;">Developed By Mir Javed Jeetu | 01811480222</p>
  </div>
  </div>
@@ -291,8 +302,9 @@
  
  #convention-invoice-print-area {
  position: absolute;
- left: 0;
+ left: 50% !important;
  top: 0;
+ transform: translateX(-50%) !important;
  width: 210mm;
  z-index: 99999 !important;
  background: white !important;
