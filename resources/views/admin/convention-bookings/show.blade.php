@@ -26,7 +26,10 @@
  </span>
  </div>
  <h1 class="text-3xl font-bold mb-1">Convention Booking #{{ $booking->id }}</h1>
- <p class="text-violet-200">{{ $booking->customer_name }} • {{ $booking->conventionHall->name }}{{ $relatedBookings->count() > 0 ? ' + ' . $relatedBookings->count() . ' more hall(s)' : '' }}</p>
+ @php
+ $uniqueHallCount = collect([$booking])->merge($relatedBookings)->pluck('hall_id')->unique()->count();
+ @endphp
+ <p class="text-violet-200">{{ $booking->customer_name }} • {{ $booking->conventionHall->name }}{{ $uniqueHallCount > 1 ? ' + ' . ($uniqueHallCount - 1) . ' more hall(s)' : '' }}</p>
  </div>
  <div class="flex flex-wrap gap-3">
  <button onclick="printConventionInvoice()" class="px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition shadow-lg">
@@ -169,10 +172,15 @@
  <i class="fas fa-hotel text-3xl text-violet-500 mb-2"></i>
  <p class="text-xs text-gray-500 mb-2">Convention Hall(s)</p>
  <div class="space-y-2">
+ @php
+ $allHallsForShow = collect([$booking])->merge($relatedBookings);
+ $groupedHalls = $allHallsForShow->groupBy('hall_id')->sortKeys();
+ @endphp
  <div class="flex items-center justify-center gap-2 flex-wrap">
- <span class="px-3 py-1 bg-violet-600 text-white rounded-full text-sm font-bold">{{ $booking->conventionHall->name }}</span>
- @foreach($relatedBookings as $related)
- <span class="px-3 py-1 bg-violet-100 text-violet-800 rounded-full text-sm font-bold">{{ $related->conventionHall->name ?? 'N/A' }}</span>
+ @foreach($groupedHalls as $hallId => $hallBookings)
+ <span class="px-3 py-1 {{ $hallId == $booking->hall_id ? 'bg-violet-600 text-white' : 'bg-violet-100 text-violet-800' }} rounded-full text-sm font-bold">
+ {{ $hallBookings->first()->conventionHall->name ?? 'N/A' }}{{ $hallBookings->count() > 1 ? ' ×' . $hallBookings->count() : '' }}
+ </span>
  @endforeach
  </div>
  @if($relatedBookings->count() > 0)
@@ -757,7 +765,7 @@
  <i class="fas fa-times"></i>
  </button>
  </div>
- <form action="{{ route('admin.convention-bookings.add-halls', $booking) }}" method="POST" class="p-6">
+ <form action="{{ route('admin.convention-bookings.add-halls', $booking) }}" method="POST" class="p-6" onsubmit="return disableAddHallsSubmit(this)">
  @csrf
  <p class="text-gray-600 mb-4">Select free halls for <strong>{{ \Carbon\Carbon::parse($booking->event_date)->format('d M, Y') }}</strong> -
  @if($booking->time_slot == 'morning') Morning
@@ -805,6 +813,15 @@ function openAddHallsModal() {
 function closeAddHallsModal() {
  document.getElementById('addHallsModal').classList.add('hidden');
  document.getElementById('addHallsModal').classList.remove('flex');
+}
+
+function disableAddHallsSubmit(form) {
+ const submitBtn = form.querySelector('button[type="submit"]');
+ if (submitBtn) {
+ submitBtn.disabled = true;
+ submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
+ }
+ return true;
 }
 
 function togglePaymentMethodFields() {

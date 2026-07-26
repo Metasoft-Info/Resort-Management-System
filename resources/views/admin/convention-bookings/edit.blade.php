@@ -7,7 +7,7 @@
  <p class="text-gray-600 mt-2">Booking Info, Addon, Discount & Payment Update</p>
  </div>
 
- <form action="{{ route('admin.convention-bookings.update', $conventionBooking) }}" method="POST" id="editForm">
+ <form action="{{ route('admin.convention-bookings.update', $conventionBooking) }}" method="POST" id="editForm" onsubmit="return disableEditSubmit(this)">
  @csrf
  @method('PUT')
  
@@ -361,6 +361,15 @@ function toggleAdditionalHall(checkbox, price) {
  card.classList.remove('border-primary-500', 'bg-primary-50');
  card.classList.add('border-gray-300');
  }
+}
+
+function disableEditSubmit(form) {
+ const submitBtn = form.querySelector('button[type="submit"]');
+ if (submitBtn) {
+ submitBtn.disabled = true;
+ submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+ }
+ return true;
 }
 
 function selectFoodPackage(id, name, pricePerPerson) {
