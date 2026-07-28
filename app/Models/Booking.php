@@ -409,6 +409,34 @@ class Booking extends Model
     }
 
     /**
+     * Get advance payment amount within a date range.
+     * Only counts advance payments made between start and end date (inclusive).
+     */
+    public function getAdvanceDepositedInRange($startDate, $endDate)
+    {
+        $advanceRecord = $this->payments()
+            ->where('type', 'advance')
+            ->whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->first();
+
+        if ($advanceRecord) {
+            return (float) $advanceRecord->amount;
+        }
+
+        // Legacy/no advance record: include stored advance only if booking was created within range
+        $bookingDate = \Carbon\Carbon::parse($this->created_at)->startOfDay();
+        $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+        $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+
+        if ($bookingDate->between($start, $end)) {
+            return (float) ($this->advance_payment ?? 0);
+        }
+
+        return 0;
+    }
+
+    /**
      * Get total deposited amount within a date range.
      * Only counts payments made between start and end date (inclusive).
      */

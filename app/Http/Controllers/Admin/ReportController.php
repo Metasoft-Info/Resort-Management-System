@@ -104,13 +104,13 @@ class ReportController extends Controller {
             $summaryBookings = $summaryBookings->filter(fn($b) => $b->getCalculatedRemaining() > 0);
         }
         
-        $totalBookings = $summaryBookings->count();
-        $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
-        $totalAdvance = $summaryBookings->sum('advance_payment');
-
         // Determine the filter date for counts
         $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
         $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
+
+        $totalBookings = $summaryBookings->count();
+        $totalRevenue = $summaryBookings->sum(fn($b) => $b->getGrandTotal());
+        $totalAdvance = $summaryBookings->sum(fn($b) => $b->getAdvanceDepositedInRange($filterStartDate, $filterEndDate));
 
         // Booking count breakdown - use filtered date, not actual today
         $confirmedCount = $summaryBookings->where('status', 'confirmed')->count();

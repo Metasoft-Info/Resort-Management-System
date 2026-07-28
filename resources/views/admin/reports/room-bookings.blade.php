@@ -206,7 +206,7 @@
                         <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold whitespace-nowrap">{{ number_format($grandTotal, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($booking->advance_payment, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($booking->getAdvanceDepositedInRange($filterStartDate, $filterEndDate), 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-emerald-700 whitespace-nowrap">{{ number_format($totalDeposited, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold whitespace-nowrap">{{ number_format($calculatedRemaining, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m') }}</td>
@@ -266,7 +266,7 @@
                         $sumRoomRent = $bookings->sum(fn($b) => $b->getCalculatedTotal());
                         $sumExtra = $bookings->sum('extra_charges');
                         $sumDiscount = $bookings->sum('discount_amount');
-                        $sumAdvance = $bookings->sum('advance_payment');
+                        $sumAdvance = $bookings->sum(fn($b) => $b->getAdvanceDepositedInRange($filterStartDate, $filterEndDate));
                     @endphp
                     <tr class="bg-gray-200 font-bold">
                         <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">Total:</td>
