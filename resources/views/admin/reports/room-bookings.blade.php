@@ -169,7 +169,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php $totalNights = 0; $sumGrandTotal = 0; $sumDeposited = 0; @endphp
+                    @php $totalNights = 0; $sumGrandTotal = 0; $sumDeposited = 0; $sumRemaining = 0; @endphp
                     @forelse($bookings as $booking)
                     @php
                         $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
@@ -192,7 +192,10 @@
                         $sumGrandTotal += $grandTotal;
                         $totalDeposited = $booking->getTotalDepositedInRange($filterStartDate, $filterEndDate);
                         $sumDeposited += $totalDeposited;
-                        $calculatedRemaining = $booking->getGrandTotal() - $totalDeposited;
+                        // Remaining must reflect the true outstanding balance (all payments up to end date),
+                        // not just the payments made within the filtered range.
+                        $calculatedRemaining = $booking->getGrandTotal() - $booking->getTotalDepositedUpToDate($filterEndDate);
+                        $sumRemaining += $calculatedRemaining;
                         $pointInTimeStatus = $booking->getStatusAsOfDate($filterEndDate);
                     @endphp
                     <tr class="hover:bg-gray-50">
@@ -277,7 +280,7 @@
                         <td class="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">{{ number_format($sumGrandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($sumAdvance, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-emerald-700 whitespace-nowrap">{{ number_format($sumDeposited, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($sumGrandTotal - $sumDeposited, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($sumRemaining, 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
                         <td class="border border-gray-400 px-2 py-2 text-center">{{ $totalNights }}</td>
                         <td class="border border-gray-400 px-2 py-2"></td>

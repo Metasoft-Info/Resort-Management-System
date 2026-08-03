@@ -203,9 +203,11 @@ class ReportController extends Controller {
                 ['path' => request()->url(), 'query' => request()->query()]
             );
         } else {
-            // Use date-range filtered payment calculations for summary
+            // Total Deposited shows only payments made within the filtered date range,
+            // but Remaining must reflect the true outstanding balance (all payments up to end date),
+            // otherwise a booking already fully paid on an earlier date would incorrectly show as due.
             $totalDeposited = $summaryBookings->sum(fn($b) => $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
-            $totalRemaining = $summaryBookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDepositedInRange($filterStartDate, $filterEndDate));
+            $totalRemaining = $summaryBookings->sum(fn($b) => $b->getGrandTotal() - $b->getTotalDepositedUpToDate($filterEndDate));
             $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
         }
         $roomTypes = RoomType::all();
