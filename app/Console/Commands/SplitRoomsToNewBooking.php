@@ -114,6 +114,7 @@ class SplitRoomsToNewBooking extends Command
         $newBookingData['created_by_id'] = $booking->created_by_id;
         $newBookingData['updated_by_id'] = $booking->updated_by_id;
         $newBookingData['notes'] = "Split from booking #{$bookingId} [Rooms: " . implode(', ', array_column($roomsToMove, 'room_number')) . "]";
+        $newBookingData['total_amount'] = 0;
 
         $newBooking = Booking::create($newBookingData);
 
