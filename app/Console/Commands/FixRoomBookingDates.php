@@ -10,7 +10,7 @@ use Carbon\Carbon;
 
 class FixRoomBookingDates extends Command
 {
-    protected $signature = 'booking:fix-room-dates {booking_id} {room_numbers*} {check_in_date}';
+    protected $signature = 'booking:fix-room-dates {booking_id} {check_in_date} {room_numbers*}';
     protected $description = 'Fix check-in dates for specific rooms in an existing booking';
 
     public function handle()
