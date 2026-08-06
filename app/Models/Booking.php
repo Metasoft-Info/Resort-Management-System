@@ -188,8 +188,8 @@ class Booking extends Model
     // Calculate actual total from rooms (use stored prices first, never recalculate from current room rates)
     public function getCalculatedTotal()
     {
-        $nights = \Carbon\Carbon::parse($this->check_in_date)->diffInDays(\Carbon\Carbon::parse($this->check_out_date));
-        $nights = max(1, $nights);
+        $bookingNights = \Carbon\Carbon::parse($this->check_in_date)->diffInDays(\Carbon\Carbon::parse($this->check_out_date));
+        $bookingNights = max(1, $bookingNights);
 
         $bookingRooms = $this->bookingRooms;
 
@@ -197,7 +197,14 @@ class Booking extends Model
         if ($bookingRooms && $bookingRooms->count() > 0) {
             $baseAmount = 0;
             foreach ($bookingRooms as $br) {
-                $baseAmount += ($br->price_per_night ?? 0) * $nights;
+                // Use per-room dates if available, otherwise fall back to booking dates
+                if ($br->check_in_date && $br->check_out_date) {
+                    $roomNights = \Carbon\Carbon::parse($br->check_in_date)->diffInDays(\Carbon\Carbon::parse($br->check_out_date));
+                    $roomNights = max(1, $roomNights);
+                } else {
+                    $roomNights = $bookingNights;
+                }
+                $baseAmount += ($br->price_per_night ?? 0) * $roomNights;
             }
             return $baseAmount > 0 ? $baseAmount : $this->total_amount;
         }

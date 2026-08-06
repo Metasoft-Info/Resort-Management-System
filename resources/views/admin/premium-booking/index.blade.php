@@ -48,6 +48,19 @@
  </div>
  </div>
  </div>
+ <div class="mt-3 sm:mt-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3 sm:p-4">
+ <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+ <div class="flex items-center">
+ <i class="fas fa-calendar-plus text-yellow-600 mr-2"></i>
+ <label class="text-sm font-semibold text-yellow-800">New Rooms Check-in Date:</label>
+ </div>
+ <input type="date" id="newRoomCheckInDate" value="{{ date('Y-m-d') }}"
+ min="{{ \Carbon\Carbon::parse($existingBooking->check_in_date)->format('Y-m-d') }}"
+ max="{{ \Carbon\Carbon::parse($existingBooking->check_out_date)->format('Y-m-d') }}"
+ class="px-3 py-2 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
+ <p class="text-xs text-yellow-700">New rooms will be booked from this date until {{ \Carbon\Carbon::parse($existingBooking->check_out_date)->format('d M Y') }}</p>
+ </div>
+ </div>
  @endif
 
  <!-- Step 1: Room Availability -->
@@ -872,6 +885,10 @@ async function submitAddRooms() {
  try {
  const formData = new FormData();
  formData.append('existing_booking_id', existingBookingId);
+ const newCheckInDate = document.getElementById('newRoomCheckInDate')?.value || '';
+ if (newCheckInDate) {
+ formData.append('new_check_in_date', newCheckInDate);
+ }
  formData.append('rooms_data', JSON.stringify(selectedRooms.map(room => ({
  roomId: room.roomId,
  roomNumber: room.roomNumber,
@@ -1369,6 +1386,10 @@ async function submitBooking(e) {
  // Check if we're adding to existing booking
  if (existingBookingId) {
  formData.append('existing_booking_id', existingBookingId);
+ const newCheckInDate = document.getElementById('newRoomCheckInDate')?.value || '';
+ if (newCheckInDate) {
+ formData.append('new_check_in_date', newCheckInDate);
+ }
  
  // For existing booking, only send rooms data
  const data = await sendBookingXHR(formData, '{{ route("admin.premium-booking.book") }}', 'Adding Rooms...');
