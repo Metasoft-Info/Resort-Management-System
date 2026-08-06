@@ -125,6 +125,25 @@ class PremiumBookingController extends Controller
 
             $hasConflict = $query->get()
                 ->some(function ($booking) use ($checkIn, $checkOut, $room) {
+                    // Check each booking_room individually for per-room date conflicts
+                    $bookingRooms = $booking->bookingRooms;
+                    if ($bookingRooms && $bookingRooms->count() > 0) {
+                        foreach ($bookingRooms as $br) {
+                            if ((int)$br->room_id !== (int)$room->id) continue;
+                            // Use per-room dates if available, otherwise booking dates
+                            $brCheckIn = $br->check_in_date
+                                ? Carbon::parse($br->check_in_date)->setTimeFromTimeString($booking->check_in_time ?? '12:00')
+                                : $booking->getCheckInDateTime();
+                            $brCheckOut = $br->check_out_date
+                                ? Carbon::parse($br->check_out_date)->setTimeFromTimeString($booking->check_out_time ?? '12:00')
+                                : $booking->getCheckOutDateTime();
+                            if ($brCheckIn->lt($checkOut) && $brCheckOut->gt($checkIn)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                    // Legacy single-room booking
                     if (!in_array($room->id, array_map('intval', $booking->getAllRoomIds()))) return false;
                     $existingCheckIn = $booking->getCheckInDateTime();
                     $existingCheckOut = $booking->getCheckOutDateTime();
@@ -348,6 +367,22 @@ class PremiumBookingController extends Controller
                     ->where('check_out_date', '>', $checkIn->toDateString())
                     ->get()
                     ->some(function ($booking) use ($checkIn, $checkOut, $roomId) {
+                        $bookingRooms = $booking->bookingRooms;
+                        if ($bookingRooms && $bookingRooms->count() > 0) {
+                            foreach ($bookingRooms as $br) {
+                                if ((int)$br->room_id !== (int)$roomId) continue;
+                                $brCheckIn = $br->check_in_date
+                                    ? Carbon::parse($br->check_in_date)->setTimeFromTimeString($booking->check_in_time ?? '12:00')
+                                    : $booking->getCheckInDateTime();
+                                $brCheckOut = $br->check_out_date
+                                    ? Carbon::parse($br->check_out_date)->setTimeFromTimeString($booking->check_out_time ?? '12:00')
+                                    : $booking->getCheckOutDateTime();
+                                if ($brCheckIn && $brCheckOut && $brCheckIn->lt($checkOut) && $brCheckOut->gt($checkIn)) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
                         if (!in_array((int)$roomId, array_map('intval', $booking->getAllRoomIds()))) return false;
                         $existingCheckIn = $booking->getCheckInDateTime();
                         $existingCheckOut = $booking->getCheckOutDateTime();
@@ -399,7 +434,11 @@ class PremiumBookingController extends Controller
                     }
                     BookingRoom::firstOrCreate(
                         ['booking_id' => $booking->id, 'room_id' => $roomId],
-                        ['price_per_night' => $roomData['pricePerNight'] ?? 0]
+                        [
+                            'price_per_night' => $roomData['pricePerNight'] ?? 0,
+                            'check_in_date' => $validated['check_in_date'],
+                            'check_out_date' => $validated['check_out_date'],
+                        ]
                     );
                     $addedRooms[] = $roomId;
                 }
@@ -409,7 +448,11 @@ class PremiumBookingController extends Controller
                 $room = Room::find($singleRoomId);
                 BookingRoom::firstOrCreate(
                     ['booking_id' => $booking->id, 'room_id' => $singleRoomId],
-                    ['price_per_night' => $room->price_per_night ?? $room->roomType->base_price ?? 0]
+                    [
+                        'price_per_night' => $room->price_per_night ?? $room->roomType->base_price ?? 0,
+                        'check_in_date' => $validated['check_in_date'],
+                        'check_out_date' => $validated['check_out_date'],
+                    ]
                 );
             }
 
@@ -486,6 +529,21 @@ class PremiumBookingController extends Controller
             $checkIn = $booking->getCheckInDateTime();
             $checkOut = $booking->getCheckOutDateTime();
             $unavailableRooms = [];
+
+            // Get the check-in date for the new rooms (defaults to today)
+            $newCheckInDate = request()->input('new_check_in_date');
+            if ($newCheckInDate) {
+                $newCheckIn = Carbon::parse($newCheckInDate)->setTimeFromTimeString($booking->check_in_time ?? '12:00');
+            } else {
+                $newCheckIn = Carbon::now()->setTimeFromTimeString($booking->check_in_time ?? '12:00');
+            }
+            $newCheckInDate = $newCheckIn->toDateString();
+            
+            // If new rooms check-in is earlier than booking check-in, use booking check-in
+            if ($newCheckIn->lt($checkIn)) {
+                $newCheckIn = $checkIn;
+                $newCheckInDate = $booking->check_in_date;
+            }
             
             foreach ($roomsData as $roomData) {
                 $roomId = $roomData['roomId'];
@@ -497,18 +555,18 @@ class PremiumBookingController extends Controller
                     
                 if ($exists) continue;
                 
-                // Check conflict using datetime
+                // Check conflict using datetime - use new room's check-in date for conflict check
                 $hasConflict = Booking::with('bookingRooms')
                     ->where('id', '!=', $bookingId)
                     ->whereNotIn('status', ['cancelled', 'checked_out'])
                     ->where('check_in_date', '<', $checkOut->toDateString())
-                    ->where('check_out_date', '>', $checkIn->toDateString())
+                    ->where('check_out_date', '>', $newCheckInDate)
                     ->get()
-                    ->some(function ($other) use ($checkIn, $checkOut, $roomId) {
+                    ->some(function ($other) use ($newCheckIn, $checkOut, $roomId) {
                         if (!in_array((int)$roomId, array_map('intval', $other->getAllRoomIds()))) return false;
                         $existingCheckIn = $other->getCheckInDateTime();
                         $existingCheckOut = $other->getCheckOutDateTime();
-                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($checkIn);
+                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($newCheckIn);
                     });
                 
                 if ($hasConflict) {
@@ -521,15 +579,18 @@ class PremiumBookingController extends Controller
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'Room(s) ' . implode(', ', $unavailableRooms) . ' already booked for this booking period.'
+                    'message' => 'Room(s) ' . implode(', ', $unavailableRooms) . ' already booked for this period.'
                 ], 409);
             }
             
-            // Add new rooms to booking_rooms table
+            // Add new rooms to booking_rooms table with per-room dates
             $addedRooms = [];
             $totalAdditionalAmount = 0;
-            $nights = Carbon::parse($booking->check_in_date)->diffInDays(Carbon::parse($booking->check_out_date));
-            $nights = max(1, $nights);
+            $bookingCheckOutDate = $booking->check_out_date;
+            
+            // Calculate nights for new rooms based on their own check-in date
+            $newRoomNights = Carbon::parse($newCheckInDate)->diffInDays(Carbon::parse($bookingCheckOutDate));
+            $newRoomNights = max(1, $newRoomNights);
             
             foreach ($roomsData as $roomData) {
                 // Check if room is already in this booking
@@ -542,9 +603,11 @@ class PremiumBookingController extends Controller
                         'booking_id' => $bookingId,
                         'room_id' => $roomData['roomId'],
                         'price_per_night' => $roomData['pricePerNight'] ?? 0,
+                        'check_in_date' => $newCheckInDate,
+                        'check_out_date' => $bookingCheckOutDate,
                     ]);
                     $addedRooms[] = $roomData['roomNumber'];
-                    $totalAdditionalAmount += ($roomData['pricePerNight'] ?? 0) * $nights;
+                    $totalAdditionalAmount += ($roomData['pricePerNight'] ?? 0) * $newRoomNights;
                 }
             }
             
@@ -568,7 +631,7 @@ class PremiumBookingController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => count($addedRooms) > 0 
-                    ? 'Added rooms: ' . implode(', ', $addedRooms) . ' to existing booking'
+                    ? 'Added rooms: ' . implode(', ', $addedRooms) . ' to existing booking (Check-in: ' . Carbon::parse($newCheckInDate)->format('d M Y') . ')'
                     : 'No new rooms were added (already exist in booking)',
                 'booking' => $booking->fresh()
             ]);

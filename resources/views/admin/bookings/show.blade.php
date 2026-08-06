@@ -320,12 +320,25 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
  <div class="md:col-span-2">
  <span class="font-semibold text-gray-600">Room(s):</span>
- @php $allRooms = $booking->getAllRooms(); @endphp
+ @php $allRooms = $booking->getAllRooms(); $bookingRooms = $booking->bookingRooms; @endphp
  @if($allRooms->count() > 1)
  <div class="flex flex-wrap gap-2 mt-1">
  @foreach($allRooms as $room)
+ @php
+ $br = $bookingRooms->firstWhere('room_id', $room->id);
+ $roomDates = '';
+ if ($br && $br->check_in_date && $br->check_out_date) {
+ $brIn = \Carbon\Carbon::parse($br->check_in_date)->format('d M');
+ $brOut = \Carbon\Carbon::parse($br->check_out_date)->format('d M');
+ $bIn = \Carbon\Carbon::parse($booking->check_in_date)->format('d M');
+ $bOut = \Carbon\Carbon::parse($booking->check_out_date)->format('d M');
+ if ($brIn !== $bIn || $brOut !== $bOut) {
+ $roomDates = ' (' . $brIn . ' - ' . $brOut . ')';
+ }
+ }
+ @endphp
  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
- {{ $room->room_number }} - {{ $room->roomType->name ?? 'N/A' }}
+ {{ $room->room_number }} - {{ $room->roomType->name ?? 'N/A' }}{{ $roomDates }}
  </span>
  @endforeach
  </div>

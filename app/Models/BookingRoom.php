@@ -13,10 +13,14 @@ class BookingRoom extends Model
         'booking_id',
         'room_id',
         'price_per_night',
+        'check_in_date',
+        'check_out_date',
     ];
 
     protected $casts = [
         'price_per_night' => 'decimal:2',
+        'check_in_date' => 'date',
+        'check_out_date' => 'date',
     ];
 
     public function booking()
