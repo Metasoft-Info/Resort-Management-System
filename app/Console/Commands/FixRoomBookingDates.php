@@ -29,21 +29,27 @@ class FixRoomBookingDates extends Command
         $this->info("  Customer: {$booking->customer_name}");
         $this->info("  Booking dates: {$booking->check_in_date} to {$booking->check_out_date}");
 
+        // Validate check_in_date is within booking range
+        $bookingCheckIn = Carbon::parse($booking->check_in_date);
+        $bookingCheckOut = Carbon::parse($booking->check_out_date);
+        $newCheckIn = Carbon::parse($checkInDate);
+
+        if ($newCheckIn->lt($bookingCheckIn)) {
+            $this->error("Check-in date {$checkInDate} is before booking start date {$booking->check_in_date}!");
+            return 1;
+        }
+        if ($newCheckIn->gt($bookingCheckOut)) {
+            $this->error("Check-in date {$checkInDate} is after booking end date {$booking->check_out_date}!");
+            return 1;
+        }
+
         $rooms = Room::whereIn('room_number', $roomNumbers)->get();
         if ($rooms->isEmpty()) {
             $this->error("No rooms found with numbers: " . implode(', ', $roomNumbers));
             return 1;
         }
 
-        $bookingCheckOut = $booking->check_out_date;
-        $newNights = Carbon::parse($checkInDate)->diffInDays(Carbon::parse($bookingCheckOut));
-        $newNights = max(1, $newNights);
-
-        $oldNights = Carbon::parse($booking->check_in_date)->diffInDays(Carbon::parse($bookingCheckOut));
-        $oldNights = max(1, $oldNights);
-
-        $totalAdjustment = 0;
-
+        // Update room dates
         foreach ($rooms as $room) {
             $br = BookingRoom::where('booking_id', $bookingId)
                 ->where('room_id', $room->id)
@@ -54,37 +60,31 @@ class FixRoomBookingDates extends Command
                 continue;
             }
 
-            $oldNightsForRoom = $br->check_in_date
-                ? max(1, Carbon::parse($br->check_in_date)->diffInDays(Carbon::parse($br->check_out_date ?? $bookingCheckOut)))
-                : $oldNights;
-
-            $oldAmount = ($br->price_per_night ?? 0) * $oldNightsForRoom;
-            $newAmount = ($br->price_per_night ?? 0) * $newNights;
-            $adjustment = $newAmount - $oldAmount;
-            $totalAdjustment += $adjustment;
-
-            $this->line("  Room {$room->room_number}:");
             $oldDateDisplay = $br->check_in_date ?? $booking->check_in_date;
-            $this->line("    Old: check_in={$oldDateDisplay}, nights={$oldNightsForRoom}, amount={$oldAmount}");
-            $this->line("    New: check_in={$checkInDate}, nights={$newNights}, amount={$newAmount}");
-            $this->line("    Adjustment: {$adjustment}");
+            $this->line("  Room {$room->room_number}: check_in {$oldDateDisplay} -> {$checkInDate}");
 
             $br->check_in_date = $checkInDate;
-            $br->check_out_date = $bookingCheckOut;
+            $br->check_out_date = $booking->check_out_date;
             $br->save();
         }
 
-        if ($totalAdjustment != 0) {
-            $booking->total_amount += $totalAdjustment;
-            $booking->remaining_payment += $totalAdjustment;
-            $booking->payment_status = $booking->getCalculatedPaymentStatus();
-            $booking->save();
+        // Recalculate total_amount from scratch using getCalculatedTotal
+        $booking->refresh();
+        $newCalculatedTotal = $booking->getCalculatedTotal();
+        $newGrandTotal = $booking->getGrandTotal();
+        $totalDeposited = $booking->getTotalDeposited();
 
-            $this->info("  Total amount adjusted by: {$totalAdjustment}");
-            $this->info("  New total_amount: {$booking->total_amount}");
-            $this->info("  New remaining_payment: {$booking->remaining_payment}");
-        }
+        $this->info("  Recalculated base total: {$newCalculatedTotal}");
+        $this->info("  Recalculated grand total: {$newGrandTotal}");
+        $this->info("  Total deposited: {$totalDeposited}");
 
+        $booking->total_amount = $newCalculatedTotal;
+        $booking->remaining_payment = $newGrandTotal - $totalDeposited;
+        $booking->payment_status = $booking->getCalculatedPaymentStatus();
+        $booking->save();
+
+        $this->info("  Updated total_amount: {$booking->total_amount}");
+        $this->info("  Updated remaining_payment: {$booking->remaining_payment}");
         $this->info("Done! Room dates fixed for booking #{$bookingId}");
         return 0;
     }
