@@ -964,4 +964,57 @@ class BookingController extends Controller
             ], 500);
         }
     }
+
+    public function removeRoom(Booking $booking, $roomId)
+    {
+        if (in_array($booking->status, ['checked_out', 'cancelled'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot remove room from ' . $booking->status . ' booking'
+            ], 400);
+        }
+
+        $bookingRoom = \App\Models\BookingRoom::where('booking_id', $booking->id)
+            ->where('room_id', $roomId)
+            ->first();
+
+        if (!$bookingRoom) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Room not found in this booking'
+            ], 404);
+        }
+
+        // Check if this is the only room
+        $roomCount = \App\Models\BookingRoom::where('booking_id', $booking->id)->count();
+        if ($roomCount <= 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot remove the only room from a booking. Cancel the booking instead.'
+            ], 400);
+        }
+
+        $bookingRoom->delete();
+
+        // Recalculate booking total
+        $booking->refresh();
+        $newTotal = $booking->getCalculatedTotal();
+        $newGrandTotal = $booking->getGrandTotal();
+        $totalDeposited = $booking->getTotalDeposited();
+
+        $booking->total_amount = $newTotal;
+        $booking->remaining_payment = max(0, $newGrandTotal - $totalDeposited);
+        $booking->payment_status = $booking->getCalculatedPaymentStatus();
+
+        // Update notes
+        $allRoomNumbers = $booking->getAllRooms()->pluck('room_number')->implode(', ');
+        $booking->notes = preg_replace('/\[Rooms:.*?\]/', '', $booking->notes ?? '');
+        $booking->notes = trim($booking->notes) . " [Rooms: {$allRoomNumbers}]";
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Room removed successfully'
+        ]);
+    }
 }

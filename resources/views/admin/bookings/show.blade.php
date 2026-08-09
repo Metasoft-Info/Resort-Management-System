@@ -337,9 +337,16 @@ $remainingPayment = $booking->getCalculatedRemaining();
  }
  }
  @endphp
+ <div class="inline-flex items-center gap-2">
  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
  {{ $room->room_number }} - {{ $room->roomType->name ?? 'N/A' }}{{ $roomDates }}
  </span>
+ @if(!in_array($booking->status, ['checked_out', 'cancelled']))
+ <button onclick="removeRoom({{ $booking->id }}, {{ $room->id }}, '{{ $room->room_number }}')" class="text-red-600 hover:text-red-800 text-xs font-medium" title="Remove Room">
+ <i class="fas fa-times"></i>
+ </button>
+ @endif
+ </div>
  @endforeach
  </div>
  @elseif($allRooms->count() == 1)
@@ -1935,6 +1942,36 @@ function submitEditCustomer(e) {
  });
 
  xhr.open('POST', `/admin/bookings/{{ $booking->id }}/update-customer`);
+ xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
+ xhr.send(formData);
+}
+
+function removeRoom(bookingId, roomId, roomNumber) {
+ if (!confirm('Are you sure you want to remove room ' + roomNumber + ' from this booking?')) return;
+
+ const formData = new FormData();
+ formData.append('_method', 'DELETE');
+
+ const xhr = new XMLHttpRequest();
+ xhr.addEventListener('load', function() {
+ if (xhr.status >= 200 && xhr.status < 300) {
+ showGlobalModal('success', 'Room removed successfully!');
+ setTimeout(() => location.reload(), 1500);
+ } else {
+ let msg = 'Failed to remove room!';
+ try {
+ const data = JSON.parse(xhr.responseText);
+ msg = data.message || msg;
+ } catch (e) {}
+ showGlobalModal('error', msg);
+ }
+ });
+
+ xhr.addEventListener('error', function() {
+ showGlobalModal('error', 'Failed to remove room!');
+ });
+
+ xhr.open('POST', `/admin/bookings/${bookingId}/rooms/${roomId}`);
  xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
  xhr.send(formData);
 }
