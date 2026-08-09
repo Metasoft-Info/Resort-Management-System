@@ -850,6 +850,33 @@ class BookingController extends Controller
 
             $booking->update($filteredValidated);
 
+            // Update booking_rooms table when room is changed
+            if ($roomChanged) {
+                // Remove old room from booking_rooms
+                \App\Models\BookingRoom::where('booking_id', $booking->id)
+                    ->where('room_id', $booking->room_id)
+                    ->delete();
+
+                // Add new room to booking_rooms
+                $room = \App\Models\Room::find($validated['room_id']);
+                if ($room) {
+                    \App\Models\BookingRoom::updateOrCreate(
+                        ['booking_id' => $booking->id, 'room_id' => $validated['room_id']],
+                        [
+                            'price_per_night' => $room->price_per_night ?? $room->roomType->base_price ?? 0,
+                            'check_in_date' => $validated['check_in_date'],
+                            'check_out_date' => $validated['check_out_date'],
+                        ]
+                    );
+                }
+
+                // Update notes
+                $allRoomNumbers = $booking->getAllRooms()->pluck('room_number')->implode(', ');
+                $booking->notes = preg_replace('/\[Rooms:.*?\]/', '', $booking->notes ?? '');
+                $booking->notes = trim($booking->notes) . " [Rooms: {$allRoomNumbers}]";
+                $booking->save();
+            }
+
             // Auto re-check-in if checkout date was extended and booking was checked_out
             if ($checkoutExtended && $oldStatus === 'checked_out') {
                 $newCheckOutDate = \Carbon\Carbon::parse($validated['check_out_date'])->startOfDay();
