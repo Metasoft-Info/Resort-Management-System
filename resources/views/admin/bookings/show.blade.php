@@ -350,7 +350,16 @@ $remainingPayment = $booking->getCalculatedRemaining();
  @endforeach
  </div>
  @elseif($allRooms->count() == 1)
- <p class="text-gray-900">{{ $allRooms->first()->room_number }} - {{ $allRooms->first()->roomType->name ?? 'N/A' }}</p>
+ <div class="inline-flex items-center gap-2 mt-1">
+ <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+ {{ $allRooms->first()->room_number }} - {{ $allRooms->first()->roomType->name ?? 'N/A' }}
+ </span>
+ @if(!in_array($booking->status, ['checked_out', 'cancelled']))
+ <button onclick="removeRoom({{ $booking->id }}, {{ $allRooms->first()->id }}, '{{ $allRooms->first()->room_number }}')" class="text-red-600 hover:text-red-800 text-xs font-medium" title="Remove Room">
+ <i class="fas fa-times"></i>
+ </button>
+ @endif
+ </div>
  @else
  <p class="text-gray-500">No room assigned</p>
  @endif

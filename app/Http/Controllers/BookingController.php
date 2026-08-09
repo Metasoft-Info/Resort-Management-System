@@ -1012,14 +1012,8 @@ class BookingController extends Controller
             ], 404);
         }
 
-        // Check if this is the only room
+        // Check if this is the only room - allow removal, booking will have no rooms
         $roomCount = \App\Models\BookingRoom::where('booking_id', $booking->id)->count();
-        if ($roomCount <= 1) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot remove the only room from a booking. Cancel the booking instead.'
-            ], 400);
-        }
 
         $bookingRoom->delete();
 
