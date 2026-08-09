@@ -1598,9 +1598,6 @@ document.getElementById('discount_type').addEventListener('change', recalculateA
 function removeRoom(bookingId, roomId, roomNumber) {
  if (!confirm('Are you sure you want to remove room ' + roomNumber + ' from this booking?')) return;
 
- const formData = new FormData();
- formData.append('_method', 'DELETE');
-
  const xhr = new XMLHttpRequest();
  xhr.addEventListener('load', function() {
  if (xhr.status >= 200 && xhr.status < 300) {
@@ -1620,9 +1617,9 @@ function removeRoom(bookingId, roomId, roomNumber) {
  showGlobalModal('error', 'Failed to remove room!');
  });
 
- xhr.open('POST', '/admin/bookings/' + bookingId + '/rooms/' + roomId);
+ xhr.open('DELETE', '/admin/bookings/' + bookingId + '/rooms/' + roomId);
  xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
- xhr.send(formData);
+ xhr.send();
 }
 </script>
 @endsection
