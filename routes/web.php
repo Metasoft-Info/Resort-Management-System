@@ -57,18 +57,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('room-types', RoomTypeController::class);
     
     // Bookings
-    Route::resource('bookings', BookingController::class);
+    Route::post('/bookings/{booking}/rooms/{roomId}', [BookingController::class, 'removeRoom'])->name('bookings.remove-room');
     Route::post('/bookings/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('bookings.update-status');
     Route::post('/bookings/{booking}/update-time', [BookingController::class, 'updateTime'])->name('bookings.update-time');
     Route::post('/bookings/{booking}/add-payment', [BookingController::class, 'addPayment'])->name('bookings.add-payment');
     Route::post('/bookings/{booking}/add-extra-charges', [BookingController::class, 'addExtraCharges'])->name('bookings.add-extra-charges');
     Route::post('/bookings/{booking}/update-customer', [BookingController::class, 'updateCustomer'])->name('bookings.update-customer');
-    Route::post('/bookings/{booking}/rooms/{roomId}', [BookingController::class, 'removeRoom'])->name('bookings.remove-room');
     Route::post('/bookings/{booking}/add-guest', [BookingController::class, 'addGuest'])->name('bookings.add-guest');
     Route::post('/bookings/{booking}/process-refund', [BookingController::class, 'processRefund'])->name('bookings.process-refund');
     Route::post('/bookings/{booking}/update-vat', [BookingController::class, 'updateVat'])->name('bookings.update-vat');
     Route::post('/bookings/{booking}/send-invoice-email', [BookingController::class, 'sendInvoiceEmail'])->name('bookings.send-invoice-email');
     Route::post('/bookings/{booking}/send-reservation-email', [BookingController::class, 'sendReservationEmail'])->name('bookings.send-reservation-email');
+    Route::resource('bookings', BookingController::class);
 
     // Premium Booking (Advanced Room Booking)
     Route::get('/premium-booking', [PremiumBookingController::class, 'index'])->name('premium-booking.index');
