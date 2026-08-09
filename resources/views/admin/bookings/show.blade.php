@@ -1980,7 +1980,7 @@ function removeRoom(bookingId, roomId, roomNumber) {
  showGlobalModal('error', 'Failed to remove room!');
  });
 
- xhr.open('POST', `/admin/bookings/${bookingId}/rooms/${roomId}`);
+ xhr.open('POST', '/admin/bookings/' + bookingId + '/rooms/' + roomId);
  xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').content);
  xhr.send(formData);
 }
