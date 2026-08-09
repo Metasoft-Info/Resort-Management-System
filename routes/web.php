@@ -57,7 +57,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('room-types', RoomTypeController::class);
     
     // Bookings
-    Route::post('/bookings/{booking}/rooms/{roomId}', [BookingController::class, 'removeRoom'])->name('bookings.remove-room');
+    Route::delete('/bookings/{booking}/rooms/{roomId}', [BookingController::class, 'removeRoom'])->name('bookings.remove-room');
     Route::post('/bookings/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('bookings.update-status');
     Route::post('/bookings/{booking}/update-time', [BookingController::class, 'updateTime'])->name('bookings.update-time');
     Route::post('/bookings/{booking}/add-payment', [BookingController::class, 'addPayment'])->name('bookings.add-payment');
