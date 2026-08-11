@@ -13,18 +13,23 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # GitHub Actions does not allow the secrets context directly in an
+      # if-condition. Expose only the boolean switch through job env and use
+      # that env value for step gating.
+      PROD_ENABLE_SSH_DEPLOY: ${{ secrets.PROD_ENABLE_SSH_DEPLOY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: SSH Deploy Is Disabled
-        if: ${{ secrets.PROD_ENABLE_SSH_DEPLOY != 'true' }}
+        if: ${{ env.PROD_ENABLE_SSH_DEPLOY != 'true' }}
         run: |
           echo "SSH deploy is disabled."
           echo "Set PROD_ENABLE_SSH_DEPLOY=true to enable GitHub->SSH deployment."
 
       - name: Deploy Over SSH
-        if: ${{ secrets.PROD_ENABLE_SSH_DEPLOY == 'true' }}
+        if: ${{ env.PROD_ENABLE_SSH_DEPLOY == 'true' }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
