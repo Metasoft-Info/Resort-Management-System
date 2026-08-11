@@ -176,17 +176,19 @@
                         $totalNights += $nights;
                         $roomRent = $booking->getCalculatedTotal();
 
-                        // Build individual room rent display
-                        $roomRentDisplay = '-';
-                        if ($booking->bookingRooms->count() > 0) {
-                            $roomRentDisplay = $booking->bookingRooms->map(function($br) {
-                                $rent = $br->price_per_night ?? 0;
-                                $roomNum = e($br->room->room_number ?? '?');
-                                return '<div class="whitespace-nowrap">' . $roomNum . ': ' . number_format($rent, 0) . '</div>';
-                            })->join('');
-                        } elseif ($booking->room) {
-                            $roomRentDisplay = number_format($booking->room->room_type->base_price ?? $booking->room->price_per_night ?? 0, 0);
-                        }
+                        // Display and calculate from the same canonical room set.
+                        // This prevents a stale legacy room_id from inflating the
+                        // total while remaining hidden from the room column.
+                        $displayRooms = $booking->getAllRooms();
+                        $roomRentDisplay = $displayRooms->map(function($room) {
+                            $rent = $room->booking_price
+                                ?? $room->price_per_night
+                                ?? $room->roomType?->base_price
+                                ?? 0;
+                            $roomNum = e($room->room_number ?? '?');
+                            return '<div class="whitespace-nowrap">' . $roomNum . ': ' . number_format($rent, 0) . '</div>';
+                        })->join('');
+                        $roomNumbers = $displayRooms->pluck('room_number')->filter()->join(', ');
 
                         $grandTotal = $booking->getGrandTotal();
                         $sumGrandTotal += $grandTotal;
@@ -203,7 +205,7 @@
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ $booking->customer_phone }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $roomNumbers ?: 'N/A' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-gray-600 text-[10px]">{!! $roomRentDisplay !!}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>

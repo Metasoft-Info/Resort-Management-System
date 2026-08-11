@@ -152,23 +152,32 @@ class Booking extends Model
             && $at->lt($checkOut);
     }
 
-    // Get all room IDs for this booking. Legacy room_id is merged with the
-    // normalized booking_rooms rows so old and new records cannot disagree.
+    // Get all room IDs for this booking. booking_rooms is authoritative when
+    // present; room_id is only a fallback for legacy-only bookings.
     public function getAllRoomIds()
     {
-        $roomIds = $this->bookingRooms->pluck('room_id')->toArray();
+        $bookingRoomIds = $this->bookingRooms->pluck('room_id')
+            ->filter()
+            ->map(fn ($roomId) => (int) $roomId)
+            ->unique()
+            ->values();
 
-        if ($this->room_id) {
-            $roomIds[] = $this->room_id;
+        // booking_rooms is authoritative whenever it has rows. The legacy
+        // room_id column may contain a stale assignment left by older flows.
+        if ($bookingRoomIds->isNotEmpty()) {
+            return $bookingRoomIds->all();
         }
 
-        return array_values(array_unique(array_map('intval', array_filter($roomIds))));
+        return $this->room_id ? [(int) $this->room_id] : [];
     }
 
     // Get all rooms for this booking (handles both legacy single room and new multi-room)
     public function getAllRooms()
     {
-        $bookingRooms = $this->bookingRooms()->with('room.roomType')->get();
+        $bookingRooms = $this->relationLoaded('bookingRooms')
+            ? $this->bookingRooms
+            : $this->bookingRooms()->with('room.roomType')->get();
+        $bookingRooms->loadMissing('room.roomType');
         $rooms = collect();
         $seenRoomIds = [];
 
@@ -183,10 +192,10 @@ class Booking extends Model
             $seenRoomIds[] = (int) $bookingRoom->room_id;
         }
 
-        // Include a legacy room_id when it is not already represented in
-        // booking_rooms. This makes mixed historical records visible and
-        // prevents the legacy assignment from being silently ignored.
-        if ($this->room_id && !in_array((int) $this->room_id, $seenRoomIds, true)) {
+        // Legacy-only bookings still use the old room_id column. Do not merge
+        // it into a booking that already has booking_rooms rows: that column
+        // can be stale and would make the visible rooms and total disagree.
+        if ($rooms->isEmpty() && $this->room_id) {
             $legacyRoom = $this->relationLoaded('room')
                 ? $this->room
                 : $this->room()->with('roomType')->first();
@@ -213,10 +222,8 @@ class Booking extends Model
         // If bookingRooms exist with stored prices, use those (premium/multi-room bookings)
         if ($bookingRooms && $bookingRooms->count() > 0) {
             $baseAmount = 0;
-            $roomIdsInRows = [];
 
             foreach ($bookingRooms as $br) {
-                $roomIdsInRows[] = (int) $br->room_id;
                 // Use per-room dates if available, otherwise fall back to booking dates
                 if ($br->check_in_date && $br->check_out_date) {
                     $roomNights = \Carbon\Carbon::parse($br->check_in_date)->diffInDays(\Carbon\Carbon::parse($br->check_out_date));
@@ -225,20 +232,6 @@ class Booking extends Model
                     $roomNights = $bookingNights;
                 }
                 $baseAmount += ($br->price_per_night ?? 0) * $roomNights;
-            }
-
-            // Historical records may have a second assignment in the legacy
-            // room_id column. Include it once so totals never omit a room.
-            if ($this->room_id && !in_array((int) $this->room_id, $roomIdsInRows, true)) {
-                $legacyRoom = $this->relationLoaded('room')
-                    ? $this->room
-                    : $this->room()->with('roomType')->first();
-                if ($legacyRoom) {
-                    $legacyPrice = $legacyRoom->price_per_night
-                        ?? $legacyRoom->roomType?->base_price
-                        ?? 0;
-                    $baseAmount += $legacyPrice * $bookingNights;
-                }
             }
 
             return $baseAmount > 0 ? $baseAmount : $this->total_amount;
