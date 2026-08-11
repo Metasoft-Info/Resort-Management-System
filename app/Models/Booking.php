@@ -152,37 +152,54 @@ class Booking extends Model
             && $at->lt($checkOut);
     }
 
-    // Get all room IDs for this booking (uses bookingRooms if exist, else legacy room_id)
+    // Get all room IDs for this booking. Legacy room_id is merged with the
+    // normalized booking_rooms rows so old and new records cannot disagree.
     public function getAllRoomIds()
     {
-        $bookingRoomIds = $this->bookingRooms->pluck('room_id')->toArray();
-        if (count($bookingRoomIds) > 0) {
-            return $bookingRoomIds;
+        $roomIds = $this->bookingRooms->pluck('room_id')->toArray();
+
+        if ($this->room_id) {
+            $roomIds[] = $this->room_id;
         }
-        return $this->room_id ? [$this->room_id] : [];
+
+        return array_values(array_unique(array_map('intval', array_filter($roomIds))));
     }
 
     // Get all rooms for this booking (handles both legacy single room and new multi-room)
     public function getAllRooms()
     {
-        // Check if booking has rooms in booking_rooms table
-        $rooms = $this->bookingRooms()->with('room.roomType')->get();
-        
-        if ($rooms->count() > 0) {
-            return $rooms->map(function($br) {
-                $room = $br->room;
-                $room->booking_price = $br->price_per_night;
-                return $room;
-            });
+        $bookingRooms = $this->bookingRooms()->with('room.roomType')->get();
+        $rooms = collect();
+        $seenRoomIds = [];
+
+        foreach ($bookingRooms as $bookingRoom) {
+            if (!$bookingRoom->room || in_array((int) $bookingRoom->room_id, $seenRoomIds, true)) {
+                continue;
+            }
+
+            $room = $bookingRoom->room;
+            $room->booking_price = $bookingRoom->price_per_night;
+            $rooms->push($room);
+            $seenRoomIds[] = (int) $bookingRoom->room_id;
         }
-        
-        // Fallback to legacy single room
-        if ($this->room_id && $this->room) {
-            $this->room->booking_price = $this->room->price_per_night ?? $this->room->roomType->base_price ?? 0;
-            return collect([$this->room]);
+
+        // Include a legacy room_id when it is not already represented in
+        // booking_rooms. This makes mixed historical records visible and
+        // prevents the legacy assignment from being silently ignored.
+        if ($this->room_id && !in_array((int) $this->room_id, $seenRoomIds, true)) {
+            $legacyRoom = $this->relationLoaded('room')
+                ? $this->room
+                : $this->room()->with('roomType')->first();
+
+            if ($legacyRoom) {
+                $legacyRoom->booking_price = $legacyRoom->price_per_night
+                    ?? $legacyRoom->roomType?->base_price
+                    ?? 0;
+                $rooms->push($legacyRoom);
+            }
         }
-        
-        return collect([]);
+
+        return $rooms;
     }
 
     // Calculate actual total from rooms (use stored prices first, never recalculate from current room rates)
@@ -196,7 +213,10 @@ class Booking extends Model
         // If bookingRooms exist with stored prices, use those (premium/multi-room bookings)
         if ($bookingRooms && $bookingRooms->count() > 0) {
             $baseAmount = 0;
+            $roomIdsInRows = [];
+
             foreach ($bookingRooms as $br) {
+                $roomIdsInRows[] = (int) $br->room_id;
                 // Use per-room dates if available, otherwise fall back to booking dates
                 if ($br->check_in_date && $br->check_out_date) {
                     $roomNights = \Carbon\Carbon::parse($br->check_in_date)->diffInDays(\Carbon\Carbon::parse($br->check_out_date));
@@ -206,6 +226,21 @@ class Booking extends Model
                 }
                 $baseAmount += ($br->price_per_night ?? 0) * $roomNights;
             }
+
+            // Historical records may have a second assignment in the legacy
+            // room_id column. Include it once so totals never omit a room.
+            if ($this->room_id && !in_array((int) $this->room_id, $roomIdsInRows, true)) {
+                $legacyRoom = $this->relationLoaded('room')
+                    ? $this->room
+                    : $this->room()->with('roomType')->first();
+                if ($legacyRoom) {
+                    $legacyPrice = $legacyRoom->price_per_night
+                        ?? $legacyRoom->roomType?->base_price
+                        ?? 0;
+                    $baseAmount += $legacyPrice * $bookingNights;
+                }
+            }
+
             return $baseAmount > 0 ? $baseAmount : $this->total_amount;
         }
 
