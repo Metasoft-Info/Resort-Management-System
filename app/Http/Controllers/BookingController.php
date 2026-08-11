@@ -1005,17 +1005,24 @@ class BookingController extends Controller
             ->where('room_id', $roomId)
             ->first();
 
-        if (!$bookingRoom) {
+        $legacyRoomMatches = (int) $booking->room_id === (int) $roomId;
+
+        if (!$bookingRoom && !$legacyRoomMatches) {
             return response()->json([
                 'success' => false,
                 'message' => 'Room not found in this booking'
             ], 404);
         }
 
-        // Check if this is the only room - allow removal, booking will have no rooms
-        $roomCount = \App\Models\BookingRoom::where('booking_id', $booking->id)->count();
+        if ($bookingRoom) {
+            $bookingRoom->delete();
+        }
 
-        $bookingRoom->delete();
+        // Mixed historical records can point to the same room from both
+        // columns. Remove both representations together.
+        if ($legacyRoomMatches) {
+            $booking->room_id = null;
+        }
 
         // Recalculate booking total
         $booking->refresh();

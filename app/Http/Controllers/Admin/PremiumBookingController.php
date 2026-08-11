@@ -358,6 +358,12 @@ class PremiumBookingController extends Controller
             $unavailableRooms = [];
             
             $roomIds = !empty($roomsData) ? collect($roomsData)->pluck('roomId')->toArray() : ($singleRoomId ? [$singleRoomId] : []);
+
+            // Serialize availability checks for the selected rooms. This
+            // closes the check-then-insert race between two front desks.
+            if (!empty($roomIds)) {
+                Room::whereIn('id', $roomIds)->lockForUpdate()->get();
+            }
             
             foreach ($roomIds as $roomId) {
                 // Check if room is already booked for these dates/times
@@ -522,9 +528,38 @@ class PremiumBookingController extends Controller
     private function addRoomsToExistingBooking($bookingId, $roomsData)
     {
         try {
-            $booking = Booking::findOrFail($bookingId);
-            
             DB::beginTransaction();
+
+            // Serialize add-room requests for this booking so concurrent
+            // requests cannot both pass the duplicate check.
+            $booking = Booking::with('bookingRooms')
+                ->lockForUpdate()
+                ->findOrFail($bookingId);
+
+            if ($booking->status === 'cancelled') {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cancelled bookings cannot receive new rooms.'
+                ], 422);
+            }
+
+            $roomsData = collect(is_array($roomsData) ? $roomsData : [])
+                ->filter(fn ($room) => is_array($room) && !empty($room['roomId']))
+                ->map(function ($room) {
+                    $room['roomId'] = (int) $room['roomId'];
+                    return $room;
+                })
+                ->unique('roomId')
+                ->values();
+
+            if ($roomsData->isEmpty()) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please select at least one valid room.'
+                ], 422);
+            }
             
             $checkIn = $booking->getCheckInDateTime();
             $checkOut = $booking->getCheckOutDateTime();
@@ -538,6 +573,14 @@ class PremiumBookingController extends Controller
                 $newCheckIn = Carbon::now()->setTimeFromTimeString($booking->check_in_time ?? '12:00');
             }
             $newCheckInDate = $newCheckIn->toDateString();
+
+            if (!$checkIn || !$checkOut || $newCheckIn->gte($checkOut)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The new room check-in time must be before the booking check-out time.'
+                ], 422);
+            }
             
             // If new rooms check-in is earlier than booking check-in, use booking check-in
             if ($newCheckIn->lt($checkIn)) {
@@ -545,33 +588,76 @@ class PremiumBookingController extends Controller
                 $newCheckInDate = $booking->check_in_date;
             }
             
-            foreach ($roomsData as $roomData) {
+            $roomIds = $roomsData->pluck('roomId')->all();
+            $rooms = Room::whereIn('id', $roomIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($rooms->count() !== count($roomIds)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'One or more selected rooms no longer exist.'
+                ], 422);
+            }
+
+            // Check both normalized rows and the legacy room_id column.
+            $existingRoomIds = array_map('intval', $booking->getAllRoomIds());
+            $roomsToAdd = $roomsData->reject(
+                fn ($room) => in_array($room['roomId'], $existingRoomIds, true)
+            );
+
+            if ($roomsToAdd->isEmpty()) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No new rooms were added (the selected rooms are already in this booking).',
+                    'booking' => $booking->fresh()
+                ]);
+            }
+
+            foreach ($roomsToAdd as $roomData) {
                 $roomId = $roomData['roomId'];
-                
-                // Check if room is already in this booking
-                $exists = BookingRoom::where('booking_id', $bookingId)
-                    ->where('room_id', $roomId)
-                    ->exists();
-                    
-                if ($exists) continue;
-                
-                // Check conflict using datetime - use new room's check-in date for conflict check
+
+                // Check each existing room's own dates. A later-added room
+                // must not inherit the parent booking's date range here.
                 $hasConflict = Booking::with('bookingRooms')
                     ->where('id', '!=', $bookingId)
                     ->whereNotIn('status', ['cancelled', 'checked_out'])
-                    ->where('check_in_date', '<', $checkOut->toDateString())
-                    ->where('check_out_date', '>', $newCheckInDate)
                     ->get()
                     ->some(function ($other) use ($newCheckIn, $checkOut, $roomId) {
-                        if (!in_array((int)$roomId, array_map('intval', $other->getAllRoomIds()))) return false;
+                        foreach ($other->bookingRooms as $bookingRoom) {
+                            if ((int) $bookingRoom->room_id !== (int) $roomId) {
+                                continue;
+                            }
+
+                            $existingCheckIn = $bookingRoom->check_in_date
+                                ? Carbon::parse($bookingRoom->check_in_date)->setTimeFromTimeString($other->check_in_time ?? '12:00')
+                                : $other->getCheckInDateTime();
+                            $existingCheckOut = $bookingRoom->check_out_date
+                                ? Carbon::parse($bookingRoom->check_out_date)->setTimeFromTimeString($other->check_out_time ?? '12:00')
+                                : $other->getCheckOutDateTime();
+
+                            return $existingCheckIn && $existingCheckOut
+                                && $existingCheckIn->lt($checkOut)
+                                && $existingCheckOut->gt($newCheckIn);
+                        }
+
+                        // Legacy-only assignment.
+                        if ((int) $other->room_id !== (int) $roomId) {
+                            return false;
+                        }
+
                         $existingCheckIn = $other->getCheckInDateTime();
                         $existingCheckOut = $other->getCheckOutDateTime();
-                        return $existingCheckIn && $existingCheckOut && $existingCheckIn->lt($checkOut) && $existingCheckOut->gt($newCheckIn);
+                        return $existingCheckIn && $existingCheckOut
+                            && $existingCheckIn->lt($checkOut)
+                            && $existingCheckOut->gt($newCheckIn);
                     });
-                
+
                 if ($hasConflict) {
-                    $room = Room::find($roomId);
-                    $unavailableRooms[] = $room ? $room->room_number : $roomId;
+                    $unavailableRooms[] = $rooms->get($roomId)->room_number;
                 }
             }
             
@@ -592,23 +678,19 @@ class PremiumBookingController extends Controller
             $newRoomNights = Carbon::parse($newCheckInDate)->diffInDays(Carbon::parse($bookingCheckOutDate));
             $newRoomNights = max(1, $newRoomNights);
             
-            foreach ($roomsData as $roomData) {
-                // Check if room is already in this booking
-                $exists = BookingRoom::where('booking_id', $bookingId)
-                    ->where('room_id', $roomData['roomId'])
-                    ->exists();
-                    
-                if (!$exists) {
-                    BookingRoom::create([
-                        'booking_id' => $bookingId,
-                        'room_id' => $roomData['roomId'],
-                        'price_per_night' => $roomData['pricePerNight'] ?? 0,
-                        'check_in_date' => $newCheckInDate,
-                        'check_out_date' => $bookingCheckOutDate,
-                    ]);
-                    $addedRooms[] = $roomData['roomNumber'];
-                    $totalAdditionalAmount += ($roomData['pricePerNight'] ?? 0) * $newRoomNights;
-                }
+            foreach ($roomsToAdd as $roomData) {
+                $room = $rooms->get($roomData['roomId']);
+                $pricePerNight = (float) ($roomData['pricePerNight'] ?? $room->price_per_night ?? 0);
+
+                BookingRoom::create([
+                    'booking_id' => $bookingId,
+                    'room_id' => $roomData['roomId'],
+                    'price_per_night' => $pricePerNight,
+                    'check_in_date' => $newCheckInDate,
+                    'check_out_date' => $bookingCheckOutDate,
+                ]);
+                $addedRooms[] = $roomData['roomNumber'] ?? $room->room_number;
+                $totalAdditionalAmount += $pricePerNight * $newRoomNights;
             }
             
             // Update booking total amount and remaining payment
@@ -621,8 +703,11 @@ class PremiumBookingController extends Controller
                 $booking->notes = preg_replace('/\[Rooms:.*?\]/', '', $booking->notes);
                 $booking->notes = trim($booking->notes) . " [Rooms: {$allRoomNumbers}]";
                 
-                // Update payment status
+                // Update payment status from the actual room total and all
+                // recorded payments, rather than incrementing a stale value.
+                $booking->remaining_payment = max(0, $booking->getGrandTotal() - $booking->getTotalDeposited());
                 $booking->payment_status = $booking->getCalculatedPaymentStatus();
+                $booking->updated_by_id = Auth::id();
                 $booking->save();
             }
             
