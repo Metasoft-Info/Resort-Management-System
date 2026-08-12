@@ -48,4 +48,24 @@ class BookingRoomAssignmentTest extends TestCase
 
         $this->assertEquals(2000, $booking->getCalculatedTotal());
     }
+
+    public function test_extended_room_dates_charge_the_added_night(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-10',
+            'check_out_date' => '2026-08-13',
+            'total_amount' => 8000,
+        ], true);
+        $booking->setRelation('bookingRooms', new Collection([
+            (object) [
+                'room_id' => 5,
+                'price_per_night' => 4000,
+                'check_in_date' => '2026-08-10',
+                'check_out_date' => '2026-08-13',
+            ],
+        ]));
+
+        $this->assertEquals(12000, $booking->getCalculatedTotal());
+    }
 }

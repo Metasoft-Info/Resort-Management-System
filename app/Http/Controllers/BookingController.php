@@ -11,6 +11,7 @@ use App\Mail\BookingConfirmationMail;
 use App\Mail\CheckoutInvoiceMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -373,7 +374,23 @@ class BookingController extends Controller
         }
 
         $validated['updated_by_id'] = Auth::id();
-        $booking->update($validated);
+
+        DB::transaction(function () use ($booking, $validated, $oldCheckIn, $oldCheckOut, $newCheckIn, $newCheckOut, $datesChanged) {
+            if ($datesChanged) {
+                $this->ensureBookingRoomForLegacyBooking($booking, $oldCheckIn, $oldCheckOut);
+            }
+
+            $booking->update($validated);
+
+            // The total is calculated from booking_rooms when those rows
+            // exist. Keep their date range in sync with the parent booking;
+            // otherwise extending a booking changes the displayed dates but
+            // leaves the old number of nights in the room-level calculation.
+            if ($datesChanged || $booking->bookingRooms()->exists()) {
+                $this->syncBookingRoomDates($booking, $oldCheckIn, $newCheckIn, $newCheckOut);
+                $this->syncBookingTotals($booking);
+            }
+        });
 
         // If booking was checked_out but checkout date/time is now in the future, re-check-in
         if ($booking->status === 'checked_out') {
@@ -761,6 +778,7 @@ class BookingController extends Controller
             ]);
 
             $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
+            $oldRoomId = $booking->room_id;
             $oldStatus = $booking->status;
             $oldCheckIn = $booking->getCheckInDateTime();
             $oldCheckOut = $booking->getCheckOutDateTime();
@@ -850,11 +868,15 @@ class BookingController extends Controller
 
             $booking->update($filteredValidated);
 
+            if ($datesChanged) {
+                $this->ensureBookingRoomForLegacyBooking($booking, $oldCheckIn, $oldCheckOut);
+            }
+
             // Update booking_rooms table when room is changed
             if ($roomChanged) {
                 // Remove old room from booking_rooms
                 \App\Models\BookingRoom::where('booking_id', $booking->id)
-                    ->where('room_id', $booking->room_id)
+                    ->where('room_id', $oldRoomId)
                     ->delete();
 
                 // Add new room to booking_rooms
@@ -889,6 +911,16 @@ class BookingController extends Controller
                         \App\Models\Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
                     }
                 }
+            }
+
+            // Date changes must also update normalized room rows. Otherwise
+            // getCalculatedTotal() continues using the old room-level dates.
+            if ($datesChanged && !$roomChanged) {
+                $this->syncBookingRoomDates($booking, $oldCheckIn, $newCheckIn, $newCheckOut);
+            }
+
+            if ($datesChanged || $roomChanged) {
+                $this->syncBookingTotals($booking);
             }
 
             return redirect()->route('admin.bookings.show', $booking)->with('success', 'Booking updated successfully' . ($checkoutExtended && $oldStatus === 'checked_out' ? ' — Status auto-updated to checked-in' : ''));
@@ -938,6 +970,87 @@ class BookingController extends Controller
                 ->withInput()
                 ->with('error', 'Booking update failed. Please check the data and try again.');
         }
+    }
+
+    /**
+     * Keep booking_rooms dates aligned with a booking edited from the global
+     * date/time controls. A room added later may have a custom check-in date,
+     * so only rows that used the original parent check-in date are moved.
+     * Checkout is shared by the booking and must always follow an extension.
+     */
+    private function syncBookingRoomDates(
+        Booking $booking,
+        Carbon $oldCheckIn,
+        Carbon $newCheckIn,
+        Carbon $newCheckOut
+    ): void {
+        $oldCheckInDate = $oldCheckIn->toDateString();
+        $newCheckInDate = $newCheckIn->toDateString();
+        $newCheckOutDate = $newCheckOut->toDateString();
+
+        foreach ($booking->bookingRooms()->get() as $bookingRoom) {
+            $roomCheckInDate = $bookingRoom->check_in_date?->toDateString();
+            $updates = [
+                // All rooms in a booking share the parent's checkout. This
+                // also repairs rows left behind by an earlier date update.
+                'check_out_date' => $newCheckOutDate,
+            ];
+
+            if ($roomCheckInDate === null || $roomCheckInDate === $oldCheckInDate) {
+                $updates['check_in_date'] = $newCheckInDate;
+            }
+
+            $bookingRoom->update($updates);
+        }
+    }
+
+    /**
+     * Older single-room bookings may not have a booking_rooms row. Normalize
+     * those records before a date change so an extension can use the original
+     * agreed nightly rate instead of leaving total_amount frozen.
+     */
+    private function ensureBookingRoomForLegacyBooking(
+        Booking $booking,
+        Carbon $oldCheckIn,
+        Carbon $oldCheckOut
+    ): void {
+        if ($booking->bookingRooms()->exists() || !$booking->room_id) {
+            return;
+        }
+
+        $room = $booking->room()->with('roomType')->first();
+        if (!$room) {
+            return;
+        }
+
+        $oldNights = max(1, $oldCheckIn->diffInDays($oldCheckOut));
+        $storedTotal = (float) ($booking->total_amount ?? 0);
+        $pricePerNight = $storedTotal > 0
+            ? $storedTotal / $oldNights
+            : (float) ($room->price_per_night ?? $room->roomType?->base_price ?? 0);
+
+        \App\Models\BookingRoom::firstOrCreate(
+            ['booking_id' => $booking->id, 'room_id' => $booking->room_id],
+            [
+                'price_per_night' => $pricePerNight,
+                'check_in_date' => $oldCheckIn->toDateString(),
+                'check_out_date' => $oldCheckOut->toDateString(),
+            ]
+        );
+    }
+
+    /**
+     * Persist the canonical room total and payment balance after a date or
+     * room assignment change.
+     */
+    private function syncBookingTotals(Booking $booking): void
+    {
+        $booking->unsetRelation('bookingRooms');
+        $booking->total_amount = (float) $booking->getCalculatedTotal();
+        $booking->remaining_payment = max(0, (float) $booking->getCalculatedRemaining());
+        $booking->payment_status = $booking->getCalculatedPaymentStatus();
+        $booking->updated_by_id = Auth::id();
+        $booking->save();
     }
 
     public function destroy(Booking $booking)
