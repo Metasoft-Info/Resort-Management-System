@@ -57,26 +57,19 @@
 
  <!-- Billing Table -->
  @php
- $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
- $invoiceNights = max(1, $invoiceNights);
+ $invoiceNights = $booking->getNights();
  $allRooms = $booking->getAllRooms();
  $bookingRooms = $booking->bookingRooms;
+ $roomBreakdown = $booking->getRoomBreakdown();
  
  // Use model method for consistent base amount calculation
  $invoiceBaseAmount = $booking->getCalculatedTotal();
  
- $invoiceDiscountAmount = 0;
- 
- if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
- $invoiceDiscountAmount = ($invoiceBaseAmount * $booking->discount_percentage) / 100;
- } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
- $invoiceDiscountAmount = $booking->discount_amount;
- }
- 
- $invoiceAfterDiscount = $invoiceBaseAmount - $invoiceDiscountAmount;
- $invoiceExtraCharges = $booking->extra_charges ?? 0;
- $invoiceVatAmount = $booking->vat_enabled ? ($invoiceAfterDiscount * 0.15) : 0;
- $invoiceGrandTotal = $invoiceAfterDiscount + $invoiceExtraCharges + $invoiceVatAmount;
+ $invoiceDiscountAmount = $booking->getDiscountAmount();
+ $invoiceAfterDiscount = max(0, $invoiceBaseAmount - $invoiceDiscountAmount);
+ $invoiceExtraCharges = max(0, (float) ($booking->extra_charges ?? 0));
+ $invoiceVatAmount = $booking->getVatAmount();
+ $invoiceGrandTotal = $booking->getGrandTotal();
  $invoiceTotalDeposited = $booking->getTotalDeposited();
 $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  
@@ -100,9 +93,10 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  @if($allRooms->count() > 0)
  @foreach($allRooms as $index => $room)
  @php
- $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
- $roomPricePerNight = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
- $roomAmount = $invoiceNights * $roomPricePerNight;
+ $roomLine = $roomBreakdown->firstWhere('room_id', $room->id);
+ $roomPricePerNight = $roomLine['price_per_night'] ?? ($room->price_per_night ?? $room->roomType?->base_price ?? 0);
+ $roomNights = $roomLine['nights'] ?? $invoiceNights;
+ $roomAmount = $roomLine['amount'] ?? ($roomNights * $roomPricePerNight);
  @endphp
  <tr>
  @if($index === 0)
@@ -111,7 +105,7 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  @endif
  <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $room->room_number }}</td>
  <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $room->roomType->name ?? 'Room' }}</td>
- <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $invoiceNights }}</td>
+ <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $roomNights }}</td>
  <td style="border: 1px solid #000; padding: 4px; text-align: right;">{{ number_format($roomPricePerNight, 0) }}/-</td>
  <td style="border: 1px solid #000; padding: 4px; text-align: right;">{{ number_format($roomAmount, 0) }}/-</td>
  </tr>

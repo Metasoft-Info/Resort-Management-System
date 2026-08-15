@@ -21,7 +21,14 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Booking::with('room.roomType', 'createdBy', 'discountApprovedBy', 'discountRequestedBy');
+        $query = Booking::with([
+            'room.roomType',
+            'bookingRooms.room.roomType',
+            'payments',
+            'createdBy',
+            'discountApprovedBy',
+            'discountRequestedBy',
+        ]);
         
         // Status filter - hide checked_out by default
         if ($request->filled('status')) {
@@ -137,6 +144,14 @@ class BookingController extends Controller
         $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
         $validated['status'] = $validated['status'] ?? 'confirmed';
 
+        // The amount typed by the browser is only a preview. Always snapshot
+        // the room's published rate and calculate the room rent on the server.
+        $room = Room::with('roomType')->findOrFail($validated['room_id']);
+        $roomRate = $this->resolveRoomRate($room);
+        $nights = max(1, Carbon::parse($validated['check_in_date'])
+            ->diffInDays(Carbon::parse($validated['check_out_date'])));
+        $validated['total_amount'] = round($roomRate * $nights, 2);
+
         // Check room availability at given time
         $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
         $checkOut = Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($validated['check_out_time']);
@@ -173,6 +188,13 @@ class BookingController extends Controller
 
         $booking = Booking::create($validated);
 
+        $booking->bookingRooms()->create([
+            'room_id' => $room->id,
+            'price_per_night' => $roomRate,
+            'check_in_date' => $validated['check_in_date'],
+            'check_out_date' => $validated['check_out_date'],
+        ]);
+
         // Record initial advance payment in payment history
         if ($validated['advance_payment'] > 0) {
             $booking->payments()->create([
@@ -183,6 +205,13 @@ class BookingController extends Controller
                 'recorded_by_id' => Auth::id(),
             ]);
         }
+
+        $booking->load('bookingRooms', 'payments');
+        $booking->total_amount = $booking->getCalculatedTotal();
+        $booking->vat_amount = $booking->getVatAmount();
+        $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
+        $booking->payment_status = $booking->getCalculatedPaymentStatus();
+        $booking->save();
         
         ActivityLog::log('Created booking', 'Booking', $booking->id, [
             'customer_name' => $booking->customer_name,
@@ -426,9 +455,7 @@ class BookingController extends Controller
 
         $paymentAmount = floatval($validated['amount'] ?? 0);
 
-        // Recalculate current balances from rooms + discount + extra + VAT.
-        $baseAmount = $booking->getCalculatedTotal();
-        $currentGrandTotal = $booking->getGrandTotal();
+        // Recalculate current balance from the canonical room rows.
         $currentRemaining = max(0, $booking->getCalculatedRemaining());
 
         // Handle payment-level discount if provided
@@ -453,22 +480,6 @@ class BookingController extends Controller
             return response()->json(['message' => 'Payment + discount cannot exceed remaining balance. Remaining: BDT ' . number_format($currentRemaining, 2)], 422);
         }
 
-        // Calculate grand total (including VAT, existing discount, extra charges)
-        $existingDiscountAmount = 0;
-        
-        if ($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-            $existingDiscountAmount = ($baseAmount * $booking->discount_percentage) / 100;
-        } elseif ($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-            $existingDiscountAmount = $booking->discount_amount;
-        }
-
-        // Calculate with NEW discount added
-        $totalDiscountAmount = $existingDiscountAmount + $paymentDiscountAmount;
-        $afterDiscount = max(0, $baseAmount - $totalDiscountAmount);
-        $extraCharges = $booking->extra_charges ?? 0;
-        $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
-        $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
-
         // Update booking data
         $updateData = [
             'payment_method' => $validated['method'],
@@ -486,7 +497,10 @@ class BookingController extends Controller
         
         // Update discount on booking if payment includes discount
         if ($paymentDiscountAmount > 0) {
-            $updateData['discount_amount'] = ($booking->discount_amount ?? 0) + $paymentDiscountAmount;
+            // Flatten the existing discount into one canonical amount before
+            // adding a payment-level discount; otherwise an existing
+            // percentage discount would be silently discarded.
+            $updateData['discount_amount'] = $booking->getDiscountAmount() + $paymentDiscountAmount;
             $updateData['discount_type'] = 'flat';
 
             // Set discount approval status
@@ -500,8 +514,11 @@ class BookingController extends Controller
             }
         }
 
-        // Do NOT update advance_payment - it stays as the initial booking payment only
-        // Record additional payment in booking_payments table
+        // Apply a payment-level discount before recalculating the balance.
+        // Do NOT update advance_payment; it remains the initial booking payment.
+        $booking->update($updateData);
+
+        // Record additional payment in booking_payments table.
         if ($paymentAmount > 0) {
             $booking->payments()->create([
                 'amount' => $paymentAmount,
@@ -512,16 +529,9 @@ class BookingController extends Controller
             ]);
         }
 
-        // Recalculate remaining using getTotalDeposited() (advance + all payments)
-        $booking->refresh();
-        $newRemainingPayment = max(0, $booking->getCalculatedRemaining());
-
-        // Do NOT overwrite total_amount - it should stay as the originally agreed price
-        $updateData['remaining_payment'] = $newRemainingPayment;
-        $updateData['payment_status'] = $booking->getCalculatedPaymentStatus();
-        $updateData['updated_by_id'] = Auth::id();
-        
-        $booking->update($updateData);
+        // Recalculate from the updated discount and all payment records.
+        $booking->unsetRelation('payments');
+        $this->syncBookingTotals($booking);
 
         $paymentNote = $validated['note'] ?? '';
         if ($paymentDiscountAmount > 0) {
@@ -562,30 +572,14 @@ class BookingController extends Controller
             $existingData = array_merge($existingData, $validated['items']);
         }
 
-        // Recalculate remaining payment
-        $baseAmount = $booking->total_amount;
-        $discountAmount = 0;
-        
-        if ($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-            $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
-        } elseif ($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-            $discountAmount = $booking->discount_amount;
-        }
-        
-        $afterDiscount = $baseAmount - $discountAmount;
-        $vatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
-        $grandTotal = $afterDiscount + $newExtraCharges + $vatAmount;
-        $totalDeposited = $booking->getTotalDeposited();
-        $newRemainingPayment = max(0, $grandTotal - $totalDeposited);
-
         $booking->update([
             'extra_charges' => $newExtraCharges,
             'extra_charges_description' => $newDescription,
             'extra_charges_data' => $existingData,
-            'remaining_payment' => $newRemainingPayment,
-            'payment_status' => $booking->getCalculatedPaymentStatus(),
             'updated_by_id' => Auth::id(),
         ]);
+
+        $this->syncBookingTotals($booking);
 
         return response()->json(['message' => 'Extra charges added successfully']);
     }
@@ -691,15 +685,10 @@ class BookingController extends Controller
             'recorded_by_id' => Auth::id(),
         ]);
 
-        // Recalculate remaining using getTotalDeposited() (which excludes refunds)
-        $booking->refresh();
-        $newRemainingPayment = max(0, $booking->getCalculatedRemaining());
-        
-        $booking->update([
-            'remaining_payment' => $newRemainingPayment,
-            'payment_status' => $newRemainingPayment <= 0 ? 'paid' : 'partial',
-            'updated_by_id' => Auth::id(),
-        ]);
+        // A refund reduces deposited money, so rebuild the balance and status
+        // from all payment records (including the new refund row).
+        $booking->unsetRelation('payments');
+        $this->syncBookingTotals($booking);
 
         return response()->json(['message' => 'Refund processed successfully']);
     }
@@ -713,37 +702,22 @@ class BookingController extends Controller
         $booking->update([
             'vat_enabled' => $validated['vat_enabled'],
         ]);
-        
-        // Recalculate remaining payment
-        $grandTotal = $this->calculateGrandTotal($booking);
-        $newRemainingPayment = max(0, $grandTotal - $booking->advance_payment);
-        
-        $booking->update([
-            'remaining_payment' => $newRemainingPayment,
-            'payment_status' => $newRemainingPayment <= 0 ? 'paid' : ($booking->advance_payment > 0 ? 'partial' : 'pending'),
-        ]);
+
+        $this->syncBookingTotals($booking);
 
         return response()->json(['message' => 'VAT updated successfully']);
     }
 
     private function calculateGrandTotal(Booking $booking): float
     {
-        $baseAmount = $booking->total_amount;
-        $discountAmount = 0;
-        
-        if ($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-            $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
-        } elseif ($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-            $discountAmount = $booking->discount_amount;
-        }
-        
-        $afterDiscount = $baseAmount - min($discountAmount, $baseAmount);
-        $extraCharges = $booking->extra_charges ?? 0;
-        
-        // Calculate VAT dynamically as 15% of after-discount amount
-        $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
-        
-        return $afterDiscount + $extraCharges + $vatAmount;
+        return $booking->getGrandTotal();
+    }
+
+    private function resolveRoomRate(Room $room): float
+    {
+        return (float) ($room->price_per_night !== null
+            ? $room->price_per_night
+            : ($room->roomType?->base_price ?? 0));
     }
 
     public function edit(Booking $booking)
@@ -758,7 +732,7 @@ class BookingController extends Controller
             $validated = $request->validate([
                 'room_id' => 'required|exists:rooms,id',
                 'check_in_date' => 'required|date',
-                'check_out_date' => 'required|date|after_or_equal:check_in_date',
+                'check_out_date' => 'required|date|after:check_in_date',
                 'customer_name' => 'required|string|max:255',
                 'customer_phone' => 'required|string|max:20',
                 'customer_email' => 'nullable|email|max:255',
@@ -824,12 +798,12 @@ class BookingController extends Controller
                 }
 
                 $nights = max(1, $newCheckIn->diffInDays($newCheckOut));
-                $roomTypePrice = optional($room->roomType)->price_per_night;
-                $roomOwnPrice = $room->price_per_night ?? 0;
-                $roomPrice = is_numeric($roomTypePrice) ? (float) $roomTypePrice : (float) $roomOwnPrice;
+                $roomPrice = $this->resolveRoomRate($room);
                 $validated['total_amount'] = max(0, $roomPrice * $nights);
             } else {
-                $validated['total_amount'] = max(0, (float) $validated['total_amount']);
+                // Do not let an editable browser field overwrite the stored
+                // agreed amount when the room and dates did not change.
+                $validated['total_amount'] = (float) $booking->getCalculatedTotal();
             }
 
             $advancePayment = isset($validated['advance_payment']) ? (float) $validated['advance_payment'] : (float) ($booking->advance_payment ?? 0);
@@ -919,9 +893,10 @@ class BookingController extends Controller
                 $this->syncBookingRoomDates($booking, $oldCheckIn, $newCheckIn, $newCheckOut);
             }
 
-            if ($datesChanged || $roomChanged) {
-                $this->syncBookingTotals($booking);
-            }
+            // Always refresh the balance. Customer-only edits must not reset
+            // a booking's due to the old advance amount when later payments
+            // already exist.
+            $this->syncBookingTotals($booking);
 
             return redirect()->route('admin.bookings.show', $booking)->with('success', 'Booking updated successfully' . ($checkoutExtended && $oldStatus === 'checked_out' ? ' — Status auto-updated to checked-in' : ''));
         } catch (\Throwable $e) {
@@ -1046,7 +1021,9 @@ class BookingController extends Controller
     private function syncBookingTotals(Booking $booking): void
     {
         $booking->unsetRelation('bookingRooms');
+        $booking->unsetRelation('payments');
         $booking->total_amount = (float) $booking->getCalculatedTotal();
+        $booking->vat_amount = (float) $booking->getVatAmount();
         $booking->remaining_payment = max(0, (float) $booking->getCalculatedRemaining());
         $booking->payment_status = $booking->getCalculatedPaymentStatus();
         $booking->updated_by_id = Auth::id();
@@ -1137,14 +1114,13 @@ class BookingController extends Controller
             $booking->room_id = null;
         }
 
-        // Recalculate booking total
-        $booking->refresh();
-        $newTotal = $booking->getCalculatedTotal();
-        $newGrandTotal = $booking->getGrandTotal();
-        $totalDeposited = $booking->getTotalDeposited();
-
-        $booking->total_amount = $newTotal;
-        $booking->remaining_payment = max(0, $newGrandTotal - $totalDeposited);
+        // Recalculate from the remaining canonical rows. Do not refresh here:
+        // refresh would restore the legacy room_id we just cleared.
+        $booking->unsetRelation('bookingRooms');
+        $booking->load('bookingRooms', 'payments');
+        $booking->total_amount = $booking->getCalculatedTotal();
+        $booking->vat_amount = $booking->getVatAmount();
+        $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
         $booking->payment_status = $booking->getCalculatedPaymentStatus();
 
         // Update notes

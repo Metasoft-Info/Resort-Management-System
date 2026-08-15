@@ -1191,24 +1191,22 @@ function recalculateAmount() {
  document.getElementById('baseAmount').value = baseAmount.toFixed(2);
  document.getElementById('base_amount').value = baseAmount.toFixed(2);
 
- // VAT
- const vatEnabled = document.getElementById('vat_enabled').checked;
- const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
- document.getElementById('vat_amount').value = vatAmount.toFixed(2);
-
- // Calculate grand total (base + vat - discount + extra)
- let grandTotal = baseAmount + vatAmount;
-
- // Discount
+ // Discount is applied before VAT. This is also the server-side rule.
  let discountAmount = 0;
  if (discountType === 'percentage') {
   const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
-  discountAmount = (grandTotal * discountPercentage) / 100;
-  grandTotal -= discountAmount;
+  discountAmount = Math.min(baseAmount, (baseAmount * discountPercentage) / 100);
  } else if (discountType === 'flat') {
-  discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
-  grandTotal -= discountAmount;
+  discountAmount = Math.min(baseAmount, Math.max(0, parseFloat(document.getElementById('discount_amount').value) || 0));
  }
+
+ const afterDiscount = Math.max(0, baseAmount - discountAmount);
+ const vatEnabled = document.getElementById('vat_enabled').checked;
+ const vatAmount = vatEnabled ? (afterDiscount * 0.15) : 0;
+ document.getElementById('vat_amount').value = vatAmount.toFixed(2);
+
+ // Calculate grand total (base - discount + VAT + extra)
+ let grandTotal = afterDiscount + vatAmount;
 
  // Extra charges
  const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
@@ -1223,20 +1221,21 @@ function recalculateAmount() {
 function calculateRemaining() {
  // Read base room rent from hidden base_amount field
  const baseAmount = parseFloat(document.getElementById('base_amount').value) || 0;
- const vatEnabled = document.getElementById('vat_enabled').checked;
- const vatAmount = vatEnabled ? (baseAmount * 0.15) : 0;
-
- let grandTotal = baseAmount + vatAmount;
 
  // Apply discount
  const discountType = document.getElementById('discount_type').value;
+ let discountAmount = 0;
  if (discountType === 'percentage') {
   const discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
-  grandTotal -= (grandTotal * discountPercentage) / 100;
+  discountAmount = Math.min(baseAmount, (baseAmount * discountPercentage) / 100);
  } else if (discountType === 'flat') {
-  const discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
-  grandTotal -= discountAmount;
+  discountAmount = Math.min(baseAmount, Math.max(0, parseFloat(document.getElementById('discount_amount').value) || 0));
  }
+
+ const afterDiscount = Math.max(0, baseAmount - discountAmount);
+ const vatEnabled = document.getElementById('vat_enabled').checked;
+ const vatAmount = vatEnabled ? (afterDiscount * 0.15) : 0;
+ let grandTotal = afterDiscount + vatAmount;
 
  // Add extra charges
  const extraCharges = parseFloat(document.getElementById('extra_charges').value) || 0;
@@ -1445,7 +1444,7 @@ async function submitBooking(e) {
  formData.append('status', document.getElementById('status').value);
  formData.append('notes', document.getElementById('notes').value);
  
- // Payment - send base_amount as total_amount to backend (backend expects base room rent)
+ // Send the preview only; the backend recalculates the canonical room rent.
  formData.append('total_amount', document.getElementById('base_amount').value);
  formData.append('vat_enabled', document.getElementById('vat_enabled').checked ? '1' : '0');
  formData.append('vat_amount', document.getElementById('vat_amount').value);

@@ -115,7 +115,7 @@
                     @forelse($roomBookings as $b)
                     @php
                         $remaining = $b->getCalculatedRemaining();
-                        $nights = max(1, \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date)));
+                        $nights = $b->getNights();
                         $roomRent = $b->getCalculatedTotal();
                         $roomNumbers = $b->bookingRooms->count() > 0
                             ? $b->bookingRooms->map(fn($br) => $br->room->room_number ?? 'N/A')->implode(', ')
@@ -197,7 +197,7 @@
                     @forelse($advanceBookings as $b)
                     @php
                         $due = $b->getCalculatedRemaining();
-                        $nights = max(1, \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date)));
+                        $nights = $b->getNights();
                         $roomRent = $b->getCalculatedTotal();
                         $roomNumbers = $b->bookingRooms->count() > 0
                             ? $b->bookingRooms->map(fn($br) => $br->room->room_number ?? 'N/A')->implode(', ')
@@ -280,7 +280,7 @@
                     @forelse($unpaidBookings as $b)
                     @php
                         $due = $b->getCalculatedRemaining();
-                        $nights = max(1, \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date)));
+                        $nights = $b->getNights();
                         $roomRent = $b->getCalculatedTotal();
                         $roomNumbers = $b->bookingRooms->count() > 0
                             ? $b->bookingRooms->map(fn($br) => $br->room->room_number ?? 'N/A')->implode(', ')

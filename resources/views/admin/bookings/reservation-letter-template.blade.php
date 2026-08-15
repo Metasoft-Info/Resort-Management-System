@@ -71,25 +71,18 @@
 
  <!-- Reservation Details Table -->
  @php
- $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
- $nights = max(1, $nights);
+ $nights = $booking->getNights();
  $allRooms = $booking->getAllRooms();
  $bookingRooms = $booking->bookingRooms;
+ $roomBreakdown = $booking->getRoomBreakdown();
  
  // Calculate totals from actual rooms
  $baseAmount = $booking->getCalculatedTotal();
- $discountAmount = 0;
- 
- if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
- $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
- } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
- $discountAmount = $booking->discount_amount;
- }
- 
- $afterDiscount = $baseAmount - $discountAmount;
- $extraCharges = $booking->extra_charges ?? 0;
- $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
- $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
+ $discountAmount = $booking->getDiscountAmount();
+ $afterDiscount = max(0, $baseAmount - $discountAmount);
+ $extraCharges = max(0, (float) ($booking->extra_charges ?? 0));
+ $vatAmount = $booking->getVatAmount();
+ $grandTotal = $booking->getGrandTotal();
  $totalDeposited = $booking->getTotalDeposited();
 $remainingPayment = max(0, $grandTotal - $totalDeposited);
  
@@ -113,9 +106,10 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  @if($allRooms->count() > 0)
  @foreach($allRooms as $index => $room)
  @php
- $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
- $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
- $roomAmount = $nights * $roomPrice;
+ $roomLine = $roomBreakdown->firstWhere('room_id', $room->id);
+ $roomPrice = $roomLine['price_per_night'] ?? ($room->price_per_night ?? $room->roomType?->base_price ?? 0);
+ $roomNights = $roomLine['nights'] ?? $nights;
+ $roomAmount = $roomLine['amount'] ?? ($roomNights * $roomPrice);
  @endphp
  <tr>
  @if($index === 0)
@@ -124,7 +118,7 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  @endif
  <td style="border: 1px solid #333; padding: 5px; text-align: center;">{{ $room->room_number }}</td>
  <td style="border: 1px solid #333; padding: 5px; text-align: center;">{{ $room->roomType->name ?? 'Room' }}</td>
- <td style="border: 1px solid #333; padding: 5px; text-align: center;">{{ $nights }}</td>
+ <td style="border: 1px solid #333; padding: 5px; text-align: center;">{{ $roomNights }}</td>
  <td style="border: 1px solid #333; padding: 5px; text-align: right;">{{ number_format($roomPrice, 0) }}</td>
  <td style="border: 1px solid #333; padding: 5px; text-align: right;">{{ number_format($roomAmount, 0) }}</td>
  </tr>

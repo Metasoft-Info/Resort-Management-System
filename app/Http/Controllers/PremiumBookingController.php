@@ -21,10 +21,15 @@ class PremiumBookingController extends Controller
 
     public function search(Request $request)
     {
-        $checkIn = Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
-        $checkOut = Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
+        $dates = $request->validate([
+            'checkIn' => 'required|date',
+            'checkOut' => 'required|date|after:checkIn',
+        ]);
+
+        $checkIn = Carbon::parse($dates['checkIn'])->setTimeFromTimeString('12:00');
+        $checkOut = Carbon::parse($dates['checkOut'])->setTimeFromTimeString('12:00');
         $roomTypeId = $request->roomTypeId;
-        $nights = $checkIn->diffInDays($checkOut);
+        $nights = max(1, (int) $checkIn->diffInDays($checkOut));
 
         // Get all rooms
         $query = Room::with('roomType');
@@ -80,7 +85,7 @@ class PremiumBookingController extends Controller
                 'ac_preference' => 'required|in:ac,non-ac',
                 'status' => 'required|in:confirmed,pending',
                 'notes' => 'nullable|string',
-                'total_amount' => 'required|numeric|min:0',
+                'total_amount' => 'nullable|numeric|min:0',
                 'vat_enabled' => 'nullable|boolean',
                 'vat_amount' => 'nullable|numeric',
                 'discount_type' => 'nullable|in:none,percentage,flat',
@@ -114,9 +119,22 @@ class PremiumBookingController extends Controller
             // Set default times and created by
             $validated['check_in_time'] = $validated['check_in_time'] ?? '12:00';
             $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
-            $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 'partial';
             $validated['created_by_id'] = Auth::id();
             $validated['updated_by_id'] = Auth::id();
+
+            // The browser amount is a preview only. Snapshot the room rate
+            // from the database and calculate checkout-exclusive nights.
+            $room = Room::with('roomType')->findOrFail($validated['room_id']);
+            $roomRate = (float) ($room->price_per_night !== null
+                ? $room->price_per_night
+                : ($room->roomType?->base_price ?? 0));
+            $nights = max(1, Carbon::parse($validated['check_in_date'])
+                ->diffInDays(Carbon::parse($validated['check_out_date'])));
+            $validated['total_amount'] = round($roomRate * $nights, 2);
+            $validated['remaining_payment'] = max(0, $validated['total_amount'] - $validated['advance_payment']);
+            $validated['payment_status'] = $validated['remaining_payment'] <= 0
+                ? 'paid'
+                : ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
 
             // Check room availability at given time
             $checkIn = Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($validated['check_in_time']);
@@ -142,6 +160,17 @@ class PremiumBookingController extends Controller
             }
 
             $booking = Booking::create($validated);
+            $booking->bookingRooms()->create([
+                'room_id' => $room->id,
+                'price_per_night' => $roomRate,
+                'check_in_date' => $validated['check_in_date'],
+                'check_out_date' => $validated['check_out_date'],
+            ]);
+
+            $booking->total_amount = $booking->getCalculatedTotal();
+            $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
+            $booking->payment_status = $booking->getCalculatedPaymentStatus();
+            $booking->save();
 
             return response()->json([
                 'success' => true,

@@ -67,7 +67,7 @@
  <p><span class="font-semibold">Check-In:</span> {{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }} @if($booking->check_in_time) at {{ \Carbon\Carbon::parse($booking->check_in_time)->format('h:i A') }} @endif</p>
  <p><span class="font-semibold">Check-Out:</span> {{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }} @if($booking->check_out_time) at {{ \Carbon\Carbon::parse($booking->check_out_time)->format('h:i A') }} @endif</p>
  <p><span class="font-semibold">Total Guests:</span> {{ $booking->number_of_guests }}</p>
- <p><span class="font-semibold">Total Nights:</span> {{ \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date)) }}</p>
+ <p><span class="font-semibold">Total Nights:</span> {{ $booking->getNights() }}</p>
  </div>
  </div>
  </div>
@@ -90,7 +90,7 @@
 
  <!-- Billing Details -->
  @php
- $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
+ $invoiceNights = $booking->getNights();
  $invoiceBaseAmount = $booking->getCalculatedTotal();
  $invoiceDiscountAmount = 0;
  
@@ -160,8 +160,8 @@
  <td class="text-right p-2">{{ number_format($invoiceGrandTotal, 2) }}</td>
  </tr>
  <tr class="text-primary-600 font-semibold">
- <td colspan="3" class="p-2 text-right">Advance Payment:</td>
- <td class="text-right p-2">{{ number_format($booking->advance_payment, 2) }}</td>
+ <td colspan="3" class="p-2 text-right">Total Paid:</td>
+ <td class="text-right p-2">{{ number_format($booking->getTotalDeposited(), 2) }}</td>
  </tr>
  <tr class="text-red-600 font-bold">
  <td colspan="3" class="p-2 text-right">Remaining Payment:</td>

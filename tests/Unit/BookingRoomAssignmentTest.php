@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Booking;
 use App\Models\BookingRoom;
+use App\Models\BookingPayment;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
@@ -67,5 +68,60 @@ class BookingRoomAssignmentTest extends TestCase
         ]));
 
         $this->assertEquals(12000, $booking->getCalculatedTotal());
+    }
+
+    public function test_three_nights_at_three_thousand_is_nine_thousand(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-14',
+            'check_out_date' => '2026-08-17',
+            'total_amount' => 0,
+        ], true);
+        $booking->setRelation('bookingRooms', new Collection([
+            (object) [
+                'room_id' => 8,
+                'price_per_night' => 3000,
+                'check_in_date' => '2026-08-14',
+                'check_out_date' => '2026-08-17',
+            ],
+        ]));
+
+        $this->assertSame(3, $booking->getNights());
+        $this->assertEquals(9000, $booking->getCalculatedTotal());
+    }
+
+    public function test_checkout_date_is_not_charged_as_an_extra_night(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-13',
+            'check_out_date' => '2026-08-15',
+            'total_amount' => 0,
+        ], true);
+        $booking->setRelation('bookingRooms', new Collection([
+            (object) [
+                'room_id' => 8,
+                'price_per_night' => 3000,
+                'check_in_date' => '2026-08-13',
+                'check_out_date' => '2026-08-15',
+            ],
+        ]));
+
+        $this->assertSame(2, $booking->getNights());
+        $this->assertEquals(6000, $booking->getCalculatedTotal());
+    }
+
+    public function test_refunds_reduce_deposited_amount(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes(['advance_payment' => 2500], true);
+        $booking->setRelation('payments', new Collection([
+            new BookingPayment(['amount' => 2500, 'type' => 'advance']),
+            new BookingPayment(['amount' => 1000, 'type' => 'payment']),
+            new BookingPayment(['amount' => 500, 'type' => 'refund']),
+        ]));
+
+        $this->assertEquals(3000, $booking->getTotalDeposited());
     }
 }

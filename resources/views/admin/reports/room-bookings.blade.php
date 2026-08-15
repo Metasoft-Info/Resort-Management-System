@@ -172,7 +172,7 @@
                     @php $totalNights = 0; $sumGrandTotal = 0; $sumDeposited = 0; $sumRemaining = 0; @endphp
                     @forelse($bookings as $booking)
                     @php
-                        $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
+                        $nights = $booking->getNights();
                         $totalNights += $nights;
                         $roomRent = $booking->getCalculatedTotal();
 
@@ -447,7 +447,7 @@ function showGuestInfo(bookingId) {
         if (data.booking) {
             const b = data.booking;
             
-            // Calculate nights
+            // Calculate nights using the checkout-exclusive hotel rule.
             const checkIn = new Date(b.check_in_date);
             const checkOut = new Date(b.check_out_date);
             const nights = Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)));
@@ -460,22 +460,25 @@ function showGuestInfo(bookingId) {
             if (b.booking_rooms && b.booking_rooms.length > 0) {
                 roomsHtml = b.booking_rooms.map(br => br.room?.room_number || 'N/A').join(', ');
                 roomDetailsHtml = b.booking_rooms.map(br => {
-                    const roomPrice = parseFloat(br.price_per_night) || 0;
-                    const roomTotal = roomPrice * nights;
+                    const roomPrice = parseFloat(br.price_per_night ?? br.room?.price_per_night ?? br.room?.room_type?.base_price ?? 0);
+                    const roomCheckIn = br.check_in_date ? new Date(br.check_in_date) : checkIn;
+                    const roomCheckOut = br.check_out_date ? new Date(br.check_out_date) : checkOut;
+                    const roomNights = Math.max(1, Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24)));
+                    const roomTotal = roomPrice * roomNights;
                     baseAmount += roomTotal;
                     const roomType = br.room?.room_type?.name || '';
                     return `
                         <tr class="border-b">
                             <td class="py-2 px-2">${br.room?.room_number || 'N/A'} ${roomType ? '('+roomType+')' : ''}</td>
                             <td class="py-2 px-2 text-right">${formatTaka(roomPrice)}</td>
-                            <td class="py-2 px-2 text-center">${nights}</td>
+                            <td class="py-2 px-2 text-center">${roomNights}</td>
                             <td class="py-2 px-2 text-right font-semibold">${formatTaka(roomTotal)}</td>
                         </tr>
                     `;
                 }).join('');
             } else if (b.room) {
                 roomsHtml = b.room.room_number;
-                const roomPrice = parseFloat(b.room?.room_type?.base_price || b.room?.price_per_night || 0);
+                const roomPrice = parseFloat(b.room?.price_per_night ?? b.room?.room_type?.base_price ?? 0);
                 baseAmount = roomPrice * nights;
                 roomDetailsHtml = `
                     <tr class="border-b">
@@ -492,17 +495,24 @@ function showGuestInfo(bookingId) {
             const discountPercent = parseFloat(b.discount_percentage) || 0;
             let discount = 0;
             if (b.discount_type === 'percentage' && discountPercent > 0) {
-                discount = (baseAmount * discountPercent) / 100;
+                discount = Math.min(baseAmount, (baseAmount * discountPercent) / 100);
             } else if (b.discount_type === 'flat' && discountAmount > 0) {
-                discount = discountAmount;
+                discount = Math.min(baseAmount, discountAmount);
             }
             
-            const afterDiscount = baseAmount - discount;
-            const extraCharges = parseFloat(b.extra_charges) || 0;
+            const afterDiscount = Math.max(0, baseAmount - discount);
+            const extraCharges = Math.max(0, parseFloat(b.extra_charges) || 0);
             const vatAmount = b.vat_enabled ? (afterDiscount * 0.15) : 0;
             const grandTotal = afterDiscount + extraCharges + vatAmount;
             const advancePayment = parseFloat(b.advance_payment) || 0;
-            const remaining = grandTotal - advancePayment;
+            const payments = Array.isArray(b.payments) ? b.payments : [];
+            const deposited = payments.length > 0
+                ? Math.max(0, payments.reduce((sum, payment) => {
+                    const amount = parseFloat(payment.amount) || 0;
+                    return (payment.type || 'payment') === 'refund' ? sum - amount : sum + amount;
+                }, 0))
+                : advancePayment;
+            const remaining = Math.max(0, grandTotal - deposited);
             
             // Additional guests
             let additionalGuestsHtml = '';
@@ -639,7 +649,7 @@ function showGuestInfo(bookingId) {
                             <div class="text-right font-bold text-lg border-t pt-2 mt-2">${formatTaka(grandTotal)}</div>
                             
                             <div class="text-green-700">Advance:</div>
-                            <div class="text-right text-green-700">${formatTaka(advancePayment)}</div>
+                            <div class="text-right text-green-700">${formatTaka(deposited)}</div>
                             
                             <div class="font-bold ${remaining > 0 ? 'text-red-600' : 'text-green-600'}">Remaining:</div>
                             <div class="text-right font-bold ${remaining > 0 ? 'text-red-600' : 'text-green-600'}">${formatTaka(remaining)}</div>

@@ -5,26 +5,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ConventionBooking;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        // Get unique customer phones first with aggregates
-        $query = Booking::select(
-            'customer_phone',
-            DB::raw('MAX(customer_name) as customer_name'),
-            DB::raw('MAX(customer_email) as customer_email'),
-            DB::raw('MAX(customer_address) as customer_address'),
-            DB::raw('MAX(customer_nid) as customer_nid'),
-            DB::raw('MAX(company_name) as company_name'),
-            DB::raw('COUNT(*) as booking_count'),
-            DB::raw('SUM(total_amount) as total_spent'),
-            DB::raw('SUM(advance_payment) as total_paid'),
-            DB::raw('SUM(remaining_payment) as total_due'),
-            DB::raw('MAX(created_at) as last_booking')
-        );
+        // These totals must use the same canonical room/payment calculation
+        // as reports and invoices. SQL SUM(total_amount) misses discounts,
+        // VAT, extra charges and later payments.
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments']);
 
         // Apply search filter
         if ($request->search) {
@@ -37,14 +28,42 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->groupBy('customer_phone')
-            ->orderByDesc('last_booking')
-            ->paginate(20);
+        $allBookings = $query->get();
+        $customerRows = $allBookings->groupBy('customer_phone')
+            ->map(function ($bookings, $phone) {
+                $latest = $bookings->sortByDesc('created_at')->first();
+
+                return (object) [
+                    'customer_phone' => $phone,
+                    'customer_name' => $latest->customer_name,
+                    'customer_email' => $latest->customer_email,
+                    'customer_address' => $latest->customer_address,
+                    'customer_nid' => $latest->customer_nid,
+                    'company_name' => $latest->company_name,
+                    'booking_count' => $bookings->count(),
+                    'total_spent' => $bookings->sum(fn ($booking) => $booking->getGrandTotal()),
+                    'total_paid' => $bookings->sum(fn ($booking) => $booking->getTotalDeposited()),
+                    'total_due' => $bookings->sum(fn ($booking) => $booking->getCalculatedRemaining()),
+                    'last_booking' => $latest->created_at,
+                ];
+            })
+            ->sortByDesc('last_booking')
+            ->values();
+
+        $perPage = 20;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $customers = new LengthAwarePaginator(
+            $customerRows->forPage($currentPage, $perPage)->values(),
+            $customerRows->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         // Stats
-        $totalCustomers = Booking::distinct()->count('customer_phone');
-        $totalRevenue = Booking::sum('total_amount');
-        $totalDue = Booking::sum('remaining_payment');
+        $totalCustomers = $allBookings->pluck('customer_phone')->filter()->unique()->count();
+        $totalRevenue = $allBookings->sum(fn ($booking) => $booking->getGrandTotal());
+        $totalDue = $allBookings->sum(fn ($booking) => $booking->getCalculatedRemaining());
 
         return view('admin.customers.index', compact('customers', 'totalCustomers', 'totalRevenue', 'totalDue'));
     }
@@ -103,7 +122,7 @@ class CustomerController extends Controller
 
         // Get all room bookings for this customer
         $roomBookings = Booking::where('customer_phone', $phone)
-            ->with(['room.roomType'])
+            ->with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -117,11 +136,11 @@ class CustomerController extends Controller
         $stats = [
             'total_room_bookings' => $roomBookings->count(),
             'total_convention_bookings' => $conventionBookings->count(),
-            'total_room_spent' => $roomBookings->sum('total_amount'),
+            'total_room_spent' => $roomBookings->sum(fn ($booking) => $booking->getGrandTotal()),
             'total_convention_spent' => $conventionBookings->sum('total_amount'),
-            'total_room_paid' => $roomBookings->sum('advance_payment'),
+            'total_room_paid' => $roomBookings->sum(fn ($booking) => $booking->getTotalDeposited()),
             'total_convention_paid' => $conventionBookings->sum('advance_payment'),
-            'total_room_due' => $roomBookings->sum('remaining_payment'),
+            'total_room_due' => $roomBookings->sum(fn ($booking) => $booking->getCalculatedRemaining()),
             'total_convention_due' => $conventionBookings->sum('remaining_payment'),
             'first_booking' => $roomBookings->merge($conventionBookings)->min('created_at'),
             'last_booking' => $roomBookings->merge($conventionBookings)->max('created_at'),

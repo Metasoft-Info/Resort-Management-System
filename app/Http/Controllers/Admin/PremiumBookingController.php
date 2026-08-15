@@ -97,11 +97,16 @@ class PremiumBookingController extends Controller
 
     public function search(Request $request)
     {
-        $checkIn = Carbon::parse($request->checkIn)->setTimeFromTimeString('12:00');
-        $checkOut = Carbon::parse($request->checkOut)->setTimeFromTimeString('12:00');
+        $dates = $request->validate([
+            'checkIn' => 'required|date',
+            'checkOut' => 'required|date|after:checkIn',
+        ]);
+
+        $checkIn = Carbon::parse($dates['checkIn'])->setTimeFromTimeString('12:00');
+        $checkOut = Carbon::parse($dates['checkOut'])->setTimeFromTimeString('12:00');
         $roomTypeId = $request->roomTypeId;
         $excludeBookingId = $request->excludeBookingId; // Exclude this booking from conflict check
-        $nights = $checkIn->diffInDays($checkOut);
+        $nights = max(1, (int) $checkIn->diffInDays($checkOut));
 
         // Get all rooms
         $query = Room::with('roomType');
@@ -210,6 +215,13 @@ class PremiumBookingController extends Controller
                 return $this->addRoomsToExistingBooking($existingBookingId, $roomsData);
             }
 
+            // rooms_data is the authoritative selector. The hidden room_id
+            // field can contain a comma-separated multi-room preview, which
+            // must not be passed through the single-room exists rule.
+            if (!empty($roomsData)) {
+                $request->merge(['room_id' => null]);
+            }
+
             // Determine if this is multi-room or single room booking
             $isMultiRoom = !empty($roomsData) && count($roomsData) > 1;
             $singleRoomId = $request->input('room_id');
@@ -239,7 +251,9 @@ class PremiumBookingController extends Controller
                 'ac_preference' => 'required|in:ac,non-ac',
                 'status' => 'required|in:confirmed,pending',
                 'notes' => 'nullable|string',
-                'total_amount' => 'required|numeric|min:0',
+                // The browser total is only a preview. The server recalculates
+                // it from locked room rates and the selected dates below.
+                'total_amount' => 'nullable|numeric|min:0',
                 'vat_enabled' => 'nullable|boolean',
                 'vat_amount' => 'nullable|numeric',
                 'discount_type' => 'nullable|in:none,percentage,flat',
@@ -302,7 +316,8 @@ class PremiumBookingController extends Controller
 
             // Set default values for advance/remaining
             $validated['advance_payment'] = $validated['advance_payment'] ?? 0;
-            $validated['remaining_payment'] = $validated['remaining_payment'] ?? $validated['total_amount'];
+            $validated['total_amount'] = (float) ($validated['total_amount'] ?? 0);
+            $validated['remaining_payment'] = 0;
             
             // Set default values for optional fields that DB requires
             $validated['extra_charges'] = $validated['extra_charges'] ?? 0;
@@ -328,9 +343,9 @@ class PremiumBookingController extends Controller
                 }
             }
 
-            // Set payment status
-            $validated['payment_status'] = $validated['advance_payment'] >= $validated['total_amount'] ? 'paid' : 
-                                           ($validated['advance_payment'] > 0 ? 'partial' : 'pending');
+            // Payment status and due are recalculated after the canonical room
+            // rows and the initial advance payment have been saved.
+            $validated['payment_status'] = 'pending';
             $validated['check_in_time'] = $validated['check_in_time'] ?? '12:00';
             $validated['check_out_time'] = $validated['check_out_time'] ?? '12:00';
             $validated['created_by_id'] = Auth::id();
@@ -361,8 +376,40 @@ class PremiumBookingController extends Controller
 
             // Serialize availability checks for the selected rooms. This
             // closes the check-then-insert race between two front desks.
+            $lockedRooms = collect();
             if (!empty($roomIds)) {
-                Room::whereIn('id', $roomIds)->lockForUpdate()->get();
+                $lockedRooms = Room::with('roomType')
+                    ->whereIn('id', $roomIds)
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
+
+                if ($lockedRooms->count() !== count(array_unique(array_map('intval', $roomIds)))) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'One or more selected rooms no longer exist.'
+                    ], 422);
+                }
+
+                // Never trust a price supplied by JavaScript. Store the rate
+                // that was read while the room row was locked.
+                $bookingNights = max(1, (int) $checkIn->diffInDays($checkOut));
+                $roomsData = collect($roomsData)->map(function ($roomData) use ($lockedRooms) {
+                    $room = $lockedRooms->get((int) $roomData['roomId']);
+                    $roomData['pricePerNight'] = $this->resolveRoomRate($room);
+                    $roomData['roomNumber'] = $room->room_number;
+                    return $roomData;
+                })->values()->all();
+
+                if (empty($roomsData) && $singleRoomId) {
+                    $room = $lockedRooms->get((int) $singleRoomId);
+                    $validated['total_amount'] = round($this->resolveRoomRate($room) * $bookingNights, 2);
+                } else {
+                    $validated['total_amount'] = round(collect($roomsData)->sum(
+                        fn ($roomData) => (float) $roomData['pricePerNight'] * $bookingNights
+                    ), 2);
+                }
             }
             
             foreach ($roomIds as $roomId) {
@@ -441,7 +488,7 @@ class PremiumBookingController extends Controller
                     BookingRoom::firstOrCreate(
                         ['booking_id' => $booking->id, 'room_id' => $roomId],
                         [
-                            'price_per_night' => $roomData['pricePerNight'] ?? 0,
+                            'price_per_night' => $roomData['pricePerNight'],
                             'check_in_date' => $validated['check_in_date'],
                             'check_out_date' => $validated['check_out_date'],
                         ]
@@ -451,11 +498,11 @@ class PremiumBookingController extends Controller
                 \Log::info('Rooms added to booking', ['booking_id' => $booking->id, 'rooms' => $addedRooms]);
             } elseif ($singleRoomId) {
                 // Single room - still add to booking_rooms for consistency
-                $room = Room::find($singleRoomId);
+                $room = $lockedRooms->get((int) $singleRoomId);
                 BookingRoom::firstOrCreate(
                     ['booking_id' => $booking->id, 'room_id' => $singleRoomId],
                     [
-                        'price_per_night' => $room->price_per_night ?? $room->roomType->base_price ?? 0,
+                        'price_per_night' => $this->resolveRoomRate($room),
                         'check_in_date' => $validated['check_in_date'],
                         'check_out_date' => $validated['check_out_date'],
                     ]
@@ -484,6 +531,16 @@ class PremiumBookingController extends Controller
                     'recorded_by_id' => Auth::id(),
                 ]);
             }
+
+            // Recalculate from the rows actually written to the database.
+            // This keeps total, VAT, due and payment status consistent even
+            // when the client sent a stale or manipulated preview value.
+            $booking->load('bookingRooms', 'payments');
+            $booking->total_amount = $booking->getCalculatedTotal();
+            $booking->vat_amount = $booking->getVatAmount();
+            $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
+            $booking->payment_status = $booking->getCalculatedPaymentStatus();
+            $booking->save();
 
             DB::commit();
 
@@ -589,7 +646,8 @@ class PremiumBookingController extends Controller
             }
             
             $roomIds = $roomsData->pluck('roomId')->all();
-            $rooms = Room::whereIn('id', $roomIds)
+            $rooms = Room::with('roomType')
+                ->whereIn('id', $roomIds)
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
@@ -671,16 +729,13 @@ class PremiumBookingController extends Controller
             
             // Add new rooms to booking_rooms table with per-room dates
             $addedRooms = [];
-            $totalAdditionalAmount = 0;
             $bookingCheckOutDate = $booking->check_out_date;
-            
-            // Calculate nights for new rooms based on their own check-in date
-            $newRoomNights = Carbon::parse($newCheckInDate)->diffInDays(Carbon::parse($bookingCheckOutDate));
-            $newRoomNights = max(1, $newRoomNights);
             
             foreach ($roomsToAdd as $roomData) {
                 $room = $rooms->get($roomData['roomId']);
-                $pricePerNight = (float) ($roomData['pricePerNight'] ?? $room->price_per_night ?? 0);
+                // The selected browser price is a display value only. Use the
+                // locked database rate to prevent stale/modified totals.
+                $pricePerNight = $this->resolveRoomRate($room);
 
                 BookingRoom::create([
                     'booking_id' => $bookingId,
@@ -690,22 +745,21 @@ class PremiumBookingController extends Controller
                     'check_out_date' => $bookingCheckOutDate,
                 ]);
                 $addedRooms[] = $roomData['roomNumber'] ?? $room->room_number;
-                $totalAdditionalAmount += $pricePerNight * $newRoomNights;
             }
             
-            // Update booking total amount and remaining payment
-            if ($totalAdditionalAmount > 0) {
-                $booking->total_amount += $totalAdditionalAmount;
-                $booking->remaining_payment += $totalAdditionalAmount;
-                
+            // Rebuild all financial fields from every canonical room row.
+            if (!empty($addedRooms)) {
+                $booking->unsetRelation('bookingRooms');
+                $booking->load('bookingRooms', 'payments');
+
                 // Update notes with new rooms
                 $allRoomNumbers = $booking->getAllRooms()->pluck('room_number')->implode(', ');
                 $booking->notes = preg_replace('/\[Rooms:.*?\]/', '', $booking->notes);
                 $booking->notes = trim($booking->notes) . " [Rooms: {$allRoomNumbers}]";
-                
-                // Update payment status from the actual room total and all
-                // recorded payments, rather than incrementing a stale value.
-                $booking->remaining_payment = max(0, $booking->getGrandTotal() - $booking->getTotalDeposited());
+
+                $booking->total_amount = $booking->getCalculatedTotal();
+                $booking->vat_amount = $booking->getVatAmount();
+                $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
                 $booking->payment_status = $booking->getCalculatedPaymentStatus();
                 $booking->updated_by_id = Auth::id();
                 $booking->save();
@@ -729,5 +783,21 @@ class PremiumBookingController extends Controller
                 'message' => 'Failed to add rooms: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Resolve the current published nightly rate for a room. Booking rows
+     * store this value as a snapshot, so future room-rate edits do not alter
+     * an existing customer's bill.
+     */
+    private function resolveRoomRate(?Room $room): float
+    {
+        if (!$room) {
+            return 0.0;
+        }
+
+        return (float) ($room->price_per_night !== null
+            ? $room->price_per_night
+            : ($room->roomType?->base_price ?? 0));
     }
 }

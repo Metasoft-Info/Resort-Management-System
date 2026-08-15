@@ -133,8 +133,7 @@
     </div>
 
     @php
-        $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
-        $nights = max(1, $nights);
+        $nights = $booking->getNights();
         $allRooms = $booking->getAllRooms();
     @endphp
 

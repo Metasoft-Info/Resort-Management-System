@@ -70,7 +70,7 @@
                 </tr></thead>
                 <tbody>
                     @forelse($bookings as $booking)
-                    @php $due = $booking->getGrandTotal() - $booking->advance_payment; @endphp
+                    @php $due = $booking->getCalculatedRemaining(); @endphp
                     <tr class="hover:bg-red-50">
                         <td class="border border-gray-300 px-3 py-2 font-bold">#{{ $booking->id }}</td>
                         <td class="border border-gray-300 px-3 py-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>

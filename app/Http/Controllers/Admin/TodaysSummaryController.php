@@ -16,19 +16,19 @@ class TodaysSummaryController extends Controller {
         $currentMode = $user->getDashboardMode();
         
         // Today's Check-ins: check_in_date is today AND not yet checked_out
-        $todayCheckins = Booking::with('room')
+        $todayCheckins = Booking::with(['room', 'bookingRooms', 'payments'])
             ->whereDate('check_in_date', $today)
             ->whereNotIn('status', ['checked_out', 'cancelled'])
             ->get();
         
         // Today's Check-outs: actually checked_out today
-        $todayCheckouts = Booking::with('room')
+        $todayCheckouts = Booking::with(['room', 'bookingRooms', 'payments'])
             ->where('status', 'checked_out')
             ->whereDate('check_out_date', $today)
             ->get();
         
         // Currently staying: anyone occupying a room right now (checked_in OR confirmed past check-in time)
-        $potentialStaying = Booking::with(['room', 'bookingRooms'])
+        $potentialStaying = Booking::with(['room', 'bookingRooms', 'payments'])
             ->whereIn('status', ['confirmed', 'checked_in'])
             ->get();
         $currentlyStaying = $potentialStaying->filter(fn($b) => $b->isOccupyingAt($now));

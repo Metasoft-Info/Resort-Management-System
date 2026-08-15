@@ -51,7 +51,7 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 12px; background-color: #f8f8f8; border: 1px solid #e0e0e0; font-weight: bold;">Total Nights:</td>
-                                    <td style="padding: 12px; border: 1px solid #e0e0e0;">{{ \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date)) }} Night(s)</td>
+                                    <td style="padding: 12px; border: 1px solid #e0e0e0;">{{ $booking->getNights() }} Night(s)</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 12px; background-color: #f8f8f8; border: 1px solid #e0e0e0; font-weight: bold;">Guests:</td>
@@ -77,19 +77,12 @@
                             <!-- Payment Summary -->
                             @php
                                 $baseAmount = $booking->getCalculatedTotal();
-                                $discountAmount = 0;
-                                
-                                if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-                                    $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
-                                } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-                                    $discountAmount = $booking->discount_amount;
-                                }
-                                
-                                $afterDiscount = $baseAmount - $discountAmount;
-                                $extraCharges = $booking->extra_charges ?? 0;
-                                $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
-                                $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
-                                $remainingPayment = $grandTotal - $booking->advance_payment;
+                                $discountAmount = $booking->getDiscountAmount();
+                                $afterDiscount = max(0, $baseAmount - $discountAmount);
+                                $extraCharges = max(0, (float) ($booking->extra_charges ?? 0));
+                                $vatAmount = $booking->getVatAmount();
+                                $grandTotal = $booking->getGrandTotal();
+                                $remainingPayment = max(0, $booking->getCalculatedRemaining());
                             @endphp
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #fafafa; border: 1px solid #e0e0e0;">
                                 <tr>
@@ -122,8 +115,8 @@
                                     <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; font-weight: bold;">BDT {{ number_format($grandTotal, 0) }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; color: #166534;">Advance Paid:</td>
-                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #166534;">BDT {{ number_format($booking->advance_payment, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; color: #166534;">Total Paid:</td>
+                                    <td style="padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: right; color: #166534;">BDT {{ number_format($booking->getTotalDeposited(), 0) }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 10px 12px; font-weight: bold; color: #dc2626;">Due Amount:</td>

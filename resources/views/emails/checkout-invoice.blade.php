@@ -51,7 +51,7 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 12px; background-color: #f8f8f8; border: 1px solid #e0e0e0; font-weight: bold;">Total Nights:</td>
-                                    <td style="padding: 12px; border: 1px solid #e0e0e0;">{{ \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date)) }} Night(s)</td>
+                                    <td style="padding: 12px; border: 1px solid #e0e0e0;">{{ $booking->getNights() }} Night(s)</td>
                                 </tr>
                                 @php
                                     $allRooms = $booking->getAllRooms();
@@ -72,22 +72,13 @@
 
                             <!-- Invoice Summary -->
                             @php
-                                $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
-                                $invoiceNights = max(1, $invoiceNights);
+                                $invoiceNights = $booking->getNights();
                                 $invoiceBaseAmount = $booking->getCalculatedTotal();
-                                $invoiceDiscountAmount = 0;
-                                
-                                if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-                                    $invoiceDiscountAmount = ($invoiceBaseAmount * $booking->discount_percentage) / 100;
-                                } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-                                    $invoiceDiscountAmount = $booking->discount_amount;
-                                }
-                                
-                                $invoiceAfterDiscount = $invoiceBaseAmount - $invoiceDiscountAmount;
-                                $invoiceExtraCharges = $booking->extra_charges ?? 0;
-                                $invoiceVatAmount = $booking->vat_enabled ? ($invoiceAfterDiscount * 0.15) : 0;
-                                $invoiceGrandTotal = $invoiceAfterDiscount + $invoiceExtraCharges + $invoiceVatAmount;
-                                $invoiceRemainingPayment = $invoiceGrandTotal - $booking->advance_payment;
+                                $invoiceDiscountAmount = $booking->getDiscountAmount();
+                                $invoiceExtraCharges = max(0, (float) ($booking->extra_charges ?? 0));
+                                $invoiceVatAmount = $booking->getVatAmount();
+                                $invoiceGrandTotal = $booking->getGrandTotal();
+                                $invoiceRemainingPayment = max(0, $booking->getCalculatedRemaining());
                             @endphp
                             
                             <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #fafafa; border: 1px solid #e0e0e0;">
@@ -121,8 +112,8 @@
                                     <td style="padding: 12px; text-align: right; font-weight: bold; color: #166534; font-size: 18px;">BDT {{ number_format($invoiceGrandTotal, 0) }}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0;">Advance Paid:</td>
-                                    <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0; text-align: right; color: #166534;">BDT {{ number_format($booking->advance_payment, 0) }}</td>
+                                    <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0;">Total Paid:</td>
+                                    <td style="padding: 10px 12px; border-top: 1px solid #e0e0e0; text-align: right; color: #166534;">BDT {{ number_format($booking->getTotalDeposited(), 0) }}</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 12px; font-weight: bold; background-color: #fef2f2;">Amount Paid at Checkout:</td>

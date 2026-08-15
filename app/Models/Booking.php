@@ -211,35 +211,135 @@ class Booking extends Model
         return $rooms;
     }
 
-    // Calculate actual total from rooms (use stored prices first, never recalculate from current room rates)
-    public function getCalculatedTotal()
+    /**
+     * Calculate billable nights using the hotel's checkout-exclusive rule.
+     *
+     * A stay from 14 Aug to 17 Aug is three nights (14, 15 and 16). The
+     * checkout date is not another night unless it is moved to 18 Aug.
+     */
+    public function getNights($checkIn = null, $checkOut = null): int
     {
-        $bookingNights = \Carbon\Carbon::parse($this->check_in_date)->diffInDays(\Carbon\Carbon::parse($this->check_out_date));
-        $bookingNights = max(1, $bookingNights);
+        $checkIn = $checkIn ?: $this->check_in_date;
+        $checkOut = $checkOut ?: $this->check_out_date;
 
-        $bookingRooms = $this->bookingRooms;
-
-        // If bookingRooms exist with stored prices, use those (premium/multi-room bookings)
-        if ($bookingRooms && $bookingRooms->count() > 0) {
-            $baseAmount = 0;
-
-            foreach ($bookingRooms as $br) {
-                // Use per-room dates if available, otherwise fall back to booking dates
-                if ($br->check_in_date && $br->check_out_date) {
-                    $roomNights = \Carbon\Carbon::parse($br->check_in_date)->diffInDays(\Carbon\Carbon::parse($br->check_out_date));
-                    $roomNights = max(1, $roomNights);
-                } else {
-                    $roomNights = $bookingNights;
-                }
-                $baseAmount += ($br->price_per_night ?? 0) * $roomNights;
-            }
-
-            return $baseAmount > 0 ? $baseAmount : $this->total_amount;
+        if (!$checkIn || !$checkOut) {
+            return 1;
         }
 
-        // For legacy single-room bookings, always use stored total_amount
-        // (room prices may change after booking - we must preserve agreed price)
-        return $this->total_amount ?? 0;
+        $start = \Carbon\Carbon::parse($checkIn);
+        $end = \Carbon\Carbon::parse($checkOut);
+
+        return max(1, (int) $start->diffInDays($end));
+    }
+
+    /**
+     * Return the canonical room-level billing breakdown.
+     *
+     * booking_rooms is authoritative for new bookings. Legacy bookings keep
+     * their stored total so changing today's room rate cannot rewrite an old
+     * customer's agreed price.
+     */
+    public function getRoomBreakdown()
+    {
+        $bookingRooms = $this->relationLoaded('bookingRooms')
+            ? $this->bookingRooms
+            : $this->bookingRooms()->with('room.roomType')->get();
+
+        $breakdown = collect();
+        $seenRoomIds = [];
+
+        foreach ($bookingRooms as $bookingRoom) {
+            $roomId = (int) ($bookingRoom->room_id ?? 0);
+            if (!$roomId || in_array($roomId, $seenRoomIds, true)) {
+                continue;
+            }
+
+            $seenRoomIds[] = $roomId;
+            $roomCheckIn = $bookingRoom->check_in_date ?? $this->check_in_date;
+            $roomCheckOut = $bookingRoom->check_out_date ?? $this->check_out_date;
+            $nights = $this->getNights($roomCheckIn, $roomCheckOut);
+
+            $storedRate = $bookingRoom->price_per_night;
+            $room = method_exists($bookingRoom, 'relationLoaded') && $bookingRoom->relationLoaded('room')
+                ? $bookingRoom->getRelation('room')
+                : null;
+            $rate = $storedRate !== null
+                ? (float) $storedRate
+                : (float) ($room?->price_per_night ?? $room?->roomType?->base_price ?? 0);
+
+            $breakdown->push([
+                'booking_room_id' => $bookingRoom->id ?? null,
+                'room_id' => $roomId,
+                'room' => $room,
+                'check_in_date' => $roomCheckIn,
+                'check_out_date' => $roomCheckOut,
+                'nights' => $nights,
+                'price_per_night' => $rate,
+                'amount' => round($rate * $nights, 2),
+            ]);
+        }
+
+        // Legacy single-room bookings do not have a normalized room row.
+        if ($breakdown->isEmpty() && $this->room_id) {
+            $nights = $this->getNights();
+            $storedTotal = (float) ($this->total_amount ?? 0);
+            $room = $this->relationLoaded('room')
+                ? $this->getRelation('room')
+                : ($this->exists ? $this->room()->with('roomType')->first() : null);
+            $rate = $storedTotal > 0
+                ? $storedTotal / $nights
+                : (float) ($room?->price_per_night ?? $room?->roomType?->base_price ?? 0);
+
+            $breakdown->push([
+                'booking_room_id' => null,
+                'room_id' => (int) $this->room_id,
+                'room' => $room,
+                'check_in_date' => $this->check_in_date,
+                'check_out_date' => $this->check_out_date,
+                'nights' => $nights,
+                'price_per_night' => $rate,
+                'amount' => $storedTotal > 0 ? round($storedTotal, 2) : round($rate * $nights, 2),
+            ]);
+        }
+
+        return $breakdown;
+    }
+
+    // Calculate actual room rent from the canonical room breakdown.
+    public function getCalculatedTotal(): float
+    {
+        $breakdown = $this->getRoomBreakdown();
+
+        if ($breakdown->isNotEmpty()) {
+            return round((float) $breakdown->sum('amount'), 2);
+        }
+
+        return round((float) ($this->total_amount ?? 0), 2);
+    }
+
+    public function getDiscountAmount(): float
+    {
+        $baseAmount = $this->getCalculatedTotal();
+        $discountType = $this->discount_type ?? 'none';
+
+        if ($discountType === 'percentage') {
+            $percentage = min(100, max(0, (float) ($this->discount_percentage ?? 0)));
+            return round(min($baseAmount, $baseAmount * $percentage / 100), 2);
+        }
+
+        if ($discountType === 'flat') {
+            return round(min($baseAmount, max(0, (float) ($this->discount_amount ?? 0))), 2);
+        }
+
+        return 0.0;
+    }
+
+    public function getVatAmount(): float
+    {
+        $afterDiscount = max(0, $this->getCalculatedTotal() - $this->getDiscountAmount());
+
+        // VAT is calculated on the amount after discount everywhere.
+        return $this->vat_enabled ? round($afterDiscount * 0.15, 2) : 0.0;
     }
 
     // Get total deposited amount (advance + all payment history)
@@ -256,28 +356,25 @@ class Booking extends Model
         $extraPayments = $payments
             ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
             ->sum('amount');
+        $refunds = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') === 'refund')
+            ->sum('amount');
+
+        $deposited = $advanceRecord && $advanceRecordAmount == $advanceInDb
+            ? $advanceRecordAmount + (float) $extraPayments
+            : $advanceInDb + (float) $extraPayments;
 
         // If advance payment record exists but doesn't match bookings.advance_payment,
         // there's a data inconsistency (e.g., booking was edited but payment record wasn't updated).
         // Trust bookings.advance_payment as ground truth and add extra payments.
-        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
-            return $advanceInDb + (float) $extraPayments;
-        }
-
-        if ($advanceRecord) {
-            // All payments (including advance) properly tracked in booking_payments table
-            return $advanceRecordAmount + (float) $extraPayments;
-        }
-
-        // Advance is only in bookings table; add any additional payments
-        return $advanceInDb + (float) $extraPayments;
+        return max(0, round($deposited - (float) $refunds, 2));
     }
 
     // Get calculated remaining payment
     public function getCalculatedRemaining()
     {
         $grandTotal = $this->getGrandTotal();
-        return $grandTotal - $this->getTotalDeposited();
+        return round($grandTotal - $this->getTotalDeposited(), 2);
     }
 
     // Get dynamically calculated payment status based on actual payments
@@ -299,19 +396,10 @@ class Booking extends Model
     public function getGrandTotal()
     {
         $baseAmount = $this->getCalculatedTotal();
-        
-        $discountAmount = 0;
-        if($this->discount_type === 'percentage' && $this->discount_percentage > 0) {
-            $discountAmount = ($baseAmount * $this->discount_percentage) / 100;
-        } elseif($this->discount_type === 'flat' && $this->discount_amount > 0) {
-            $discountAmount = $this->discount_amount;
-        }
-        
-        $afterDiscount = $baseAmount - $discountAmount;
-        $extraCharges = $this->extra_charges ?? 0;
-        $vatAmount = $this->vat_enabled ? ($afterDiscount * 0.15) : 0;
-        
-        return $afterDiscount + $extraCharges + $vatAmount;
+        $afterDiscount = max(0, $baseAmount - $this->getDiscountAmount());
+        $extraCharges = max(0, (float) ($this->extra_charges ?? 0));
+
+        return round($afterDiscount + $extraCharges + $this->getVatAmount(), 2);
     }
 
     // Check if booking has multiple rooms
@@ -402,7 +490,6 @@ class Booking extends Model
     public function getTotalDepositedUpToDate($date)
     {
         $payments = $this->payments()
-            ->where('type', '!=', 'refund')
             ->whereDate('created_at', '<=', $date)
             ->get();
 
@@ -411,15 +498,18 @@ class Booking extends Model
         $advanceInDb = (float) ($this->advance_payment ?? 0);
 
         $extraPayments = $payments
-            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance')
+            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
+            ->sum('amount');
+        $refunds = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') === 'refund')
             ->sum('amount');
 
-        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
-            return $advanceInDb + (float) $extraPayments;
-        }
+        $deposited = null;
 
-        if ($advanceRecord) {
-            return $advanceRecordAmount + (float) $extraPayments;
+        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
+            $deposited = $advanceInDb + (float) $extraPayments;
+        } elseif ($advanceRecord) {
+            $deposited = $advanceRecordAmount + (float) $extraPayments;
         }
 
         // If no advance record in booking_payments but advance_payment is set,
@@ -428,10 +518,12 @@ class Booking extends Model
         $filterDate = \Carbon\Carbon::parse($date);
 
         if ($bookingDate->lte($filterDate)) {
-            return $advanceInDb + (float) $extraPayments;
+            $deposited = $advanceInDb + (float) $extraPayments;
+        } elseif ($deposited === null) {
+            $deposited = (float) $extraPayments;
         }
 
-        return (float) $extraPayments;
+        return max(0, round($deposited - (float) $refunds, 2));
     }
 
     /**
@@ -478,7 +570,6 @@ class Booking extends Model
     public function getTotalDepositedInRange($startDate, $endDate)
     {
         $payments = $this->payments()
-            ->where('type', '!=', 'refund')
             ->whereDate('created_at', '>=', $startDate)
             ->whereDate('created_at', '<=', $endDate)
             ->get();
@@ -488,7 +579,10 @@ class Booking extends Model
         $advanceInDb = (float) ($this->advance_payment ?? 0);
 
         $extraPayments = $payments
-            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance')
+            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
+            ->sum('amount');
+        $refunds = $payments
+            ->filter(fn($p) => ($p->type ?? 'payment') === 'refund')
             ->sum('amount');
 
         $hasAdvanceInRange = $advanceRecord !== null;
@@ -502,17 +596,17 @@ class Booking extends Model
         }
 
         if (!$hasAdvanceInRange) {
-            return (float) $extraPayments;
+            return max(0, round((float) $extraPayments - (float) $refunds, 2));
         }
 
         if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
-            return $advanceInDb + (float) $extraPayments;
+            return max(0, round($advanceInDb + (float) $extraPayments - (float) $refunds, 2));
         }
 
         if ($advanceRecord) {
-            return $advanceRecordAmount + (float) $extraPayments;
+            return max(0, round($advanceRecordAmount + (float) $extraPayments - (float) $refunds, 2));
         }
 
-        return $advanceInDb + (float) $extraPayments;
+        return max(0, round($advanceInDb + (float) $extraPayments - (float) $refunds, 2));
     }
 }

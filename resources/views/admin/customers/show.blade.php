@@ -103,9 +103,9 @@
  <td class="px-3 py-2 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
  <td class="px-3 py-2">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
  <td class="px-3 py-2">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
- <td class="px-3 py-2 text-right font-semibold">{{ number_format($booking->total_amount, 0) }}</td>
- <td class="px-3 py-2 text-right text-green-600">{{ number_format($booking->advance_payment, 0) }}</td>
- <td class="px-3 py-2 text-right text-red-600">{{ number_format($booking->remaining_payment, 0) }}</td>
+ <td class="px-3 py-2 text-right font-semibold">{{ number_format($booking->getGrandTotal(), 0) }}</td>
+ <td class="px-3 py-2 text-right text-green-600">{{ number_format($booking->getTotalDeposited(), 0) }}</td>
+ <td class="px-3 py-2 text-right text-red-600">{{ number_format($booking->getCalculatedRemaining(), 0) }}</td>
  <td class="px-3 py-2 text-center">
  <span class="px-2 py-1 rounded-full text-xs font-semibold
  @if($booking->status == 'checked_out') bg-gray-100 text-gray-800

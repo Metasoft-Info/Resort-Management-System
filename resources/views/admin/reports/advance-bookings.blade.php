@@ -79,11 +79,10 @@
                 <tbody>
                     @forelse($bookings as $booking)
                     @php
-                        $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
-                        $nights = max(1, $nights);
+                        $nights = $booking->getNights();
                         $roomRent = $booking->getCalculatedTotal();
                         $grandTotal = $booking->getGrandTotal();
-                        $remaining = $grandTotal - $booking->advance_payment;
+                        $remaining = $booking->getCalculatedRemaining();
                     @endphp
                     <tr class="hover:bg-gray-50">
                         <td class="border border-gray-300 px-3 py-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Response;
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
         $today = date('Y-m-d');
-        $query = Booking::with(['room.roomType', 'bookingRooms.room', 'payments']);
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments']);
 
         // Due Only filter: show only checked-out bookings with remaining payment > 0
         if ($request->due_only) {
@@ -219,7 +219,7 @@ class ReportController extends Controller {
     
     public function exportRoomBookings(Request $request) {
         $today = date('Y-m-d');
-        $query = Booking::with(['room.roomType']);
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments']);
 
         if ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
@@ -263,7 +263,7 @@ class ReportController extends Controller {
         $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Total Amount,Advance,Deposited,Remaining,Payment Status,Status (As of {$filterEndDate})\n";
         foreach ($bookings as $b) {
             $deposited = $b->getTotalDepositedInRange($filterStartDate, $filterEndDate);
-            $remaining = $b->getGrandTotal() - $deposited;
+            $remaining = $b->getGrandTotal() - $b->getTotalDepositedUpToDate($filterEndDate);
             $csvContent .= "\"{$b->id}\",";
             $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
             $csvContent .= "\"{$b->customer_phone}\",";
@@ -272,7 +272,7 @@ class ReportController extends Controller {
             $csvContent .= "\"" . ($b->room->roomType->name ?? 'N/A') . "\",";
             $csvContent .= "\"{$b->check_in_date}\",";
             $csvContent .= "\"{$b->check_out_date}\",";
-            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getGrandTotal()}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
             $csvContent .= "\"{$deposited}\",";
             $csvContent .= "\"{$remaining}\",";
@@ -288,7 +288,7 @@ class ReportController extends Controller {
     }
     
     public function advanceBookings(Request $request) {
-        $query = Booking::with(['room.roomType'])
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
             ->where('check_in_date', '>', date('Y-m-d'))
             ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
         
@@ -307,7 +307,7 @@ class ReportController extends Controller {
         
         $totalAdvance = (clone $query)->sum('advance_payment');
         $totalBookings = (clone $query)->count();
-        $totalRevenue = (clone $query)->sum('total_amount');
+        $totalRevenue = (clone $query)->with('bookingRooms')->get()->sum(fn ($booking) => $booking->getGrandTotal());
         
         $bookings = $query->orderBy('check_in_date', 'asc')->paginate(20)->withQueryString();
         $roomTypes = RoomType::all();
@@ -317,7 +317,7 @@ class ReportController extends Controller {
     }
     
     public function exportAdvanceBookings(Request $request) {
-        $query = Booking::with(['room.roomType'])
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
             ->where('check_in_date', '>', date('Y-m-d'))
             ->whereIn('status', ['pending', 'confirmed', 'checked_in']);
         
@@ -335,8 +335,7 @@ class ReportController extends Controller {
         
         $csvContent = "ID,Customer Name,Phone,Room,Check-In,Check-Out,Total,Bill Night,Rent,Advance,Status\n";
         foreach ($bookings as $b) {
-            $nights = \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date));
-            $nights = max(1, $nights);
+            $nights = $b->getNights();
             $csvContent .= "\"{$b->id}\",";
             $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
             $csvContent .= "\"{$b->customer_phone}\",";
@@ -344,7 +343,7 @@ class ReportController extends Controller {
             $csvContent .= "\"{$b->check_in_date}\",";
             $csvContent .= "\"{$b->check_out_date}\",";
             $csvContent .= "\"{$nights}\",";
-            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getGrandTotal()}\",";
             $csvContent .= "\"{$b->getCalculatedTotal()}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
             $csvContent .= "\"{$b->status}\"\n";
@@ -358,7 +357,7 @@ class ReportController extends Controller {
     }
     
     public function unpaidCheckedIn(Request $request) {
-        $query = Booking::with(['room.roomType'])
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
             ->where('status', 'checked_in')
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'paid')
@@ -389,7 +388,7 @@ class ReportController extends Controller {
     }
     
     public function exportUnpaidCheckedIn(Request $request) {
-        $query = Booking::with(['room.roomType'])
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
             ->where('status', 'checked_in')
             ->where(function($q) {
                 $q->where('payment_status', '!=', 'paid')
@@ -416,7 +415,7 @@ class ReportController extends Controller {
             $csvContent .= "\"{$b->customer_phone}\",";
             $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
             $csvContent .= "\"{$b->check_in_date}\",";
-            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getGrandTotal()}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
             $csvContent .= "\"{$b->getCalculatedTotal()}\",";
             $csvContent .= "\"{$due}\",";
@@ -531,7 +530,7 @@ class ReportController extends Controller {
             $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
             $csvContent .= "\"{$b->check_in_date}\",";
             $csvContent .= "\"{$b->check_out_date}\",";
-            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getGrandTotal()}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
             $csvContent .= "\"{$b->remaining_payment}\",";
             $csvContent .= "\"{$b->status}\"\n";
@@ -540,8 +539,7 @@ class ReportController extends Controller {
         $csvContent .= "\n=== ADVANCE BOOKINGS ===\n";
         $csvContent .= "ID,Customer Name,Phone,Room,Check-In,Check-Out,Nights,Total,Advance,Status\n";
         foreach ($allAdvanceBookings as $b) {
-            $nights = \Carbon\Carbon::parse($b->check_in_date)->diffInDays(\Carbon\Carbon::parse($b->check_out_date));
-            $nights = max(1, $nights);
+            $nights = $b->getNights();
             $csvContent .= "\"{$b->id}\",";
             $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
             $csvContent .= "\"{$b->customer_phone}\",";
@@ -549,7 +547,7 @@ class ReportController extends Controller {
             $csvContent .= "\"{$b->check_in_date}\",";
             $csvContent .= "\"{$b->check_out_date}\",";
             $csvContent .= "\"{$nights}\",";
-            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getGrandTotal()}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
             $csvContent .= "\"{$b->status}\"\n";
         }
@@ -563,7 +561,7 @@ class ReportController extends Controller {
             $csvContent .= "\"{$b->customer_phone}\",";
             $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
             $csvContent .= "\"{$b->check_in_date}\",";
-            $csvContent .= "\"{$b->total_amount}\",";
+            $csvContent .= "\"{$b->getGrandTotal()}\",";
             $csvContent .= "\"{$b->advance_payment}\",";
             $csvContent .= "\"{$b->getCalculatedTotal()}\",";
             $csvContent .= "\"{$due}\",";

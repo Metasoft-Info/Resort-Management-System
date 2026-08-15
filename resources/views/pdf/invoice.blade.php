@@ -123,35 +123,15 @@
 </head>
 <body>
     @php
-        $invoiceNights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
-        $invoiceNights = max(1, $invoiceNights);
+        $invoiceNights = $booking->getNights();
         $allRooms = $booking->getAllRooms();
         $bookingRooms = $booking->bookingRooms;
-        
-        // Calculate room total from actual rooms (not stored total_amount)
-        $invoiceBaseAmount = 0;
-        foreach($allRooms as $room) {
-            $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
-            $roomPrice = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
-            $invoiceBaseAmount += $roomPrice * $invoiceNights;
-        }
-        
-        // If no rooms found, fallback to stored total_amount
-        if ($invoiceBaseAmount == 0) {
-            $invoiceBaseAmount = $booking->total_amount;
-        }
-        
-        $invoiceDiscountAmount = 0;
-        
-        if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
-            $invoiceDiscountAmount = ($invoiceBaseAmount * $booking->discount_percentage) / 100;
-        } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
-            $invoiceDiscountAmount = $booking->discount_amount;
-        }
-        
+        $roomBreakdown = $booking->getRoomBreakdown();
+        $invoiceBaseAmount = $booking->getCalculatedTotal();
+        $invoiceDiscountAmount = $booking->getDiscountAmount();
         $invoiceExtraCharges = $booking->extra_charges ?? 0;
-        $invoiceVatAmount = ($booking->vat_enabled && $booking->vat_amount) ? $booking->vat_amount : 0;
-        $invoiceGrandTotal = $invoiceBaseAmount - $invoiceDiscountAmount + $invoiceExtraCharges + $invoiceVatAmount;
+        $invoiceVatAmount = $booking->getVatAmount();
+        $invoiceGrandTotal = $booking->getGrandTotal();
         $amountInWords = \App\Helpers\NumberToWords::convertTaka($invoiceGrandTotal);
     @endphp
 
@@ -223,9 +203,10 @@
             @if($allRooms->count() > 0)
                 @foreach($allRooms as $index => $room)
                     @php
-                        $bookingRoom = $bookingRooms->where('room_id', $room->id)->first();
-                        $roomPricePerNight = $bookingRoom ? $bookingRoom->price_per_night : ($room->roomType->price_per_night ?? $room->price_per_night ?? 0);
-                        $roomAmount = $invoiceNights * $roomPricePerNight;
+                        $roomLine = $roomBreakdown->firstWhere('room_id', $room->id);
+                        $roomPricePerNight = $roomLine['price_per_night'] ?? 0;
+                        $roomNights = $roomLine['nights'] ?? $invoiceNights;
+                        $roomAmount = $roomLine['amount'] ?? ($roomNights * $roomPricePerNight);
                     @endphp
                     <tr>
                         @if($index === 0)
@@ -234,7 +215,7 @@
                         @endif
                         <td>{{ $room->room_number }}</td>
                         <td>{{ $room->roomType->name ?? 'Room' }}</td>
-                        <td>{{ $invoiceNights }}</td>
+                        <td>{{ $roomNights }}</td>
                         <td style="text-align: right;">{{ number_format($roomPricePerNight, 0) }}/-</td>
                         <td style="text-align: right;">{{ number_format($roomAmount, 0) }}/-</td>
                     </tr>

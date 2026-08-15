@@ -3,26 +3,17 @@
 @section('content')
 <div class="print:p-0">
  @php
- $nights = \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date));
- $nights = max(1, $nights);
+ $nights = $booking->getNights();
  $allRooms = $booking->getAllRooms();
  $bookingRooms = $booking->bookingRooms;
  
  // Use model method for consistent base amount calculation
  $baseAmount = $booking->getCalculatedTotal();
  
- $discountAmount = 0;
- 
- if($booking->discount_type === 'percentage' && $booking->discount_percentage > 0) {
- $discountAmount = ($baseAmount * $booking->discount_percentage) / 100;
- } elseif($booking->discount_type === 'flat' && $booking->discount_amount > 0) {
- $discountAmount = $booking->discount_amount;
- }
- 
- $afterDiscount = $baseAmount - $discountAmount;
- $extraCharges = $booking->extra_charges ?? 0;
- $vatAmount = $booking->vat_enabled ? ($afterDiscount * 0.15) : 0;
- $grandTotal = $afterDiscount + $extraCharges + $vatAmount;
+ $discountAmount = $booking->getDiscountAmount();
+ $extraCharges = max(0, (float) ($booking->extra_charges ?? 0));
+ $vatAmount = $booking->getVatAmount();
+ $grandTotal = $booking->getGrandTotal();
  $totalDeposited = $booking->getTotalDeposited();
 $remainingPayment = $booking->getCalculatedRemaining();
 
@@ -658,8 +649,8 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <!-- Advance Payment -->
  <div class="bg-primary-700 rounded-lg p-3">
  <div class="flex justify-between">
- <span>Advance Payment:</span>
- <span class="font-bold">{{ number_format($booking->advance_payment, 2) }}</span>
+ <span>Total Deposited:</span>
+ <span class="font-bold">{{ number_format($totalDeposited, 2) }}</span>
  </div>
  </div>
 
