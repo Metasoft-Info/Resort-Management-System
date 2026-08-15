@@ -187,7 +187,10 @@ class Booking extends Model
             }
 
             $room = $bookingRoom->room;
-            $room->booking_price = $bookingRoom->price_per_night;
+            $room->booking_price = $room->price_per_night
+                ?? $room->roomType?->base_price
+                ?? $bookingRoom->price_per_night
+                ?? 0;
             $rooms->push($room);
             $seenRoomIds[] = (int) $bookingRoom->room_id;
         }
@@ -245,6 +248,36 @@ class Booking extends Model
             ? $this->bookingRooms
             : $this->bookingRooms()->with('room.roomType')->get();
 
+        // Some callers eager-load only bookingRooms. Load the current room
+        // price as well so a stale historical snapshot cannot undercharge.
+        // Avoid touching the database when a caller already supplied a room
+        // with a usable published price (important for non-database callers).
+        $needsRoomDetails = $bookingRooms->contains(function ($bookingRoom) {
+            if (!method_exists($bookingRoom, 'relationLoaded')) {
+                return true;
+            }
+
+            if (!$bookingRoom->relationLoaded('room')) {
+                return true;
+            }
+
+            $room = $bookingRoom->getRelation('room');
+            if (!$room) {
+                return false;
+            }
+
+            $publishedRate = $room->price_per_night ?? null;
+            if ($publishedRate !== null && (float) $publishedRate > 0) {
+                return false;
+            }
+
+            return !method_exists($room, 'relationLoaded') || !$room->relationLoaded('roomType');
+        });
+
+        if ($needsRoomDetails && method_exists($bookingRooms, 'loadMissing')) {
+            $bookingRooms->loadMissing('room.roomType');
+        }
+
         $breakdown = collect();
         $seenRoomIds = [];
 
@@ -259,13 +292,14 @@ class Booking extends Model
             $roomCheckOut = $bookingRoom->check_out_date ?? $this->check_out_date;
             $nights = $this->getNights($roomCheckIn, $roomCheckOut);
 
-            $storedRate = $bookingRoom->price_per_night;
             $room = method_exists($bookingRoom, 'relationLoaded') && $bookingRoom->relationLoaded('room')
                 ? $bookingRoom->getRelation('room')
                 : null;
-            $rate = $storedRate !== null
-                ? (float) $storedRate
-                : (float) ($room?->price_per_night ?? $room?->roomType?->base_price ?? 0);
+            $currentPublishedRate = $room?->price_per_night ?? $room?->roomType?->base_price;
+            $snapshotRate = $bookingRoom->price_per_night;
+            $rate = $currentPublishedRate !== null && (float) $currentPublishedRate > 0
+                ? (float) $currentPublishedRate
+                : (float) ($snapshotRate ?? 0);
 
             $breakdown->push([
                 'booking_room_id' => $bookingRoom->id ?? null,
@@ -286,9 +320,10 @@ class Booking extends Model
             $room = $this->relationLoaded('room')
                 ? $this->getRelation('room')
                 : ($this->exists ? $this->room()->with('roomType')->first() : null);
-            $rate = $storedTotal > 0
-                ? $storedTotal / $nights
-                : (float) ($room?->price_per_night ?? $room?->roomType?->base_price ?? 0);
+            $currentPublishedRate = $room?->price_per_night ?? $room?->roomType?->base_price;
+            $rate = $currentPublishedRate !== null && (float) $currentPublishedRate > 0
+                ? (float) $currentPublishedRate
+                : ($storedTotal > 0 ? $storedTotal / $nights : 0);
 
             $breakdown->push([
                 'booking_room_id' => null,
@@ -298,7 +333,7 @@ class Booking extends Model
                 'check_out_date' => $this->check_out_date,
                 'nights' => $nights,
                 'price_per_night' => $rate,
-                'amount' => $storedTotal > 0 ? round($storedTotal, 2) : round($rate * $nights, 2),
+                'amount' => round($rate * $nights, 2),
             ]);
         }
 

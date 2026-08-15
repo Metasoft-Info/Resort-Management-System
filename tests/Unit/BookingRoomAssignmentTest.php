@@ -112,6 +112,36 @@ class BookingRoomAssignmentTest extends TestCase
         $this->assertEquals(6000, $booking->getCalculatedTotal());
     }
 
+    public function test_current_published_room_rate_replaces_stale_snapshot_rate(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-14',
+            'check_out_date' => '2026-08-17',
+            'total_amount' => 6000,
+        ], true);
+
+        $room = new class {
+            public float $price_per_night = 3000;
+
+            public function relationLoaded(string $relation): bool
+            {
+                return $relation === 'roomType';
+            }
+        };
+        $bookingRoom = new BookingRoom();
+        $bookingRoom->setRawAttributes([
+            'room_id' => 9,
+            'price_per_night' => 2000,
+            'check_in_date' => '2026-08-14',
+            'check_out_date' => '2026-08-17',
+        ], true);
+        $bookingRoom->setRelation('room', $room);
+        $booking->setRelation('bookingRooms', new Collection([$bookingRoom]));
+
+        $this->assertEquals(9000, $booking->getCalculatedTotal());
+    }
+
     public function test_refunds_reduce_deposited_amount(): void
     {
         $booking = new Booking();

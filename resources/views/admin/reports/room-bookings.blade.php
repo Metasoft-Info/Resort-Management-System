@@ -460,7 +460,7 @@ function showGuestInfo(bookingId) {
             if (b.booking_rooms && b.booking_rooms.length > 0) {
                 roomsHtml = b.booking_rooms.map(br => br.room?.room_number || 'N/A').join(', ');
                 roomDetailsHtml = b.booking_rooms.map(br => {
-                    const roomPrice = parseFloat(br.price_per_night ?? br.room?.price_per_night ?? br.room?.room_type?.base_price ?? 0);
+                    const roomPrice = parseFloat(br.room?.price_per_night ?? br.room?.room_type?.base_price ?? br.price_per_night ?? 0);
                     const roomCheckIn = br.check_in_date ? new Date(br.check_in_date) : checkIn;
                     const roomCheckOut = br.check_out_date ? new Date(br.check_out_date) : checkOut;
                     const roomNights = Math.max(1, Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24)));
