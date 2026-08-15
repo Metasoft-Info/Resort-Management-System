@@ -238,9 +238,10 @@ class Booking extends Model
     /**
      * Return the canonical room-level billing breakdown.
      *
-     * booking_rooms is authoritative for new bookings. Legacy bookings keep
-     * their stored total so changing today's room rate cannot rewrite an old
-     * customer's agreed price.
+     * booking_rooms is authoritative for room assignment, while the current
+     * published room rate is authoritative for the resort's bill. Legacy
+     * rows fall back to their stored snapshot only when no current room rate
+     * can be resolved.
      */
     public function getRoomBreakdown()
     {
@@ -289,7 +290,11 @@ class Booking extends Model
 
             $seenRoomIds[] = $roomId;
             $roomCheckIn = $bookingRoom->check_in_date ?? $this->check_in_date;
-            $roomCheckOut = $bookingRoom->check_out_date ?? $this->check_out_date;
+            // A booking has one shared checkout. Older room rows can retain a
+            // stale checkout date after the parent booking was extended; use
+            // the parent checkout so the visible nights and bill cannot
+            // disagree.
+            $roomCheckOut = $this->check_out_date ?? $bookingRoom->check_out_date;
             $nights = $this->getNights($roomCheckIn, $roomCheckOut);
 
             $room = method_exists($bookingRoom, 'relationLoaded') && $bookingRoom->relationLoaded('room')

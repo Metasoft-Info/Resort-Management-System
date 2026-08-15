@@ -134,11 +134,12 @@ class BookingRoomAssignmentTest extends TestCase
             'room_id' => 9,
             'price_per_night' => 2000,
             'check_in_date' => '2026-08-14',
-            'check_out_date' => '2026-08-17',
+            'check_out_date' => '2026-08-16',
         ], true);
         $bookingRoom->setRelation('room', $room);
         $booking->setRelation('bookingRooms', new Collection([$bookingRoom]));
 
+        $this->assertSame(3, $booking->getRoomBreakdown()->first()['nights']);
         $this->assertEquals(9000, $booking->getCalculatedTotal());
     }
 
