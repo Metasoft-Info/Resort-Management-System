@@ -244,12 +244,14 @@ class ConventionBookingController extends Controller
         $hallRent = round(floatval($data['hall_rent'] ?? 0));
         $foodCost = round(floatval($data['food_cost'] ?? 0));
         $addonsCost = round(floatval($data['addons_cost'] ?? 0));
-        $discount = round(floatval($data['discount'] ?? 0));
-        $vatPercentage = floatval($data['vat_percentage'] ?? 0);
+        $baseSubtotal = max(0, $hallRent + $foodCost + $addonsCost);
+        $discount = min($baseSubtotal, max(0, round(floatval($data['discount'] ?? 0))));
+        $vatEnabled = filter_var($data['vat_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $vatPercentage = $vatEnabled ? max(0, floatval($data['vat_percentage'] ?? 0)) : 0;
         $advancePayment = round(floatval($data['advance_payment'] ?? 0));
 
         // Subtract discount from subtotal, then calculate VAT on the discounted amount
-        $subtotal = $hallRent + $foodCost + $addonsCost - $discount;
+        $subtotal = max(0, $baseSubtotal - $discount);
         $vatAmount = round($subtotal * ($vatPercentage / 100));
         $totalAmount = round($subtotal + $vatAmount);
         $remainingPayment = round($totalAmount - $advancePayment);
@@ -269,12 +271,32 @@ class ConventionBookingController extends Controller
             'food_cost' => $foodCost,
             'addons_cost' => $addonsCost,
             'discount' => $discount,
+            'vat_enabled' => $vatEnabled,
             'vat_amount' => $vatAmount,
+            'vat_percentage' => $vatPercentage,
             'advance_payment' => $advancePayment,
             'total_amount' => $totalAmount,
             'remaining_payment' => $remainingPayment,
             'payment_status' => $paymentStatus,
         ];
+    }
+
+    private function calculateDiscountAmount(array $data): int
+    {
+        $baseSubtotal = max(0,
+            round(floatval($data['hall_rent'] ?? 0))
+            + round(floatval($data['food_cost'] ?? 0))
+            + round(floatval($data['addons_cost'] ?? 0))
+        );
+        $discountType = $data['discount_type'] ?? 'flat';
+        $discountValue = max(0, floatval($data['discount_value'] ?? 0));
+
+        if ($discountType === 'percentage') {
+            $discountValue = min(100, $discountValue);
+            return min($baseSubtotal, round($baseSubtotal * ($discountValue / 100)));
+        }
+
+        return min($baseSubtotal, round($discountValue));
     }
 
     public function store(Request $request)
@@ -303,6 +325,7 @@ class ConventionBookingController extends Controller
             'discount' => 'nullable|numeric',
             'discount_type' => 'nullable|in:flat,percentage',
             'discount_value' => 'nullable|numeric',
+            'vat_enabled' => 'nullable|boolean',
             'vat_amount' => 'nullable|numeric',
             'vat_percentage' => 'nullable|numeric',
             'advance_payment' => 'nullable|numeric',
@@ -342,7 +365,11 @@ class ConventionBookingController extends Controller
         // Set defaults for missing fields
         $validated['discount_type'] = $validated['discount_type'] ?? 'flat';
         $validated['discount_value'] = $validated['discount_value'] ?? 0;
+        $validated['vat_enabled'] = $request->boolean('vat_enabled');
         $validated['vat_percentage'] = $validated['vat_percentage'] ?? 0;
+        if ($request->has('discount_value')) {
+            $validated['discount'] = $this->calculateDiscountAmount($validated);
+        }
         $validated['created_by_id'] = auth()->id();
         $validated['updated_by_id'] = auth()->id();
 
@@ -591,6 +618,7 @@ class ConventionBookingController extends Controller
             'discount' => 'nullable|numeric',
             'discount_type' => 'nullable|in:flat,percentage',
             'discount_value' => 'nullable|numeric',
+            'vat_enabled' => 'nullable|boolean',
             'vat_amount' => 'nullable|numeric',
             'vat_percentage' => 'nullable|numeric',
             'advance_payment' => 'nullable|numeric',
@@ -609,7 +637,9 @@ class ConventionBookingController extends Controller
         // Set defaults for missing fields
         $validated['discount_type'] = $validated['discount_type'] ?? 'flat';
         $validated['discount_value'] = $validated['discount_value'] ?? 0;
+        $validated['vat_enabled'] = $request->boolean('vat_enabled');
         $validated['vat_percentage'] = $validated['vat_percentage'] ?? 0;
+        $validated['discount'] = $this->calculateDiscountAmount($validated);
         $validated['updated_by_id'] = auth()->id();
 
         $totals = $this->calculateTotals($validated);
@@ -763,6 +793,7 @@ class ConventionBookingController extends Controller
                     'discount' => 0,
                     'discount_type' => $conventionBooking->discount_type ?? 'flat',
                     'discount_value' => 0,
+                    'vat_enabled' => $conventionBooking->vat_enabled,
                     'vat_percentage' => $conventionBooking->vat_percentage ?? 0,
                     'advance_payment' => 0,
                     'payment_method' => $conventionBooking->payment_method,
@@ -890,6 +921,61 @@ class ConventionBookingController extends Controller
             ->with('success', 'Payment added successfully!');
     }
 
+    public function updateDiscount(Request $request, ConventionBooking $conventionBooking)
+    {
+        $validated = $request->validate([
+            'discount_type' => 'required|in:flat,percentage',
+            'discount_value' => 'required|numeric|min:0',
+        ]);
+
+        $discount = $this->calculateDiscountAmount([
+            'hall_rent' => $conventionBooking->hall_rent,
+            'food_cost' => $conventionBooking->food_cost,
+            'addons_cost' => $conventionBooking->addons_cost,
+            'discount_type' => $validated['discount_type'],
+            'discount_value' => $validated['discount_value'],
+        ]);
+
+        $totals = $this->calculateTotals([
+            'hall_rent' => $conventionBooking->hall_rent,
+            'food_cost' => $conventionBooking->food_cost,
+            'addons_cost' => $conventionBooking->addons_cost,
+            'discount' => $discount,
+            'vat_enabled' => $conventionBooking->vat_enabled,
+            'vat_percentage' => $conventionBooking->vat_percentage,
+            'advance_payment' => $conventionBooking->advance_payment,
+        ]);
+
+        $hasDiscount = $discount > 0;
+        $approvalFields = [
+            'discount_status' => null,
+            'discount_requested_by' => null,
+            'discount_approved_by' => null,
+            'discount_approved_at' => null,
+        ];
+
+        if ($hasDiscount) {
+            if (auth()->user()->canApproveDiscounts()) {
+                $approvalFields['discount_status'] = 'approved';
+                $approvalFields['discount_approved_by'] = auth()->id();
+                $approvalFields['discount_approved_at'] = now();
+            } else {
+                $approvalFields['discount_status'] = 'pending';
+                $approvalFields['discount_requested_by'] = auth()->id();
+            }
+        }
+
+        $conventionBooking->update(array_merge([
+            'discount' => $discount,
+            'discount_type' => $validated['discount_type'],
+            'discount_value' => $validated['discount_value'],
+            'updated_by_id' => auth()->id(),
+        ], $totals, $approvalFields));
+
+        return redirect()->route('admin.convention-bookings.show', $conventionBooking)
+            ->with('success', $hasDiscount ? 'Discount updated successfully!' : 'Discount removed successfully!');
+    }
+
     public function updateStatus(Request $request, ConventionBooking $conventionBooking)
     {
         $validated = $request->validate([
@@ -925,30 +1011,27 @@ class ConventionBookingController extends Controller
         // Recalculate totals
         $hallRent = round(floatval($conventionBooking->hall_rent));
         $foodCost = round(floatval($conventionBooking->food_cost));
-        $discount = round(floatval($conventionBooking->discount));
-        $vatPercentage = floatval($conventionBooking->vat_percentage ?? 0);
-        
-        $subtotal = $hallRent + $foodCost + $addonsCost - $discount;
-        $vatAmount = round($subtotal * ($vatPercentage / 100));
-        $totalAmount = round($subtotal + $vatAmount);
-        $remainingPayment = max(0, $totalAmount - $conventionBooking->advance_payment);
-        
-        if ($remainingPayment <= 0) {
-            $paymentStatus = 'paid';
-        } elseif ($conventionBooking->advance_payment > 0) {
-            $paymentStatus = 'partial';
-        } else {
-            $paymentStatus = 'pending';
-        }
-        
+        $totals = $this->calculateTotals([
+            'hall_rent' => $hallRent,
+            'food_cost' => $foodCost,
+            'addons_cost' => $addonsCost,
+            'discount' => $conventionBooking->discount,
+            'vat_enabled' => $conventionBooking->vat_enabled,
+            'vat_percentage' => $conventionBooking->vat_percentage,
+            'advance_payment' => $conventionBooking->advance_payment,
+        ]);
+
         $conventionBooking->update([
             'selected_addons' => $selectedAddons,
             'addon_quantities' => $addonQuantities,
             'addons_cost' => round($addonsCost),
-            'vat_amount' => $vatAmount,
-            'total_amount' => $totalAmount,
-            'remaining_payment' => $remainingPayment,
-            'payment_status' => $paymentStatus,
+            'vat_enabled' => $totals['vat_enabled'],
+            'vat_percentage' => $totals['vat_percentage'],
+            'vat_amount' => $totals['vat_amount'],
+            'total_amount' => $totals['total_amount'],
+            'remaining_payment' => $totals['remaining_payment'],
+            'payment_status' => $totals['payment_status'],
+            'updated_by_id' => auth()->id(),
         ]);
         
         return redirect()->route('admin.convention-bookings.show', $conventionBooking)
@@ -963,4 +1046,3 @@ class ConventionBookingController extends Controller
             ->with('success', 'Convention booking deleted successfully!');
     }
 }
-

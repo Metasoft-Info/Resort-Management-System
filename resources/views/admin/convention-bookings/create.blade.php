@@ -136,6 +136,7 @@
 
  <input type="hidden" name="food_cost" id="food_cost" value="0">
  <input type="hidden" name="addons_cost" id="addons_cost" value="0">
+ <input type="hidden" name="vat_enabled" value="0">
  <input type="hidden" name="vat_percentage" id="vat_percentage" value="0">
  <input type="hidden" name="vat_amount" id="vat_amount" value="0">
  <input type="hidden" name="total_amount" id="total_amount" value="0">

@@ -232,10 +232,11 @@
  <div>
  <h3 class="text-lg font-bold mb-3">VAT (VAT)</h3>
  <label class="flex items-center mb-3">
- <input type="checkbox" id="vatEnabled" {{ $conventionBooking->vat_amount > 0 ? 'checked' : '' }} onchange="calculateTotal()" class="mr-2">
+ <input type="hidden" name="vat_enabled" value="0">
+ <input type="checkbox" name="vat_enabled" value="1" id="vatEnabled" {{ $conventionBooking->vat_enabled ? 'checked' : '' }} onchange="calculateTotal()" class="mr-2">
  <span>VAT Add</span>
  </label>
- <div id="vatSection" class="{{ $conventionBooking->vat_amount > 0 ? '' : 'hidden' }}">
+ <div id="vatSection" class="{{ $conventionBooking->vat_enabled ? '' : 'hidden' }}">
  <label class="block mb-2">VAT Percentage (%)</label>
  <input type="number" name="vat_percentage" id="vatPercentage" value="{{ $conventionBooking->vat_percentage }}" step="0.01"
  class="w-full px-4 py-3 border rounded-lg" onchange="calculateTotal()">

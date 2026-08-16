@@ -87,6 +87,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/convention-bookings/available-halls', [ConventionBookingController::class, 'getAvailableHalls'])->name('convention-bookings.available-halls');
     Route::post('/convention-bookings/{conventionBooking}/add-halls', [ConventionBookingController::class, 'addHalls'])->name('convention-bookings.add-halls');
     Route::post('/convention-bookings/{conventionBooking}/add-payment', [ConventionBookingController::class, 'addPayment'])->name('convention-bookings.add-payment');
+    Route::post('/convention-bookings/{conventionBooking}/update-discount', [ConventionBookingController::class, 'updateDiscount'])->name('convention-bookings.update-discount');
     Route::post('/convention-bookings/{conventionBooking}/update-status', [ConventionBookingController::class, 'updateStatus'])->name('convention-bookings.update-status');
     Route::post('/convention-bookings/{conventionBooking}/update-addons', [ConventionBookingController::class, 'updateAddons'])->name('convention-bookings.update-addons');
     // Resource route AFTER custom routes
@@ -211,4 +212,3 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         return '<pre>Fixed ' . $fixed . ' booking(s)</pre>';
     });
 });
-

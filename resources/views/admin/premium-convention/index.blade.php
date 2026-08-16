@@ -309,7 +309,8 @@
  <div>
  <h3 class="text-lg font-bold mb-3">VAT (VAT)</h3>
  <label class="flex items-center mb-3">
- <input type="checkbox" id="vatEnabled" onchange="calculateTotal()" class="mr-2">
+ <input type="hidden" name="vat_enabled" value="0">
+ <input type="checkbox" name="vat_enabled" value="1" id="vatEnabled" onchange="calculateTotal()" class="mr-2">
  <span>VAT Add</span>
  </label>
  <div id="vatSection" class="hidden">

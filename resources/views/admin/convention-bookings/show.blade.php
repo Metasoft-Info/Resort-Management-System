@@ -570,6 +570,55 @@
  </div>
  </div>
 
+ <!-- Discount Management -->
+ @if($booking->status != 'cancelled')
+ <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+ <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+ <h2 class="text-lg font-bold text-white flex items-center gap-2">
+ <i class="fas fa-percent"></i> Discount
+ </h2>
+ </div>
+ <div class="p-6">
+ <div class="flex justify-between items-center mb-4 rounded-lg bg-amber-50 px-4 py-3">
+ <span class="text-amber-800 font-semibold">Current Discount</span>
+ <span class="font-bold text-amber-700">{{ $groupTotals['discount'] > 0 ? '-' . number_format($groupTotals['discount'], 0) : 'None' }}</span>
+ </div>
+ <form action="{{ route('admin.convention-bookings.update-discount', $booking) }}" method="POST" class="space-y-4">
+ @csrf
+ <div class="flex gap-4">
+ <label class="flex items-center text-sm font-semibold text-gray-700">
+ <input type="radio" name="discount_type" value="flat" class="mr-2" {{ ($booking->discount_type ?? 'flat') === 'flat' ? 'checked' : '' }}>
+ Flat (BDT)
+ </label>
+ <label class="flex items-center text-sm font-semibold text-gray-700">
+ <input type="radio" name="discount_type" value="percentage" class="mr-2" {{ ($booking->discount_type ?? 'flat') === 'percentage' ? 'checked' : '' }}>
+ Percentage (%)
+ </label>
+ </div>
+ <div>
+ <label class="block text-sm font-semibold text-gray-700 mb-2">Discount Value</label>
+ <input type="number" name="discount_value" min="0" step="0.01" value="{{ ($booking->discount_value ?? 0) > 0 ? $booking->discount_value : ($booking->discount ?? 0) }}" required
+ class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition"
+ placeholder="Enter discount">
+ </div>
+ <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-xl hover:from-amber-600 hover:to-orange-600 transition font-bold shadow-lg">
+ <i class="fas fa-save mr-2"></i>{{ $booking->discount > 0 ? 'Update Discount' : 'Add Discount' }}
+ </button>
+ </form>
+ @if($booking->discount > 0)
+ <form action="{{ route('admin.convention-bookings.update-discount', $booking) }}" method="POST" class="mt-3" onsubmit="return confirm('Remove this discount?')">
+ @csrf
+ <input type="hidden" name="discount_type" value="flat">
+ <input type="hidden" name="discount_value" value="0">
+ <button type="submit" class="w-full border-2 border-red-200 text-red-600 px-6 py-2.5 rounded-xl hover:bg-red-50 transition font-semibold">
+ <i class="fas fa-trash-alt mr-2"></i>Remove Discount
+ </button>
+ </form>
+ @endif
+ </div>
+ </div>
+ @endif
+
  <!-- Add Payment Form -->
  @if($groupTotals['remaining_payment'] > 0 && $booking->status != 'cancelled')
  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
