@@ -1048,10 +1048,15 @@ class ConventionBookingController extends Controller
         $validated['updated_by_id'] = auth()->id();
         $conventionBooking->update($validated);
 
-        return response()->json([
-            'message' => 'Status updated successfully',
-            'booking' => $conventionBooking,
-        ]);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'message' => 'Status updated successfully',
+                'booking' => $conventionBooking->fresh(),
+            ]);
+        }
+
+        return redirect()->route('admin.convention-bookings.show', $conventionBooking)
+            ->with('success', 'Status updated successfully.');
     }
 
     public function updateAddons(Request $request, ConventionBooking $conventionBooking)
