@@ -11,6 +11,7 @@ use App\Models\ActivityLog;
 use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class ConventionBookingController extends Controller
@@ -281,6 +282,30 @@ class ConventionBookingController extends Controller
         ];
     }
 
+    /**
+     * Recalculate financials from the booking's stored inputs.
+     *
+     * This deliberately uses vat_enabled as the source of truth. Older
+     * bookings may still contain a stale vat_amount even when VAT is off.
+     */
+    private function calculateBookingFinancials(ConventionBooking $booking): array
+    {
+        // Fall back to legacy VAT data if the new flag has not reached the DB yet.
+        $vatEnabled = array_key_exists('vat_enabled', $booking->getAttributes())
+            ? (bool) $booking->vat_enabled
+            : ((float) ($booking->vat_amount ?? 0) > 0 && (float) ($booking->vat_percentage ?? 0) > 0);
+
+        return $this->calculateTotals([
+            'hall_rent' => $booking->hall_rent,
+            'food_cost' => $booking->food_cost,
+            'addons_cost' => $booking->addons_cost,
+            'discount' => $booking->discount,
+            'vat_enabled' => $vatEnabled,
+            'vat_percentage' => $booking->vat_percentage,
+            'advance_payment' => $booking->advance_payment,
+        ]);
+    }
+
     private function calculateDiscountAmount(array $data): int
     {
         $baseSubtotal = max(0,
@@ -488,16 +513,23 @@ class ConventionBookingController extends Controller
             ->get();
 
         $allBookings = collect([$booking])->merge($relatedBookings);
+        $bookingFinancials = $allBookings->map(fn (ConventionBooking $item) =>
+            $this->calculateBookingFinancials($item)
+        );
 
         $groupTotals = [
-            'hall_rent' => $allBookings->sum('hall_rent'),
-            'food_cost' => $allBookings->sum('food_cost'),
-            'addons_cost' => $allBookings->sum('addons_cost'),
-            'discount' => $allBookings->sum('discount'),
-            'vat_amount' => $allBookings->sum('vat_amount'),
-            'total_amount' => $allBookings->sum('total_amount'),
-            'advance_payment' => $allBookings->sum('advance_payment'),
-            'remaining_payment' => max(0, $allBookings->sum('total_amount') - $allBookings->sum('advance_payment')),
+            'hall_rent' => $bookingFinancials->sum('hall_rent'),
+            'food_cost' => $bookingFinancials->sum('food_cost'),
+            'addons_cost' => $bookingFinancials->sum('addons_cost'),
+            'discount' => $bookingFinancials->sum('discount'),
+            'vat_enabled' => $bookingFinancials->contains(fn (array $totals) => $totals['vat_enabled']),
+            'vat_percentage' => $bookingFinancials
+                ->filter(fn (array $totals) => $totals['vat_enabled'])
+                ->max('vat_percentage') ?? 0,
+            'vat_amount' => $bookingFinancials->sum('vat_amount'),
+            'total_amount' => $bookingFinancials->sum('total_amount'),
+            'advance_payment' => $bookingFinancials->sum('advance_payment'),
+            'remaining_payment' => $bookingFinancials->sum('remaining_payment'),
         ];
 
         // Halls available to add to this event
@@ -855,7 +887,10 @@ class ConventionBookingController extends Controller
             ->get();
 
         $allBookings = collect([$conventionBooking])->merge($relatedBookings);
-        $groupRemaining = $allBookings->sum('remaining_payment');
+        $bookingFinancials = $allBookings->mapWithKeys(fn (ConventionBooking $booking) => [
+            $booking->id => $this->calculateBookingFinancials($booking),
+        ]);
+        $groupRemaining = $bookingFinancials->sum('remaining_payment');
         $amountToApply = min($amount, $groupRemaining);
 
         if ($amountToApply <= 0) {
@@ -863,58 +898,86 @@ class ConventionBookingController extends Controller
                 ->with('error', 'No remaining amount to pay.');
         }
 
-        // Create one payment record on the primary booking for the full amount
-        ConventionPayment::create([
-            'convention_booking_id' => $conventionBooking->id,
-            'amount' => $amountToApply,
-            'payment_method' => $validated['method'],
-            'bkash_number' => $validated['bkash_number'] ?? null,
-            'bank_name' => $validated['bank_name'] ?? null,
-            'payment_date' => now(),
-            'notes' => $validated['note'] ?? null,
-            'received_by_id' => auth()->id(),
-        ]);
+        try {
+            $hasVatEnabledColumn = Schema::hasColumn('convention_bookings', 'vat_enabled');
+            $hasUpdatedByColumn = Schema::hasColumn('convention_bookings', 'updated_by_id');
+            $hasBkashColumn = Schema::hasColumn('convention_payments', 'bkash_number');
+            $hasBankColumn = Schema::hasColumn('convention_payments', 'bank_name');
 
-        // Distribute payment across all bookings proportionally by true remaining amount
-        $bookingsToUpdate = $allBookings->values()->map(function ($booking) {
-            $booking->true_remaining = max(0, round(floatval($booking->total_amount)) - round(floatval($booking->advance_payment)));
-            return $booking;
-        });
-        $totalRemaining = $bookingsToUpdate->sum('true_remaining');
+            DB::transaction(function () use (
+                $allBookings,
+                $bookingFinancials,
+                $conventionBooking,
+                $validated,
+                $amountToApply,
+                $hasVatEnabledColumn,
+                $hasUpdatedByColumn,
+                $hasBkashColumn,
+                $hasBankColumn
+            ) {
+                // Keep the payment record and booking balances atomic.
+                $paymentData = [
+                    'convention_booking_id' => $conventionBooking->id,
+                    'amount' => $amountToApply,
+                    'payment_method' => $validated['method'],
+                    'payment_date' => now(),
+                    'notes' => $validated['note'] ?? null,
+                    'received_by_id' => auth()->id(),
+                ];
+                if ($hasBkashColumn) {
+                    $paymentData['bkash_number'] = $validated['bkash_number'] ?? null;
+                }
+                if ($hasBankColumn) {
+                    $paymentData['bank_name'] = $validated['bank_name'] ?? null;
+                }
+                ConventionPayment::create($paymentData);
 
-        if ($totalRemaining > 0) {
-            $allocatedSoFar = 0;
-            foreach ($bookingsToUpdate as $index => $booking) {
-                $bookingRemaining = round(floatval($booking->true_remaining));
-                $isLast = ($index === $bookingsToUpdate->count() - 1);
-
-                if ($isLast) {
-                    $allocated = $amountToApply - $allocatedSoFar;
-                } else {
-                    $allocated = floor($amountToApply * ($bookingRemaining / $totalRemaining));
+                // Distribute payment across all bookings by their effective balance.
+                $totalRemaining = $bookingFinancials->sum('remaining_payment');
+                if ($totalRemaining <= 0) {
+                    return;
                 }
 
-                $allocated = max(0, min($allocated, $bookingRemaining, $amountToApply - $allocatedSoFar));
-                $allocatedSoFar += $allocated;
+                $allocatedSoFar = 0;
+                foreach ($allBookings->values() as $index => $booking) {
+                    $financials = $bookingFinancials->get($booking->id);
+                    $bookingRemaining = round(floatval($financials['remaining_payment']));
+                    $isLast = ($index === $allBookings->count() - 1);
 
-                $newAdvance = round(floatval($booking->advance_payment)) + $allocated;
-                $newRemaining = max(0, round(floatval($booking->total_amount)) - $newAdvance);
+                    $allocated = $isLast
+                        ? $amountToApply - $allocatedSoFar
+                        : floor($amountToApply * ($bookingRemaining / $totalRemaining));
+                    $allocated = max(0, min($allocated, $bookingRemaining, $amountToApply - $allocatedSoFar));
+                    $allocatedSoFar += $allocated;
 
-                if ($newRemaining <= 0) {
-                    $paymentStatus = 'paid';
-                } elseif ($newAdvance > 0) {
-                    $paymentStatus = 'partial';
-                } else {
-                    $paymentStatus = 'pending';
+                    $newAdvance = round(floatval($financials['advance_payment'])) + $allocated;
+                    $newRemaining = max(0, round(floatval($financials['total_amount'])) - $newAdvance);
+                    $paymentStatus = $newRemaining <= 0
+                        ? 'paid'
+                        : ($newAdvance > 0 ? 'partial' : 'pending');
+
+                    $bookingData = [
+                        // Persist corrected VAT/total values for legacy records too.
+                        'vat_percentage' => $financials['vat_percentage'],
+                        'vat_amount' => $financials['vat_amount'],
+                        'total_amount' => $financials['total_amount'],
+                        'advance_payment' => $newAdvance,
+                        'remaining_payment' => $newRemaining,
+                        'payment_status' => $paymentStatus,
+                    ];
+                    if ($hasVatEnabledColumn) {
+                        $bookingData['vat_enabled'] = $financials['vat_enabled'];
+                    }
+                    if ($hasUpdatedByColumn) {
+                        $bookingData['updated_by_id'] = auth()->id();
+                    }
+                    $booking->update($bookingData);
                 }
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
 
-                $booking->update([
-                    'advance_payment' => $newAdvance,
-                    'remaining_payment' => $newRemaining,
-                    'payment_status' => $paymentStatus,
-                    'updated_by_id' => auth()->id(),
-                ]);
-            }
+            return back()->withInput()->with('error', 'Payment could not be saved. Please check the database configuration and try again.');
         }
 
         return redirect()->route('admin.convention-bookings.show', $conventionBooking)

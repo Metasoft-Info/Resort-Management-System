@@ -540,9 +540,9 @@
  </div>
  @endif
 
- @if($groupTotals['vat_amount'] > 0)
+ @if($groupTotals['vat_enabled'] && $groupTotals['vat_amount'] > 0)
  <div class="flex justify-between items-center">
- <span class="text-gray-600">VAT ({{ $booking->vat_percentage ?? 0 }}%)</span>
+ <span class="text-gray-600">VAT ({{ $groupTotals['vat_percentage'] }}%)</span>
  <span class="font-semibold">{{ number_format($groupTotals['vat_amount'], 0) }}</span>
  </div>
  @endif
@@ -631,9 +631,16 @@
  <form action="{{ route('admin.convention-bookings.add-payment', $booking) }}" method="POST">
  @csrf
  <div class="space-y-4">
+ <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+ <div class="flex justify-between items-center">
+ <span class="text-red-700 font-semibold">Current Due Amount</span>
+ <span class="text-2xl font-bold text-red-600">{{ number_format($groupTotals['remaining_payment'], 0) }}</span>
+ </div>
+ <p class="text-xs text-red-600 mt-1">Enter the amount received from the customer.</p>
+ </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-2">Amount (BDT)</label>
- <input type="number" name="amount" step="1" max="{{ $groupTotals['remaining_payment'] }}" required 
+ <input type="number" name="amount" value="{{ number_format($groupTotals['remaining_payment'], 0, '.', '') }}" step="1" min="1" max="{{ $groupTotals['remaining_payment'] }}" required
  class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition"
  placeholder="Enter amount">
  </div>
