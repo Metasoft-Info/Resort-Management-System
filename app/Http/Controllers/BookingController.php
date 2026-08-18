@@ -237,7 +237,8 @@ class BookingController extends Controller
         if (request()->ajax() || request()->has('ajax')) {
             return response()->json([
                 'success' => true,
-                'booking' => $booking
+                'booking' => $booking,
+                'financials' => $booking->getFinancialBreakdown(),
             ]);
         }
         

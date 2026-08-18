@@ -389,32 +389,24 @@ class Booking extends Model
             ? $this->payments
             : $this->payments()->get();
 
-        $advanceRecord = $payments->first(fn($p) => ($p->type ?? 'payment') === 'advance');
-        $advanceRecordAmount = $advanceRecord ? (float) $advanceRecord->amount : 0;
-        $advanceInDb = (float) ($this->advance_payment ?? 0);
-
         $extraPayments = $payments
-            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
+            ->filter(fn($p) => ($p->type ?? 'payment') === 'payment')
             ->sum('amount');
         $refunds = $payments
             ->filter(fn($p) => ($p->type ?? 'payment') === 'refund')
             ->sum('amount');
 
-        $deposited = $advanceRecord && $advanceRecordAmount == $advanceInDb
-            ? $advanceRecordAmount + (float) $extraPayments
-            : $advanceInDb + (float) $extraPayments;
-
-        // If advance payment record exists but doesn't match bookings.advance_payment,
-        // there's a data inconsistency (e.g., booking was edited but payment record wasn't updated).
-        // Trust bookings.advance_payment as ground truth and add extra payments.
-        return max(0, round($deposited - (float) $refunds, 2));
+        return max(0, round(
+            $this->getAdvancePaymentTotal() + (float) $extraPayments - (float) $refunds,
+            2
+        ));
     }
 
     // Get calculated remaining payment
     public function getCalculatedRemaining()
     {
         $grandTotal = $this->getGrandTotal();
-        return round($grandTotal - $this->getTotalDeposited(), 2);
+        return max(0, round($grandTotal - $this->getTotalDeposited(), 2));
     }
 
     // Get dynamically calculated payment status based on actual payments
@@ -440,6 +432,88 @@ class Booking extends Model
         $extraCharges = max(0, (float) ($this->extra_charges ?? 0));
 
         return round($afterDiscount + $extraCharges + $this->getVatAmount(), 2);
+    }
+
+    /**
+     * Return the initial advance amount without double-counting the optional
+     * advance payment history row. The booking column is the current opening
+     * balance; the history row is used as a fallback for legacy records where
+     * that column was not populated.
+     */
+    public function getAdvancePaymentTotal(): float
+    {
+        $payments = $this->relationLoaded('payments')
+            ? $this->payments
+            : $this->payments()->get();
+
+        $recordedAdvance = (float) $payments
+            ->filter(fn ($payment) => ($payment->type ?? 'payment') === 'advance')
+            ->sum('amount');
+        $storedAdvance = max(0, (float) ($this->advance_payment ?? 0));
+
+        return round($storedAdvance > 0 ? $storedAdvance : $recordedAdvance, 2);
+    }
+
+    /**
+     * Read timestamps without forcing Eloquent to resolve a database
+     * connection. This also keeps the calculation helpers safe for imported
+     * legacy rows and isolated unit tests.
+     */
+    private function rawCreatedAt($model): mixed
+    {
+        if (method_exists($model, 'getRawOriginal')) {
+            return $model->getRawOriginal('created_at');
+        }
+
+        return $model->created_at ?? null;
+    }
+
+    /**
+     * Return the single financial source used by room reports and invoices.
+     * Every displayed amount is derived from this same snapshot so summary,
+     * row and remaining-balance values cannot drift apart.
+     */
+    public function getFinancialBreakdown(): array
+    {
+        $roomRent = $this->getCalculatedTotal();
+        $discount = $this->getDiscountAmount();
+        $extraCharges = max(0, round((float) ($this->extra_charges ?? 0), 2));
+        $afterDiscount = max(0, $roomRent - $discount);
+        $vat = $this->getVatAmount();
+        $grandTotal = round($afterDiscount + $extraCharges + $vat, 2);
+        $deposited = $this->getTotalDeposited();
+
+        return [
+            'room_rent' => $roomRent,
+            'discount' => $discount,
+            'extra_charges' => $extraCharges,
+            'vat' => $vat,
+            'grand_total' => $grandTotal,
+            'advance' => $this->getAdvancePaymentTotal(),
+            'deposited' => $deposited,
+            'remaining' => max(0, round($grandTotal - $deposited, 2)),
+        ];
+    }
+
+    /**
+     * Return report amounts for either the complete balance (due reports) or
+     * the selected payment window (activity reports). The bill itself remains
+     * the same; only deposited and remaining are time-scoped.
+     */
+    public function getReportFinancials(string $startDate, string $endDate, bool $includeAllDeposits = false): array
+    {
+        $financials = $this->getFinancialBreakdown();
+
+        if ($includeAllDeposits) {
+            return $financials;
+        }
+
+        $financials['advance'] = $this->getAdvanceDepositedInRange($startDate, $endDate);
+        $financials['deposited'] = $this->getTotalDepositedInRange($startDate, $endDate);
+        $asOfDeposited = $this->getTotalDepositedUpToDate($endDate);
+        $financials['remaining'] = max(0, round($financials['grand_total'] - $asOfDeposited, 2));
+
+        return $financials;
     }
 
     // Check if booking has multiple rooms
@@ -529,41 +603,43 @@ class Booking extends Model
      */
     public function getTotalDepositedUpToDate($date)
     {
-        $payments = $this->payments()
-            ->whereDate('created_at', '<=', $date)
-            ->get();
+        $allPayments = $this->relationLoaded('payments')
+            ? $this->payments
+            : $this->payments()->get();
+        $filterDate = \Carbon\Carbon::parse($date)->endOfDay();
 
-        $advanceRecord = $payments->first(fn($p) => ($p->type ?? 'payment') === 'advance');
-        $advanceRecordAmount = $advanceRecord ? (float) $advanceRecord->amount : 0;
-        $advanceInDb = (float) ($this->advance_payment ?? 0);
+        $payments = $allPayments->filter(function ($payment) use ($filterDate) {
+            $createdAt = $this->rawCreatedAt($payment);
+
+            return !$createdAt
+                || \Carbon\Carbon::parse($createdAt)->lte($filterDate);
+        });
+        $advanceRecords = $allPayments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advanceRecordsUpToDate = $payments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
+
+        if ($advanceRecordsUpToDate->isNotEmpty()) {
+            $advance = (float) $advanceRecordsUpToDate->sum('amount');
+        } elseif ($advanceRecords->isNotEmpty()) {
+            // A recorded advance exists, but it was posted after this report date.
+            $advance = 0;
+        } else {
+            $createdAt = $this->rawCreatedAt($this);
+            $bookingDate = $createdAt
+                ? \Carbon\Carbon::parse($createdAt)
+                : null;
+            $advance = $bookingDate && $bookingDate->lte($filterDate)
+                ? max(0, (float) ($this->advance_payment ?? 0))
+                : 0;
+        }
 
         $extraPayments = $payments
-            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
+            ->filter(fn($p) => ($p->type ?? 'payment') === 'payment')
             ->sum('amount');
         $refunds = $payments
             ->filter(fn($p) => ($p->type ?? 'payment') === 'refund')
             ->sum('amount');
 
-        $deposited = null;
-
-        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
-            $deposited = $advanceInDb + (float) $extraPayments;
-        } elseif ($advanceRecord) {
-            $deposited = $advanceRecordAmount + (float) $extraPayments;
-        }
-
-        // If no advance record in booking_payments but advance_payment is set,
-        // check if the booking was created before the filter date
-        $bookingDate = \Carbon\Carbon::parse($this->created_at);
-        $filterDate = \Carbon\Carbon::parse($date);
-
-        if ($bookingDate->lte($filterDate)) {
-            $deposited = $advanceInDb + (float) $extraPayments;
-        } elseif ($deposited === null) {
-            $deposited = (float) $extraPayments;
-        }
-
-        return max(0, round($deposited - (float) $refunds, 2));
+        return max(0, round($advance + (float) $extraPayments - (float) $refunds, 2));
     }
 
     /**
@@ -572,7 +648,7 @@ class Booking extends Model
     public function getCalculatedRemainingUpToDate($date)
     {
         $grandTotal = $this->getGrandTotal();
-        return $grandTotal - $this->getTotalDepositedUpToDate($date);
+        return max(0, round($grandTotal - $this->getTotalDepositedUpToDate($date), 2));
     }
 
     /**
@@ -581,26 +657,37 @@ class Booking extends Model
      */
     public function getAdvanceDepositedInRange($startDate, $endDate)
     {
-        $advanceRecord = $this->payments()
-            ->where('type', 'advance')
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->first();
-
-        if ($advanceRecord) {
-            return (float) $advanceRecord->amount;
-        }
-
-        // Legacy/no advance record: include stored advance only if booking was created within range
-        $bookingDate = \Carbon\Carbon::parse($this->created_at)->startOfDay();
+        $payments = $this->relationLoaded('payments')
+            ? $this->payments
+            : $this->payments()->get();
         $start = \Carbon\Carbon::parse($startDate)->startOfDay();
         $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+        $advanceRecords = $payments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advanceInRange = $advanceRecords->filter(function ($payment) use ($start, $end) {
+            $createdAt = $this->rawCreatedAt($payment);
+            if (!$createdAt) {
+                return false;
+            }
 
-        if ($bookingDate->between($start, $end)) {
-            return (float) ($this->advance_payment ?? 0);
+            return \Carbon\Carbon::parse($createdAt)->between($start, $end);
+        });
+
+        if ($advanceInRange->isNotEmpty()) {
+            return round((float) $advanceInRange->sum('amount'), 2);
         }
 
-        return 0;
+        if ($advanceRecords->isNotEmpty()) {
+            return 0.0;
+        }
+
+        $createdAt = $this->rawCreatedAt($this);
+        $bookingDate = $createdAt
+            ? \Carbon\Carbon::parse($createdAt)
+            : null;
+
+        return $bookingDate && $bookingDate->between($start, $end)
+            ? max(0, round((float) ($this->advance_payment ?? 0), 2))
+            : 0.0;
     }
 
     /**
@@ -609,44 +696,41 @@ class Booking extends Model
      */
     public function getTotalDepositedInRange($startDate, $endDate)
     {
-        $payments = $this->payments()
-            ->whereDate('created_at', '>=', $startDate)
-            ->whereDate('created_at', '<=', $endDate)
-            ->get();
+        $payments = $this->relationLoaded('payments')
+            ? $this->payments
+            : $this->payments()->get();
+        $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+        $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+        $inRange = $payments->filter(function ($payment) use ($start, $end) {
+            $createdAt = $this->rawCreatedAt($payment);
+            if (!$createdAt) {
+                return false;
+            }
 
-        $advanceRecord = $payments->first(fn($p) => ($p->type ?? 'payment') === 'advance');
-        $advanceRecordAmount = $advanceRecord ? (float) $advanceRecord->amount : 0;
-        $advanceInDb = (float) ($this->advance_payment ?? 0);
+            return \Carbon\Carbon::parse($createdAt)->between($start, $end);
+        });
 
-        $extraPayments = $payments
-            ->filter(fn($p) => ($p->type ?? 'payment') !== 'advance' && ($p->type ?? 'payment') !== 'refund')
+        $advanceRecords = $payments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advanceInRange = $inRange->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
+        $advance = (float) $advanceInRange->sum('amount');
+
+        if ($advanceInRange->isEmpty() && $advanceRecords->isEmpty()) {
+            $createdAt = $this->rawCreatedAt($this);
+            $bookingDate = $createdAt
+                ? \Carbon\Carbon::parse($createdAt)
+                : null;
+            if ($bookingDate && $bookingDate->between($start, $end)) {
+                $advance = max(0, (float) ($this->advance_payment ?? 0));
+            }
+        }
+
+        $extraPayments = $inRange
+            ->filter(fn($p) => ($p->type ?? 'payment') === 'payment')
             ->sum('amount');
-        $refunds = $payments
+        $refunds = $inRange
             ->filter(fn($p) => ($p->type ?? 'payment') === 'refund')
             ->sum('amount');
 
-        $hasAdvanceInRange = $advanceRecord !== null;
-
-        if (!$hasAdvanceInRange) {
-            // Legacy/no advance record: include stored advance only if booking was created within range
-            $bookingDate = \Carbon\Carbon::parse($this->created_at)->startOfDay();
-            $start = \Carbon\Carbon::parse($startDate)->startOfDay();
-            $end = \Carbon\Carbon::parse($endDate)->endOfDay();
-            $hasAdvanceInRange = $bookingDate->between($start, $end);
-        }
-
-        if (!$hasAdvanceInRange) {
-            return max(0, round((float) $extraPayments - (float) $refunds, 2));
-        }
-
-        if ($advanceRecord && $advanceRecordAmount != $advanceInDb) {
-            return max(0, round($advanceInDb + (float) $extraPayments - (float) $refunds, 2));
-        }
-
-        if ($advanceRecord) {
-            return max(0, round($advanceRecordAmount + (float) $extraPayments - (float) $refunds, 2));
-        }
-
-        return max(0, round($advanceInDb + (float) $extraPayments - (float) $refunds, 2));
+        return max(0, round($advance + (float) $extraPayments - (float) $refunds, 2));
     }
 }

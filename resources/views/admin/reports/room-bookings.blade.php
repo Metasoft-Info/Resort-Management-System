@@ -69,13 +69,6 @@
         </form>
     </div>
 
-    <!-- Summary Stats -->
-    @php
-        $summaryRoomRent = $bookings->sum(fn($b) => $b->getCalculatedTotal());
-        $summaryExtra = $bookings->sum('extra_charges');
-        $summaryDiscount = $bookings->sum('discount_amount');
-    @endphp
-
     <!-- Booking Count Summary -->
     <div class="bg-white rounded-xl shadow-lg p-5 mb-4 print:shadow-none print:border print:border-gray-400 print:rounded-none">
         <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Booking Summary</h3>
@@ -169,50 +162,61 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php $totalNights = 0; $sumGrandTotal = 0; $sumDeposited = 0; $sumRemaining = 0; @endphp
+                    @php
+                        $totalNights = 0;
+                        $sumRoomRent = 0;
+                        $sumDiscount = 0;
+                        $sumExtra = 0;
+                        $sumGrandTotal = 0;
+                        $sumDeposited = 0;
+                        $sumRemaining = 0;
+                    @endphp
                     @forelse($bookings as $booking)
                     @php
                         $nights = $booking->getNights();
                         $totalNights += $nights;
-                        $roomRent = $booking->getCalculatedTotal();
-
-                        // Display and calculate from the same canonical room set.
-                        // This prevents a stale legacy room_id from inflating the
-                        // total while remaining hidden from the room column.
-                        $displayRooms = $booking->getAllRooms();
-                        $roomRentDisplay = $displayRooms->map(function($room) {
-                            $rent = $room->booking_price
-                                ?? $room->price_per_night
-                                ?? $room->roomType?->base_price
-                                ?? 0;
-                            $roomNum = e($room->room_number ?? '?');
-                            return '<div class="whitespace-nowrap">' . $roomNum . ': ' . number_format($rent, 0) . '</div>';
-                        })->join('');
-                        $roomNumbers = $displayRooms->pluck('room_number')->filter()->join(', ');
-
-                        $grandTotal = $booking->getGrandTotal();
+                        $financials = $reportFinancials->get($booking->id)
+                            ?? $booking->getReportFinancials($filterStartDate, $filterEndDate, request()->boolean('due_only'));
+                        $roomRent = $financials['room_rent'];
+                        $discount = $financials['discount'];
+                        $extraCharges = $financials['extra_charges'];
+                        $grandTotal = $financials['grand_total'];
+                        $rowAdvance = $financials['advance'];
+                        $rowDeposited = $financials['deposited'];
+                        $calculatedRemaining = $financials['remaining'];
+                        $sumRoomRent += $roomRent;
+                        $sumDiscount += $discount;
+                        $sumExtra += $extraCharges;
                         $sumGrandTotal += $grandTotal;
-                        $totalDeposited = $booking->getTotalDepositedInRange($filterStartDate, $filterEndDate);
-                        $sumDeposited += $totalDeposited;
-                        // Remaining must reflect the true outstanding balance (all payments up to end date),
-                        // not just the payments made within the filtered range.
-                        $calculatedRemaining = $booking->getGrandTotal() - $booking->getTotalDepositedUpToDate($filterEndDate);
+                        $sumDeposited += $rowDeposited;
                         $sumRemaining += $calculatedRemaining;
+
+                        // Use the same canonical room breakdown for both the
+                        // room labels and the calculated room rent.
+                        $roomBreakdown = $booking->getRoomBreakdown();
+                        $roomRentDisplay = $roomBreakdown->map(function($roomLine) {
+                            $room = $roomLine['room'];
+                            $roomNum = e($room?->room_number ?? '?');
+                            return '<div class="whitespace-nowrap">' . $roomNum . ': ' . number_format($roomLine['price_per_night'], 0) . '</div>';
+                        })->join('');
+                        $roomNumbers = $roomBreakdown->map(fn($roomLine) => $roomLine['room']?->room_number)
+                            ->filter()
+                            ->join(', ');
                         $pointInTimeStatus = $booking->getStatusAsOfDate($filterEndDate);
                     @endphp
                     <tr class="hover:bg-gray-50">
-                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->created_at)->format('d-m-Y') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ $booking->customer_phone }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $roomNumbers ?: 'N/A' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-gray-600 text-[10px]">{!! $roomRentDisplay !!}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ ($booking->discount_amount ?? 0) > 0 ? number_format($booking->discount_amount, 0) : '-' }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ ($booking->extra_charges ?? 0) > 0 ? number_format($booking->extra_charges, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ $discount > 0 ? number_format($discount, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ $extraCharges > 0 ? number_format($extraCharges, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold whitespace-nowrap">{{ number_format($grandTotal, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($booking->getAdvanceDepositedInRange($filterStartDate, $filterEndDate), 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-emerald-700 whitespace-nowrap">{{ number_format($totalDeposited, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($rowAdvance, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-emerald-700 whitespace-nowrap">{{ number_format($rowDeposited, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold whitespace-nowrap">{{ number_format($calculatedRemaining, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m') }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m') }}</td>
@@ -242,7 +246,7 @@
                             @endif
                         </td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
-                            @if(($booking->discount_amount ?? 0) > 0)
+                            @if($discount > 0)
                                 @if($booking->discount_status === 'approved')
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">Approved</span>
                                 @elseif($booking->discount_status === 'pending')
@@ -267,12 +271,6 @@
                     @endforelse
                 </tbody>
                 <tfoot>
-                    @php
-                        $sumRoomRent = $bookings->sum(fn($b) => $b->getCalculatedTotal());
-                        $sumExtra = $bookings->sum('extra_charges');
-                        $sumDiscount = $bookings->sum('discount_amount');
-                        $sumAdvance = $bookings->sum(fn($b) => $b->getAdvanceDepositedInRange($filterStartDate, $filterEndDate));
-                    @endphp
                     <tr class="bg-gray-200 font-bold">
                         <td colspan="5" class="border border-gray-400 px-2 py-2 text-right">Total:</td>
                         <td class="border border-gray-400 px-2 py-2"></td>
@@ -280,7 +278,7 @@
                         <td class="border border-gray-400 px-2 py-2 text-right text-orange-600 whitespace-nowrap">{{ number_format($sumDiscount, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-purple-600 whitespace-nowrap">{{ number_format($sumExtra, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right whitespace-nowrap">{{ number_format($sumGrandTotal, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($sumAdvance, 0) }}</td>
+                        <td class="border border-gray-400 px-2 py-2 text-right text-green-600 whitespace-nowrap">{{ number_format($bookings->sum(fn($b) => $reportFinancials->get($b->id)['advance'] ?? 0), 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-emerald-700 whitespace-nowrap">{{ number_format($sumDeposited, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-2 text-right text-red-600 whitespace-nowrap">{{ number_format($sumRemaining, 0) }}</td>
                         <td colspan="2" class="border border-gray-400 px-2 py-2"></td>
@@ -462,7 +460,9 @@ function showGuestInfo(bookingId) {
                 roomDetailsHtml = b.booking_rooms.map(br => {
                     const roomPrice = parseFloat(br.room?.price_per_night ?? br.room?.room_type?.base_price ?? br.price_per_night ?? 0);
                     const roomCheckIn = br.check_in_date ? new Date(br.check_in_date) : checkIn;
-                    const roomCheckOut = br.check_out_date ? new Date(br.check_out_date) : checkOut;
+                    // The parent booking checkout is authoritative for every
+                    // room in a shared stay; room rows may contain old dates.
+                    const roomCheckOut = checkOut;
                     const roomNights = Math.max(1, Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24)));
                     const roomTotal = roomPrice * roomNights;
                     baseAmount += roomTotal;
@@ -490,29 +490,15 @@ function showGuestInfo(bookingId) {
                 `;
             }
             
-            // Calculate totals
-            const discountAmount = parseFloat(b.discount_amount) || 0;
-            const discountPercent = parseFloat(b.discount_percentage) || 0;
-            let discount = 0;
-            if (b.discount_type === 'percentage' && discountPercent > 0) {
-                discount = Math.min(baseAmount, (baseAmount * discountPercent) / 100);
-            } else if (b.discount_type === 'flat' && discountAmount > 0) {
-                discount = Math.min(baseAmount, discountAmount);
-            }
-            
-            const afterDiscount = Math.max(0, baseAmount - discount);
-            const extraCharges = Math.max(0, parseFloat(b.extra_charges) || 0);
-            const vatAmount = b.vat_enabled ? (afterDiscount * 0.15) : 0;
-            const grandTotal = afterDiscount + extraCharges + vatAmount;
-            const advancePayment = parseFloat(b.advance_payment) || 0;
-            const payments = Array.isArray(b.payments) ? b.payments : [];
-            const deposited = payments.length > 0
-                ? Math.max(0, payments.reduce((sum, payment) => {
-                    const amount = parseFloat(payment.amount) || 0;
-                    return (payment.type || 'payment') === 'refund' ? sum - amount : sum + amount;
-                }, 0))
-                : advancePayment;
-            const remaining = Math.max(0, grandTotal - deposited);
+            // The server-side financial snapshot is authoritative. The room
+            // detail fallback only keeps this modal usable with older API data.
+            const serverFinancials = data.financials || {};
+            const discount = parseFloat(serverFinancials.discount ?? 0);
+            const extraCharges = parseFloat(serverFinancials.extra_charges ?? b.extra_charges ?? 0);
+            const vatAmount = parseFloat(serverFinancials.vat ?? 0);
+            const grandTotal = parseFloat(serverFinancials.grand_total ?? (baseAmount - discount + extraCharges + vatAmount));
+            const deposited = parseFloat(serverFinancials.deposited ?? b.advance_payment ?? 0);
+            const remaining = parseFloat(serverFinancials.remaining ?? Math.max(0, grandTotal - deposited));
             
             // Additional guests
             let additionalGuestsHtml = '';

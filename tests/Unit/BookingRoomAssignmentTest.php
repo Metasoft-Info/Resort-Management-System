@@ -155,4 +155,70 @@ class BookingRoomAssignmentTest extends TestCase
 
         $this->assertEquals(3000, $booking->getTotalDeposited());
     }
+
+    public function test_financial_breakdown_keeps_bill_and_balance_consistent(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-10',
+            'check_out_date' => '2026-08-12',
+            'discount_type' => 'flat',
+            'discount_amount' => 1000,
+            'extra_charges' => 175,
+            'advance_payment' => 0,
+        ], true);
+
+        $booking->setRelation('bookingRooms', new Collection([(object) [
+            'room_id' => 6,
+            'price_per_night' => 3000,
+            'check_in_date' => '2026-08-10',
+            'check_out_date' => '2026-08-12',
+        ]]));
+        $booking->setRelation('payments', new Collection([
+            new BookingPayment(['amount' => 4000, 'type' => 'payment']),
+        ]));
+
+        $financials = $booking->getFinancialBreakdown();
+
+        $this->assertSame(6000.0, $financials['room_rent']);
+        $this->assertSame(1000.0, $financials['discount']);
+        $this->assertSame(175.0, $financials['extra_charges']);
+        $this->assertSame(5175.0, $financials['grand_total']);
+        $this->assertSame(4000.0, $financials['deposited']);
+        $this->assertSame(1175.0, $financials['remaining']);
+    }
+
+    public function test_due_report_uses_all_deposits_while_activity_report_uses_date_window(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-10',
+            'check_out_date' => '2026-08-11',
+            'created_at' => '2026-08-10 12:00:00',
+            'discount_type' => 'none',
+            'advance_payment' => 0,
+        ], true);
+
+        $booking->setRelation('bookingRooms', new Collection([(object) [
+            'room_id' => 6,
+            'price_per_night' => 3000,
+            'check_in_date' => '2026-08-10',
+            'check_out_date' => '2026-08-11',
+        ]]));
+        $booking->setRelation('payments', new Collection([
+            new BookingPayment([
+                'amount' => 1000,
+                'type' => 'payment',
+                'created_at' => '2026-08-11 13:00:00',
+            ]),
+        ]));
+
+        $due = $booking->getReportFinancials('2026-08-17', '2026-08-17', true);
+        $activity = $booking->getReportFinancials('2026-08-17', '2026-08-17');
+
+        $this->assertSame(1000.0, $due['deposited']);
+        $this->assertSame(2000.0, $due['remaining']);
+        $this->assertEquals(0.0, $activity['deposited']);
+        $this->assertEquals(2000.0, $activity['remaining']);
+    }
 }
