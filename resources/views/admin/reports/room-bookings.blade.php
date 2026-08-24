@@ -140,7 +140,7 @@
             <table class="report-table text-sm border border-gray-400">
                 <thead>
                     <tr class="bg-gray-200 print:bg-gray-300">
-                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Date</th>
+                        <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Check-In Date</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800 whitespace-nowrap">Mobile</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">Name</th>
                         <th class="border border-gray-400 px-2 py-2 text-xs font-bold text-gray-800">Company</th>
@@ -173,10 +173,12 @@
                     @endphp
                     @forelse($bookings as $booking)
                     @php
-                        $nights = $booking->getNights();
-                        $totalNights += $nights;
                         $financials = $reportFinancials->get($booking->id)
                             ?? $booking->getReportFinancials($filterStartDate, $filterEndDate, request()->boolean('due_only'));
+                        $reportCheckInDate = $financials['check_in_date'] ?? $booking->check_in_date;
+                        $reportCheckOutDate = $financials['check_out_date'] ?? $booking->check_out_date;
+                        $nights = $booking->getNights($reportCheckInDate, $reportCheckOutDate);
+                        $totalNights += $nights;
                         $roomRent = $financials['room_rent'];
                         $discount = $financials['discount'];
                         $extraCharges = $financials['extra_charges'];
@@ -205,7 +207,7 @@
                         $pointInTimeStatus = $booking->getStatusAsOfDate($filterEndDate);
                     @endphp
                     <tr class="hover:bg-gray-50">
-                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m-Y') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($reportCheckInDate)->format('d-m-Y') }}</td>
                         <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ $booking->customer_phone }}</td>
                         <td class="border border-gray-400 px-2 py-1 font-medium">{{ $booking->customer_name }}</td>
                         <td class="border border-gray-400 px-2 py-1">{{ $booking->company_name ?? '-' }}</td>
@@ -218,14 +220,14 @@
                         <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($rowAdvance, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-emerald-700 whitespace-nowrap">{{ number_format($rowDeposited, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-red-600 font-semibold whitespace-nowrap">{{ number_format($calculatedRemaining, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d-m') }}</td>
-                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d-m') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($reportCheckInDate)->format('d-m') }}</td>
+                        <td class="border border-gray-400 px-2 py-1 whitespace-nowrap">{{ \Carbon\Carbon::parse($reportCheckOutDate)->format('d-m') }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">{{ $nights }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-center whitespace-nowrap">
                             @if($pointInTimeStatus == 'checked_in')
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Check-In</span>
                             @elseif($pointInTimeStatus == 'checked_out')
-                                @php $checkoutDateStr = \Carbon\Carbon::parse($booking->check_out_date)->format('Y-m-d'); @endphp
+                                @php $checkoutDateStr = \Carbon\Carbon::parse($reportCheckOutDate)->format('Y-m-d'); @endphp
                                 @if($checkoutDateStr == $filterEndDate)
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">Check-Out</span>
                                 @else
@@ -536,7 +538,7 @@ function showGuestInfo(bookingId) {
                             <tbody>
                                 ${b.payments.map(p => `
                                     <tr class="border-b">
-                                        <td class="py-2 px-2">${formatDate(p.created_at)}</td>
+                                        <td class="py-2 px-2">${formatDate(p.payment_date || p.created_at)}</td>
                                         <td class="py-2 px-2 text-right font-semibold text-green-600">${formatTaka(p.amount)}</td>
                                         <td class="py-2 px-2">${p.method || 'N/A'}</td>
                                         <td class="py-2 px-2 text-xs text-gray-600">${p.note || '-'}</td>

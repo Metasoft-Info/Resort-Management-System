@@ -546,7 +546,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <tbody class="divide-y">
  @foreach($booking->payments as $payment)
  <tr>
- <td class="p-2">{{ $payment->created_at->format('d/m/Y h:i A') }}</td>
+ <td class="p-2">{{ ($payment->payment_date ?? $payment->created_at)->format('d/m/Y') }} @if(!$payment->payment_date){{ $payment->created_at->format('h:i A') }}@endif</td>
  <td class="p-2">
  <span class="px-2 py-1 rounded text-xs font-semibold
  @if($payment->type === 'advance') bg-primary-100 text-primary-800

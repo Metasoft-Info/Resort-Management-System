@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class Booking extends Model
 {
@@ -33,6 +34,14 @@ class Booking extends Model
             $booking->payments()->delete();
             $booking->additionalGuests()->delete();
             \Log::info('Cascade deleted related records for booking', ['booking_id' => $booking->id]);
+        });
+
+        // Keep a dated bill snapshot whenever a booking's financial inputs or
+        // stay dates are saved. Reports can then reproduce the bill as it was
+        // on the selected date instead of applying today's discount/extension
+        // to yesterday's activity.
+        static::saved(function ($booking) {
+            $booking->recordFinancialSnapshot('booking_saved');
         });
     }
 
@@ -469,6 +478,29 @@ class Booking extends Model
     }
 
     /**
+     * Read the cashier's explicit business date and fall back to the legacy
+     * timestamp for old rows and isolated tests.
+     */
+    private function paymentBusinessDate($payment): ?string
+    {
+        if (method_exists($payment, 'getRawOriginal')) {
+            $paymentDate = $payment->getRawOriginal('payment_date');
+            if ($paymentDate) {
+                return \Carbon\Carbon::parse($paymentDate)->toDateString();
+            }
+
+            $createdAt = $payment->getRawOriginal('created_at');
+        } else {
+            $paymentDate = $payment->payment_date ?? null;
+            $createdAt = $payment->created_at ?? null;
+        }
+
+        return $createdAt
+            ? \Carbon\Carbon::parse($createdAt)->toDateString()
+            : null;
+    }
+
+    /**
      * Return the single financial source used by room reports and invoices.
      * Every displayed amount is derived from this same snapshot so summary,
      * row and remaining-balance values cannot drift apart.
@@ -492,17 +524,88 @@ class Booking extends Model
             'advance' => $this->getAdvancePaymentTotal(),
             'deposited' => $deposited,
             'remaining' => max(0, round($grandTotal - $deposited, 2)),
+            'check_in_date' => $this->check_in_date?->toDateString(),
+            'check_out_date' => $this->check_out_date?->toDateString(),
         ];
     }
 
     /**
-     * Return report amounts for either the complete balance (due reports) or
-     * the selected payment window (activity reports). The bill itself remains
-     * the same; only deposited and remaining are time-scoped.
+     * Return the bill that was effective at the end of a report date.
+     * Deposits are deliberately not read from the snapshot; they come from
+     * the payment ledger and are calculated separately below.
+     */
+    public function getFinancialBreakdownAt(?string $date = null): array
+    {
+        if (!$date || !$this->exists || !Schema::hasTable('booking_financial_snapshots')) {
+            return $this->getFinancialBreakdown();
+        }
+
+        if ($this->relationLoaded('financialSnapshots')) {
+            $snapshot = $this->financialSnapshots
+                ->filter(function ($item) use ($date) {
+                    $effectiveDate = $item->effective_date instanceof \Carbon\CarbonInterface
+                        ? $item->effective_date->toDateString()
+                        : (string) $item->effective_date;
+
+                    return $effectiveDate <= $date;
+                })
+                ->sortByDesc(function ($item) {
+                    $dateKey = $item->effective_date instanceof \Carbon\CarbonInterface
+                        ? $item->effective_date->toDateString()
+                        : (string) $item->effective_date;
+
+                    return $dateKey . '|' . str_pad((string) $item->id, 20, '0', STR_PAD_LEFT);
+                })
+                ->first();
+        } else {
+            $snapshot = $this->financialSnapshots()
+                ->whereDate('effective_date', '<=', $date)
+                ->orderByDesc('effective_date')
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        if (!$snapshot) {
+            return $this->getFinancialBreakdown();
+        }
+
+        $deposited = $this->getTotalDeposited();
+
+        return [
+            'room_rent' => round((float) $snapshot->room_rent, 2),
+            'discount' => round((float) $snapshot->discount, 2),
+            'extra_charges' => round((float) $snapshot->extra_charges, 2),
+            'vat' => round((float) $snapshot->vat, 2),
+            'grand_total' => round((float) $snapshot->grand_total, 2),
+            'advance' => $this->getAdvancePaymentTotal(),
+            'deposited' => $deposited,
+            'remaining' => max(0, round((float) $snapshot->grand_total - $deposited, 2)),
+            'check_in_date' => $snapshot->check_in_date?->toDateString(),
+            'check_out_date' => $snapshot->check_out_date?->toDateString(),
+        ];
+    }
+
+    public function getNightsAt(?string $date = null): int
+    {
+        $financials = $this->getFinancialBreakdownAt($date);
+
+        return $this->getNights(
+            $financials['check_in_date'] ?? $this->check_in_date,
+            $financials['check_out_date'] ?? $this->check_out_date
+        );
+    }
+
+    /**
+     * Return report amounts for either the complete current balance (due
+     * reports) or the selected historical business date (activity reports).
+     * Historical bills come from dated snapshots; deposits come from the
+     * payment ledger.
      */
     public function getReportFinancials(string $startDate, string $endDate, bool $includeAllDeposits = false): array
     {
-        $financials = $this->getFinancialBreakdown();
+        $financials = $includeAllDeposits
+            ? $this->getFinancialBreakdown()
+            : $this->getFinancialBreakdownAt($endDate);
 
         if ($includeAllDeposits) {
             return $financials;
@@ -557,6 +660,69 @@ class Booking extends Model
         return $this->hasMany(BookingPayment::class)->orderBy('created_at', 'desc');
     }
 
+    public function financialSnapshots()
+    {
+        return $this->hasMany(BookingFinancialSnapshot::class)
+            ->orderBy('effective_date')
+            ->orderBy('id');
+    }
+
+    /**
+     * Save the bill state that became effective on a business date.
+     * Duplicate snapshots for payment-only saves are intentionally avoided;
+     * payments have their own payment_date ledger.
+     */
+    public function recordFinancialSnapshot(?string $reason = null, ?string $effectiveDate = null): ?BookingFinancialSnapshot
+    {
+        if (!$this->exists || !Schema::hasTable('booking_financial_snapshots')) {
+            return null;
+        }
+
+        $financials = $this->getFinancialBreakdown();
+        $effectiveDate = $effectiveDate ?: now('Asia/Dhaka')->toDateString();
+        $effectiveAt = $this->updated_at ?: now('Asia/Dhaka');
+
+        $payload = [
+            'effective_date' => $effectiveDate,
+            'effective_at' => $effectiveAt,
+            'check_in_date' => $this->check_in_date?->toDateString(),
+            'check_out_date' => $this->check_out_date?->toDateString(),
+            'room_rent' => $financials['room_rent'],
+            'discount' => $financials['discount'],
+            'extra_charges' => $financials['extra_charges'],
+            'vat' => $financials['vat'],
+            'grand_total' => $financials['grand_total'],
+            'reason' => $reason,
+            'recorded_by_id' => \Illuminate\Support\Facades\Auth::id(),
+        ];
+
+        $latest = $this->financialSnapshots()->latest('id')->first();
+        if ($latest && $this->snapshotMatches($latest, $payload)) {
+            return $latest;
+        }
+
+        return $this->financialSnapshots()->create($payload);
+    }
+
+    private function snapshotMatches(BookingFinancialSnapshot $snapshot, array $payload): bool
+    {
+        foreach (['effective_date', 'check_in_date', 'check_out_date'] as $dateField) {
+            $stored = $snapshot->{$dateField};
+            $stored = $stored instanceof \Carbon\CarbonInterface ? $stored->toDateString() : (string) $stored;
+            if ($stored !== (string) ($payload[$dateField] ?? '')) {
+                return false;
+            }
+        }
+
+        foreach (['room_rent', 'discount', 'extra_charges', 'vat', 'grand_total'] as $amountField) {
+            if (round((float) $snapshot->{$amountField}, 2) !== round((float) ($payload[$amountField] ?? 0), 2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Get the status of this booking as of a specific date.
      * If the booking was checked_out after the filter date, show checked_in.
@@ -606,13 +772,12 @@ class Booking extends Model
         $allPayments = $this->relationLoaded('payments')
             ? $this->payments
             : $this->payments()->get();
-        $filterDate = \Carbon\Carbon::parse($date)->endOfDay();
+        $filterDate = \Carbon\Carbon::parse($date)->toDateString();
 
         $payments = $allPayments->filter(function ($payment) use ($filterDate) {
-            $createdAt = $this->rawCreatedAt($payment);
+            $paymentDate = $this->paymentBusinessDate($payment);
 
-            return !$createdAt
-                || \Carbon\Carbon::parse($createdAt)->lte($filterDate);
+            return !$paymentDate || $paymentDate <= $filterDate;
         });
         $advanceRecords = $allPayments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
         $advanceRecordsUpToDate = $payments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
@@ -647,7 +812,7 @@ class Booking extends Model
      */
     public function getCalculatedRemainingUpToDate($date)
     {
-        $grandTotal = $this->getGrandTotal();
+        $grandTotal = $this->getFinancialBreakdownAt($date)['grand_total'];
         return max(0, round($grandTotal - $this->getTotalDepositedUpToDate($date), 2));
     }
 
@@ -664,12 +829,13 @@ class Booking extends Model
         $end = \Carbon\Carbon::parse($endDate)->endOfDay();
         $advanceRecords = $payments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');
         $advanceInRange = $advanceRecords->filter(function ($payment) use ($start, $end) {
-            $createdAt = $this->rawCreatedAt($payment);
-            if (!$createdAt) {
+            $paymentDate = $this->paymentBusinessDate($payment);
+            if (!$paymentDate) {
                 return false;
             }
 
-            return \Carbon\Carbon::parse($createdAt)->between($start, $end);
+            return $paymentDate >= $start->toDateString()
+                && $paymentDate <= $end->toDateString();
         });
 
         if ($advanceInRange->isNotEmpty()) {
@@ -702,12 +868,13 @@ class Booking extends Model
         $start = \Carbon\Carbon::parse($startDate)->startOfDay();
         $end = \Carbon\Carbon::parse($endDate)->endOfDay();
         $inRange = $payments->filter(function ($payment) use ($start, $end) {
-            $createdAt = $this->rawCreatedAt($payment);
-            if (!$createdAt) {
+            $paymentDate = $this->paymentBusinessDate($payment);
+            if (!$paymentDate) {
                 return false;
             }
 
-            return \Carbon\Carbon::parse($createdAt)->between($start, $end);
+            return $paymentDate >= $start->toDateString()
+                && $paymentDate <= $end->toDateString();
         });
 
         $advanceRecords = $payments->filter(fn($p) => ($p->type ?? 'payment') === 'advance');

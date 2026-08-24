@@ -9,7 +9,7 @@ class ReportController extends Controller {
     public function roomBookings(Request $request) {
         $today = date('Y-m-d');
         $dueOnly = $request->boolean('due_only');
-        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments']);
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments', 'financialSnapshots']);
 
         // Due Only filter: show only checked-out bookings with remaining payment > 0
         if ($dueOnly) {
@@ -35,8 +35,11 @@ class ReportController extends Controller {
                              ->whereDate('check_in_date', $start);
                       })
                       ->orWhereHas('payments', function ($pq) use ($start) {
-                          $pq->whereDate('created_at', $start)
+                          $pq->whereDate('payment_date', $start)
                              ->whereIn('type', ['advance', 'payment', 'refund']);
+                      })
+                      ->orWhereHas('financialSnapshots', function ($sq) use ($start) {
+                          $sq->whereDate('effective_date', $start);
                       });
                 } else {
                     $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
@@ -52,9 +55,13 @@ class ReportController extends Controller {
                              ->whereDate('check_in_date', '>=', $start);
                       })
                       ->orWhereHas('payments', function ($pq) use ($start, $end) {
-                          $pq->whereDate('created_at', '>=', $start)
-                             ->whereDate('created_at', '<=', $end)
+                          $pq->whereDate('payment_date', '>=', $start)
+                             ->whereDate('payment_date', '<=', $end)
                              ->whereIn('type', ['advance', 'payment', 'refund']);
+                      })
+                      ->orWhereHas('financialSnapshots', function ($sq) use ($start, $end) {
+                          $sq->whereDate('effective_date', '>=', $start)
+                             ->whereDate('effective_date', '<=', $end);
                       });
                 }
             });
@@ -68,6 +75,9 @@ class ReportController extends Controller {
                   ->orWhere(function ($qq) use ($today) {
                       $qq->where('status', 'cancelled')
                          ->whereDate('check_in_date', '>=', $today);
+                  })
+                  ->orWhereHas('financialSnapshots', function ($sq) use ($today) {
+                      $sq->whereDate('effective_date', $today);
                   });
             });
         }
@@ -173,8 +183,7 @@ class ReportController extends Controller {
                 $b->check_out_date->format('Y-m-d') < $filterEndDate &&
                 $b->payments->contains(fn($p) =>
                     $p->type !== 'refund' &&
-                    $p->created_at &&
-                    $p->created_at->format('Y-m-d') == $filterEndDate
+                    ($p->payment_date?->format('Y-m-d') ?? $p->created_at?->format('Y-m-d')) == $filterEndDate
                 )
             )->count();
         } else {
@@ -208,9 +217,8 @@ class ReportController extends Controller {
                 $b->check_out_date->format('Y-m-d') < $filterStartDate &&
                 $b->payments->contains(fn($p) =>
                     $p->type !== 'refund' &&
-                    $p->created_at &&
-                    $p->created_at->format('Y-m-d') >= $filterStartDate &&
-                    $p->created_at->format('Y-m-d') <= $filterEndDate
+                    ($p->payment_date?->format('Y-m-d') ?? $p->created_at?->format('Y-m-d')) >= $filterStartDate &&
+                    ($p->payment_date?->format('Y-m-d') ?? $p->created_at?->format('Y-m-d')) <= $filterEndDate
                 )
             )->count();
         }
@@ -262,7 +270,7 @@ class ReportController extends Controller {
     public function exportRoomBookings(Request $request) {
         $today = date('Y-m-d');
         $dueOnly = $request->boolean('due_only');
-        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments']);
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments', 'financialSnapshots']);
 
         if ($dueOnly) {
             $query->where('status', 'checked_out');
@@ -277,6 +285,15 @@ class ReportController extends Controller {
                       $qq->whereDate('check_in_date', '<=', $end)
                          ->whereDate('check_out_date', '>=', $start)
                          ->where('status', '!=', 'cancelled');
+                  })
+                  ->orWhereHas('payments', function ($pq) use ($start, $end) {
+                      $pq->whereDate('payment_date', '>=', $start)
+                         ->whereDate('payment_date', '<=', $end)
+                         ->whereIn('type', ['advance', 'payment', 'refund']);
+                  })
+                  ->orWhereHas('financialSnapshots', function ($sq) use ($start, $end) {
+                      $sq->whereDate('effective_date', '>=', $start)
+                         ->whereDate('effective_date', '<=', $end);
                   });
             });
         } else {
@@ -285,6 +302,9 @@ class ReportController extends Controller {
                   ->orWhere(function ($qq) use ($today) {
                       $qq->where('status', 'checked_out')
                          ->whereDate('check_out_date', $today);
+                  })
+                  ->orWhereHas('financialSnapshots', function ($sq) use ($today) {
+                      $sq->whereDate('effective_date', $today);
                   });
             });
         }
@@ -336,14 +356,16 @@ class ReportController extends Controller {
         $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Room Rent,Discount,Extra Charges,Grand Total,Advance,Deposited,Remaining,Payment Status,Status (As of {$filterEndDate})\n";
         foreach ($bookings as $b) {
             $financials = $b->getReportFinancials($filterStartDate, $filterEndDate, $dueOnly);
+            $reportCheckInDate = $financials['check_in_date'] ?? $b->check_in_date;
+            $reportCheckOutDate = $financials['check_out_date'] ?? $b->check_out_date;
             $csvContent .= "\"{$b->id}\",";
             $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
             $csvContent .= "\"{$b->customer_phone}\",";
             $csvContent .= "\"{$b->customer_nid}\",";
             $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
             $csvContent .= "\"" . ($b->room->roomType->name ?? 'N/A') . "\",";
-            $csvContent .= "\"{$b->check_in_date}\",";
-            $csvContent .= "\"{$b->check_out_date}\",";
+            $csvContent .= "\"{$reportCheckInDate}\",";
+            $csvContent .= "\"{$reportCheckOutDate}\",";
             $csvContent .= "\"{$financials['room_rent']}\",";
             $csvContent .= "\"{$financials['discount']}\",";
             $csvContent .= "\"{$financials['extra_charges']}\",";

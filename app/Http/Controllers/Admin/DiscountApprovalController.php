@@ -172,15 +172,21 @@ class DiscountApprovalController extends Controller
             $booking = ConventionBooking::findOrFail($id);
         }
 
-        // Recalculate payment status after discount approval
-        $remaining = max(0, $booking->getCalculatedRemaining());
         $booking->update([
             'discount_status' => 'approved',
             'discount_approved_by' => $user->id,
             'discount_approved_at' => now(),
-            'remaining_payment' => $remaining,
-            'payment_status' => $remaining <= 0 ? 'paid' : ($booking->getTotalDeposited() > 0 ? 'partial' : 'pending'),
         ]);
+
+        if ($type === 'room') {
+            $this->syncRoomFinancialFields($booking);
+        } else {
+            $remaining = max(0, $booking->getCalculatedRemaining());
+            $booking->update([
+                'remaining_payment' => $remaining,
+                'payment_status' => $remaining <= 0 ? 'paid' : ($booking->getTotalDeposited() > 0 ? 'partial' : 'pending'),
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Discount approved successfully.');
     }
@@ -209,6 +215,10 @@ class DiscountApprovalController extends Controller
             'discount_approved_at' => now(),
         ]);
 
+        if ($type === 'room') {
+            $this->syncRoomFinancialFields($booking);
+        }
+
         return redirect()->back()->with('success', 'Discount rejected successfully.');
     }
 
@@ -223,5 +233,17 @@ class DiscountApprovalController extends Controller
         }
         // ConventionBooking
         return $booking->discount ?? 0;
+    }
+
+    private function syncRoomFinancialFields(Booking $booking): void
+    {
+        $booking->unsetRelation('bookingRooms');
+        $booking->unsetRelation('payments');
+        $booking->total_amount = $booking->getCalculatedTotal();
+        $booking->vat_amount = $booking->getVatAmount();
+        $booking->remaining_payment = max(0, $booking->getCalculatedRemaining());
+        $booking->payment_status = $booking->getCalculatedPaymentStatus();
+        $booking->updated_by_id = Auth::id();
+        $booking->save();
     }
 }

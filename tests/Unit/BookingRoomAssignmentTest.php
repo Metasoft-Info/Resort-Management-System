@@ -221,4 +221,56 @@ class BookingRoomAssignmentTest extends TestCase
         $this->assertEquals(0.0, $activity['deposited']);
         $this->assertEquals(2000.0, $activity['remaining']);
     }
+
+    public function test_payment_business_date_controls_activity_report(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'advance_payment' => 0,
+            'created_at' => '2026-08-20 12:00:00',
+        ], true);
+        $payment = new BookingPayment();
+        $payment->setRawAttributes([
+            'amount' => 4000,
+            'type' => 'payment',
+            'created_at' => '2026-08-24 02:31:34',
+            'payment_date' => '2026-08-23',
+        ], true);
+        $booking->setRelation('payments', new Collection([$payment]));
+
+        $this->assertTrue($booking->relationLoaded('payments'));
+        $this->assertEquals(4000.0, $booking->getTotalDeposited());
+        $this->assertSame(4000.0, $booking->getTotalDepositedInRange('2026-08-23', '2026-08-23'));
+        $this->assertEquals(0.0, $booking->getTotalDepositedInRange('2026-08-24', '2026-08-24'));
+    }
+
+    public function test_post_discount_balance_reconciles_from_single_payment(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-08-21',
+            'check_out_date' => '2026-08-24',
+            'discount_type' => 'flat',
+            'discount_amount' => 3000,
+            'advance_payment' => 0,
+        ], true);
+
+        $booking->setRelation('bookingRooms', new Collection([(object) [
+            'room_id' => 6,
+            'price_per_night' => 3000,
+            'check_in_date' => '2026-08-21',
+            'check_out_date' => '2026-08-24',
+        ]]));
+        $booking->setRelation('payments', new Collection([
+            new BookingPayment(['amount' => 4000, 'type' => 'payment']),
+        ]));
+
+        $financials = $booking->getFinancialBreakdown();
+
+        $this->assertSame(9000.0, $financials['room_rent']);
+        $this->assertSame(6000.0, $financials['grand_total']);
+        $this->assertSame(4000.0, $financials['deposited']);
+        $this->assertSame(2000.0, $financials['remaining']);
+        $this->assertSame('partial', $booking->getCalculatedPaymentStatus());
+    }
 }
