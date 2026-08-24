@@ -16,6 +16,7 @@ class BookingPayment extends Model
         'type',
         'note',
         'recorded_by_id',
+        'request_id',
     ];
 
     protected $casts = [

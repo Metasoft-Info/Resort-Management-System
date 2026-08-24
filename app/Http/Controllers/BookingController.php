@@ -452,101 +452,135 @@ class BookingController extends Controller
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'discount_reference' => 'nullable|string|max:255',
             'note' => 'nullable|string',
+            'request_id' => 'nullable|uuid',
         ]);
 
         $paymentAmount = floatval($validated['amount'] ?? 0);
+        $paymentRequestId = $validated['request_id'] ?? null;
+        $paymentNote = $validated['note'] ?? null;
+        $recordedById = Auth::id();
 
-        // Recalculate current balance from the canonical room rows.
-        $currentRemaining = max(0, $booking->getCalculatedRemaining());
+        // Serialize payment writes for this booking. Without the row lock,
+        // two quick requests can both read the same remaining balance and
+        // both insert a payment before either request recalculates the row.
+        $result = DB::transaction(function () use (
+            $booking,
+            $validated,
+            $paymentAmount,
+            $paymentRequestId,
+            $paymentNote,
+            $recordedById
+        ) {
+            $lockedBooking = Booking::query()
+                ->whereKey($booking->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        // Handle payment-level discount if provided
-        $paymentDiscountAmount = 0;
-        if (isset($validated['discount_type']) && $validated['discount_type'] !== 'none') {
-            if ($validated['discount_type'] === 'flat') {
-                $paymentDiscountAmount = floatval($validated['discount_amount'] ?? 0);
-            } elseif ($validated['discount_type'] === 'percentage') {
-                // Percentage discount on remaining amount
-                $paymentDiscountAmount = ($currentRemaining * floatval($validated['discount_percentage'] ?? 0)) / 100;
+            $lockedBooking->load(['bookingRooms', 'payments']);
+
+            // The browser sends a request id for idempotency. This also makes
+            // a network retry safe after the first transaction has committed.
+            if ($paymentRequestId) {
+                $existingPayment = $lockedBooking->payments->firstWhere('request_id', $paymentRequestId);
+                if ($existingPayment) {
+                    return [
+                        'message' => 'Payment was already recorded successfully.',
+                    ];
+                }
             }
-        }
 
-        // At least one must be provided: payment or discount
-        if ($paymentAmount <= 0 && $paymentDiscountAmount <= 0) {
-            return response()->json(['message' => 'Please enter payment amount or discount'], 422);
-        }
+            // Recalculate the current balance only after acquiring the lock.
+            $currentRemaining = max(0, $lockedBooking->getCalculatedRemaining());
 
-        // Validate: payment + discount cannot exceed remaining balance
-        $totalDeduction = $paymentAmount + $paymentDiscountAmount;
-        if ($totalDeduction > $currentRemaining) {
-            return response()->json(['message' => 'Payment + discount cannot exceed remaining balance. Remaining: BDT ' . number_format($currentRemaining, 2)], 422);
-        }
-
-        // Update booking data
-        $updateData = [
-            'payment_method' => $validated['method'],
-        ];
-        
-        if (!empty($validated['bkash_number'])) {
-            $updateData['bkash_number'] = $validated['bkash_number'];
-        }
-        if (!empty($validated['bank_name'])) {
-            $updateData['bank_name'] = $validated['bank_name'];
-        }
-        if (!empty($validated['discount_reference'])) {
-            $updateData['discount_reference'] = $validated['discount_reference'];
-        }
-        
-        // Update discount on booking if payment includes discount
-        if ($paymentDiscountAmount > 0) {
-            // Flatten the existing discount into one canonical amount before
-            // adding a payment-level discount; otherwise an existing
-            // percentage discount would be silently discarded.
-            $updateData['discount_amount'] = $booking->getDiscountAmount() + $paymentDiscountAmount;
-            $updateData['discount_type'] = 'flat';
-
-            // Set discount approval status
-            if (Auth::user()->canApproveDiscounts()) {
-                $updateData['discount_status'] = 'approved';
-                $updateData['discount_approved_by'] = Auth::id();
-                $updateData['discount_approved_at'] = now();
-            } else {
-                $updateData['discount_status'] = 'pending';
-                $updateData['discount_requested_by'] = Auth::id();
+            // Handle payment-level discount if provided.
+            $paymentDiscountAmount = 0;
+            if (isset($validated['discount_type']) && $validated['discount_type'] !== 'none') {
+                if ($validated['discount_type'] === 'flat') {
+                    $paymentDiscountAmount = floatval($validated['discount_amount'] ?? 0);
+                } elseif ($validated['discount_type'] === 'percentage') {
+                    // Percentage discount on the current remaining amount.
+                    $paymentDiscountAmount = ($currentRemaining * floatval($validated['discount_percentage'] ?? 0)) / 100;
+                }
             }
+
+            // At least one must be provided: payment or discount.
+            if ($paymentAmount <= 0 && $paymentDiscountAmount <= 0) {
+                return ['error' => 'Please enter payment amount or discount'];
+            }
+
+            // Validate against the balance observed while holding the lock.
+            $totalDeduction = $paymentAmount + $paymentDiscountAmount;
+            if ($totalDeduction > $currentRemaining) {
+                return [
+                    'error' => 'Payment + discount cannot exceed remaining balance. Remaining: BDT '
+                        . number_format($currentRemaining, 2),
+                ];
+            }
+
+            $updateData = [
+                'payment_method' => $validated['method'],
+            ];
+
+            if (!empty($validated['bkash_number'])) {
+                $updateData['bkash_number'] = $validated['bkash_number'];
+            }
+            if (!empty($validated['bank_name'])) {
+                $updateData['bank_name'] = $validated['bank_name'];
+            }
+            if (!empty($validated['discount_reference'])) {
+                $updateData['discount_reference'] = $validated['discount_reference'];
+            }
+
+            if ($paymentDiscountAmount > 0) {
+                // Flatten the existing discount into one canonical amount before
+                // adding a payment-level discount.
+                $updateData['discount_amount'] = $lockedBooking->getDiscountAmount() + $paymentDiscountAmount;
+                $updateData['discount_type'] = 'flat';
+
+                if (Auth::user()->canApproveDiscounts()) {
+                    $updateData['discount_status'] = 'approved';
+                    $updateData['discount_approved_by'] = $recordedById;
+                    $updateData['discount_approved_at'] = now();
+                } else {
+                    $updateData['discount_status'] = 'pending';
+                    $updateData['discount_requested_by'] = $recordedById;
+                }
+            }
+
+            // Apply the discount before rebuilding the balance. The original
+            // advance_payment remains the booking's opening payment.
+            $lockedBooking->update($updateData);
+
+            if ($paymentAmount > 0) {
+                $lockedBooking->payments()->create([
+                    'amount' => $paymentAmount,
+                    'method' => $validated['method'],
+                    'type' => 'payment',
+                    'note' => $paymentNote,
+                    'recorded_by_id' => $recordedById,
+                    'request_id' => $paymentRequestId,
+                ]);
+            }
+
+            // Recalculate from the updated discount and all payment records.
+            $this->syncBookingTotals($lockedBooking);
+
+            $message = 'Payment recorded successfully';
+            if ($paymentDiscountAmount > 0 && $paymentAmount <= 0) {
+                $message = 'Discount of BDT ' . number_format($paymentDiscountAmount, 2) . ' applied successfully';
+            } elseif ($paymentDiscountAmount > 0) {
+                $message = 'Payment of BDT ' . number_format($paymentAmount, 2)
+                    . ' with discount of BDT ' . number_format($paymentDiscountAmount, 2) . ' recorded';
+            }
+
+            return ['message' => $message];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json(['message' => $result['error']], 422);
         }
 
-        // Apply a payment-level discount before recalculating the balance.
-        // Do NOT update advance_payment; it remains the initial booking payment.
-        $booking->update($updateData);
-
-        // Record additional payment in booking_payments table.
-        if ($paymentAmount > 0) {
-            $booking->payments()->create([
-                'amount' => $paymentAmount,
-                'method' => $validated['method'],
-                'type' => 'payment',
-                'note' => $validated['note'] ?? null,
-                'recorded_by_id' => Auth::id(),
-            ]);
-        }
-
-        // Recalculate from the updated discount and all payment records.
-        $booking->unsetRelation('payments');
-        $this->syncBookingTotals($booking);
-
-        $paymentNote = $validated['note'] ?? '';
-        if ($paymentDiscountAmount > 0) {
-            $paymentNote .= ' [Discount: BDT ' . number_format($paymentDiscountAmount, 2) . ' - Ref: ' . ($validated['discount_reference'] ?? 'N/A') . ']';
-        }
-
-        $message = 'Payment recorded successfully';
-        if ($paymentDiscountAmount > 0 && $paymentAmount <= 0) {
-            $message = 'Discount of BDT ' . number_format($paymentDiscountAmount, 2) . ' applied successfully';
-        } elseif ($paymentDiscountAmount > 0) {
-            $message = 'Payment of BDT ' . number_format($paymentAmount, 2) . ' with discount of BDT ' . number_format($paymentDiscountAmount, 2) . ' recorded';
-        }
-
-        return response()->json(['message' => $message]);
+        return response()->json(['message' => $result['message']]);
     }
 
     public function addExtraCharges(Request $request, Booking $booking)

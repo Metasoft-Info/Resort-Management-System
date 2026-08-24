@@ -1005,6 +1005,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  </div>
  <form id="paymentForm" onsubmit="submitPayment(event)">
  <div class="space-y-4">
+ <input type="hidden" name="request_id" id="payment_request_id">
  <!-- Remaining Balance Display -->
  <div class="bg-yellow-100 border border-yellow-400 rounded-lg p-3">
  <div class="flex justify-between items-center">
@@ -1196,6 +1197,20 @@ $remainingPayment = $booking->getCalculatedRemaining();
 </div>
 
 <script>
+let paymentSubmitting = false;
+
+function newPaymentRequestId() {
+ if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+  return window.crypto.randomUUID();
+ }
+
+ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (character) {
+  const random = Math.random() * 16 | 0;
+  const value = character === 'x' ? random : (random & 0x3 | 0x8);
+  return value.toString(16);
+ });
+}
+
 // Print functions
 function printInvoice() {
  document.body.classList.remove('print-reservation');
@@ -1237,6 +1252,8 @@ function closeTimeModal() {
 function openPaymentModal() {
  document.getElementById('paymentModal').classList.remove('hidden');
  document.getElementById('paymentModal').classList.add('flex');
+ paymentSubmitting = false;
+ document.getElementById('payment_request_id').value = newPaymentRequestId();
 
  // Reset to clean defaults for better UX each time modal opens
  document.getElementById('payment_modal_method').value = 'cash';
@@ -1728,6 +1745,14 @@ async function submitTimeUpdate(e) {
 // Submit payment
 async function submitPayment(e) {
  e.preventDefault();
+ if (paymentSubmitting) return;
+
+ paymentSubmitting = true;
+ const submitBtn = document.getElementById('submitPaymentBtn');
+ const originalButtonHtml = submitBtn.innerHTML;
+ submitBtn.disabled = true;
+ submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+ submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
  const formData = new FormData(e.target);
  
  try {
@@ -1740,6 +1765,7 @@ async function submitPayment(e) {
  body: JSON.stringify({
  amount: parseFloat(formData.get('amount')),
  method: formData.get('method'),
+ request_id: formData.get('request_id'),
  bkash_number: formData.get('bkash_number') || '',
  bank_name: formData.get('bank_name') || '',
  discount_type: formData.get('discount_type'),
@@ -1760,6 +1786,10 @@ async function submitPayment(e) {
  } catch (error) {
  console.error('Error:', error);
  showGlobalModal('error', 'Failed to record payment!');
+ } finally {
+  paymentSubmitting = false;
+  submitBtn.innerHTML = originalButtonHtml;
+  calculatePaymentPreview();
  }
 }
 
