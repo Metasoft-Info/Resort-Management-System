@@ -347,18 +347,31 @@ class BookingController extends Controller
         $validated = $request->validate([
             'check_in_time' => 'nullable|date_format:H:i',
             'check_out_time' => 'nullable|date_format:H:i',
-            'check_in_date' => 'nullable|date',
-            'check_out_date' => 'nullable|date|after_or_equal:check_in_date',
+            // HTML date inputs are business dates, not timestamps. Requiring
+            // this exact format prevents timezone/locale parsing from moving
+            // a stay to an adjacent day.
+            'check_in_date' => 'nullable|date_format:Y-m-d',
+            'check_out_date' => 'nullable|date_format:Y-m-d|after:check_in_date',
         ]);
 
         // Determine new date/time values
-        $newCheckInDate = $validated['check_in_date'] ?? $booking->check_in_date?->format('Y-m-d');
-        $newCheckOutDate = $validated['check_out_date'] ?? $booking->check_out_date?->format('Y-m-d');
+        $newCheckInDate = $this->normalizeBusinessDate(
+            $validated['check_in_date'] ?? $booking->check_in_date?->format('Y-m-d')
+        );
+        $newCheckOutDate = $this->normalizeBusinessDate(
+            $validated['check_out_date'] ?? $booking->check_out_date?->format('Y-m-d')
+        );
         $newCheckInTime = $validated['check_in_time'] ?? $booking->check_in_time ?? '12:00';
         $newCheckOutTime = $validated['check_out_time'] ?? $booking->check_out_time ?? '12:00';
 
         $newCheckIn = Carbon::parse($newCheckInDate)->setTimeFromTimeString($newCheckInTime);
         $newCheckOut = Carbon::parse($newCheckOutDate)->setTimeFromTimeString($newCheckOutTime);
+
+        if ($newCheckOut->lte($newCheckIn)) {
+            return response()->json([
+                'message' => 'Check-out must be after check-in.',
+            ], 422);
+        }
 
         $oldCheckIn = $booking->getCheckInDateTime();
         $oldCheckOut = $booking->getCheckOutDateTime();
@@ -403,24 +416,40 @@ class BookingController extends Controller
             }
         }
 
-        $validated['updated_by_id'] = Auth::id();
+        $dateUpdate = [
+            'check_in_date' => $newCheckInDate,
+            'check_out_date' => $newCheckOutDate,
+            'check_in_time' => $newCheckInTime,
+            'check_out_time' => $newCheckOutTime,
+            'updated_by_id' => Auth::id(),
+        ];
 
-        DB::transaction(function () use ($booking, $validated, $oldCheckIn, $oldCheckOut, $newCheckIn, $newCheckOut, $datesChanged) {
-            if ($datesChanged) {
-                $this->ensureBookingRoomForLegacyBooking($booking, $oldCheckIn, $oldCheckOut);
-            }
+        DB::transaction(function () use ($booking, $dateUpdate, $newCheckIn, $newCheckOut) {
+            // Lock the current booking so a stale browser tab or a retried
+            // request cannot overwrite a newer date change midway through a
+            // billing recalculation.
+            $lockedBooking = Booking::query()
+                ->whereKey($booking->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            $booking->update($validated);
+            $oldCheckIn = $lockedBooking->getCheckInDateTime();
+            $oldCheckOut = $lockedBooking->getCheckOutDateTime();
+
+            $this->ensureBookingRoomForLegacyBooking($lockedBooking, $oldCheckIn, $oldCheckOut);
+
+            $lockedBooking->update($dateUpdate);
 
             // The total is calculated from booking_rooms when those rows
             // exist. Keep their date range in sync with the parent booking;
             // otherwise extending a booking changes the displayed dates but
             // leaves the old number of nights in the room-level calculation.
-            if ($datesChanged || $booking->bookingRooms()->exists()) {
-                $this->syncBookingRoomDates($booking, $oldCheckIn, $newCheckIn, $newCheckOut);
-                $this->syncBookingTotals($booking);
-            }
+            $this->syncBookingRoomDates($lockedBooking, $newCheckIn, $newCheckOut);
+            $this->syncBookingTotals($lockedBooking);
+
         });
+
+        $booking->refresh();
 
         // If booking was checked_out but checkout date/time is now in the future, re-check-in
         if ($booking->status === 'checked_out') {
@@ -766,8 +795,10 @@ class BookingController extends Controller
         try {
             $validated = $request->validate([
                 'room_id' => 'required|exists:rooms,id',
-                'check_in_date' => 'required|date',
-                'check_out_date' => 'required|date|after:check_in_date',
+                'check_in_date' => 'required|date_format:Y-m-d',
+                'check_out_date' => 'required|date_format:Y-m-d|after:check_in_date',
+                'check_in_time' => 'nullable|date_format:H:i',
+                'check_out_time' => 'nullable|date_format:H:i',
                 'customer_name' => 'required|string|max:255',
                 'customer_phone' => 'required|string|max:20',
                 'customer_email' => 'nullable|email|max:255',
@@ -925,7 +956,7 @@ class BookingController extends Controller
             // Date changes must also update normalized room rows. Otherwise
             // getCalculatedTotal() continues using the old room-level dates.
             if ($datesChanged && !$roomChanged) {
-                $this->syncBookingRoomDates($booking, $oldCheckIn, $newCheckIn, $newCheckOut);
+                $this->syncBookingRoomDates($booking, $newCheckIn, $newCheckOut);
             }
 
             // Always refresh the balance. Customer-only edits must not reset
@@ -983,35 +1014,38 @@ class BookingController extends Controller
     }
 
     /**
-     * Keep booking_rooms dates aligned with a booking edited from the global
-     * date/time controls. A room added later may have a custom check-in date,
-     * so only rows that used the original parent check-in date are moved.
-     * Checkout is shared by the booking and must always follow an extension.
+     * Keep every normalized room row aligned with the booking edited from the
+     * global date/time controls. The parent booking is the single source of
+     * truth for a stay; allowing a room row to retain a different date makes
+     * nights and payment totals disagree.
      */
     private function syncBookingRoomDates(
         Booking $booking,
-        Carbon $oldCheckIn,
         Carbon $newCheckIn,
         Carbon $newCheckOut
     ): void {
-        $oldCheckInDate = $oldCheckIn->toDateString();
         $newCheckInDate = $newCheckIn->toDateString();
         $newCheckOutDate = $newCheckOut->toDateString();
 
         foreach ($booking->bookingRooms()->get() as $bookingRoom) {
-            $roomCheckInDate = $bookingRoom->check_in_date?->toDateString();
-            $updates = [
-                // All rooms in a booking share the parent's checkout. This
-                // also repairs rows left behind by an earlier date update.
+            // The global date editor changes the stay for the whole booking.
+            // Keep every normalized room row identical to the parent so the
+            // displayed dates, nights and bill always use one date source.
+            $bookingRoom->update([
+                'check_in_date' => $newCheckInDate,
                 'check_out_date' => $newCheckOutDate,
-            ];
-
-            if ($roomCheckInDate === null || $roomCheckInDate === $oldCheckInDate) {
-                $updates['check_in_date'] = $newCheckInDate;
-            }
-
-            $bookingRoom->update($updates);
+            ]);
         }
+    }
+
+    /**
+     * Normalize a business date without allowing timezone conversion.
+     */
+    private function normalizeBusinessDate(?string $date): ?string
+    {
+        return $date
+            ? Carbon::createFromFormat('!Y-m-d', $date, 'Asia/Dhaka')->toDateString()
+            : null;
     }
 
     /**
