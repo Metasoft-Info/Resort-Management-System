@@ -349,8 +349,8 @@
  <i class="fas fa-sun text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Morning</span>
  @if($mb)
- <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
- <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="dashboard-status-tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
  <div class="text-gray-800 text-xs relative">
  <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $mb->customer_name ?? 'N/A' }}</p>
  <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $mb->customer_phone ?? '-' }}</p>
@@ -374,8 +374,8 @@
  <span class="group relative flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500 cursor-help">
  <i class="fas fa-calendar-day text-[10px] text-gray-400"></i>
  <span class="ml-1 text-[10px] text-gray-400">Full Day</span>
- <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
- <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="dashboard-status-tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
  <div class="text-gray-800 text-xs relative">
  <p class="text-gray-600">Full day unavailable - morning or night already booked</p>
  </div>
@@ -388,8 +388,8 @@
  <i class="fas fa-calendar-day text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Full Day</span>
  @if($fdb)
- <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
- <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="dashboard-status-tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
  <div class="text-gray-800 text-xs relative">
  <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $fdb->customer_name ?? 'N/A' }}</p>
  <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $fdb->customer_phone ?? '-' }}</p>
@@ -414,8 +414,8 @@
  <i class="fas fa-moon text-[10px] text-rose-400"></i>
  <span class="ml-1 text-[10px] text-rose-300">Nights</span>
  @if($nb)
- <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
- <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="dashboard-status-tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
  <div class="text-gray-800 text-xs relative">
  <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $nb->customer_name ?? 'N/A' }}</p>
  <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $nb->customer_phone ?? '-' }}</p>
@@ -553,8 +553,8 @@
 
  @if($rs['status'] == 'occupied' && $rs['current_booking'])
  <!-- Hover Tooltip (below card) -->
- <div class="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-60 bg-white rounded-xl shadow-2xl p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
- <div class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
+ <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-3 w-60 bg-white rounded-xl shadow-2xl p-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="dashboard-status-tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
  <div class="text-gray-800 text-xs relative">
  <p class="font-bold text-sm text-rose-600 mb-1 truncate">{{ $rs['current_booking']->customer_name }}</p>
  <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $rs['current_booking']->customer_phone }}</p>
@@ -714,6 +714,124 @@
 </div>
 
 <script>
+// Keep room and hall status popups inside the visible browser area. Moving
+// the popup to <body> lets it escape the dashboard panels' overflow clipping.
+let activeDashboardStatusTooltip = null;
+
+function positionDashboardStatusTooltip(state) {
+ if (!state) return;
+
+ const anchorRect = state.trigger.getBoundingClientRect();
+ const tooltipRect = state.tooltip.getBoundingClientRect();
+ const viewportPadding = 12;
+ const gap = 10;
+ const spaceBelow = window.innerHeight - anchorRect.bottom;
+ const spaceAbove = anchorRect.top;
+ const placement = spaceBelow >= tooltipRect.height + gap + viewportPadding
+  ? 'below'
+  : (spaceAbove >= tooltipRect.height + gap + viewportPadding || spaceAbove >= spaceBelow ? 'above' : 'below');
+ const left = Math.max(
+  viewportPadding,
+  Math.min(anchorRect.left + (anchorRect.width - tooltipRect.width) / 2, window.innerWidth - tooltipRect.width - viewportPadding)
+ );
+ const top = placement === 'below'
+  ? Math.min(anchorRect.bottom + gap, window.innerHeight - tooltipRect.height - viewportPadding)
+  : Math.max(viewportPadding, anchorRect.top - tooltipRect.height - gap);
+
+ state.tooltip.dataset.placement = placement;
+ state.tooltip.style.left = `${left}px`;
+ state.tooltip.style.top = `${top}px`;
+ state.tooltip.style.visibility = 'visible';
+ state.tooltip.style.opacity = '1';
+
+ const arrow = state.tooltip.querySelector('.dashboard-status-tooltip-arrow');
+ if (arrow) {
+  arrow.style.left = `${anchorRect.left + anchorRect.width / 2 - left}px`;
+  arrow.style.top = placement === 'above' ? 'auto' : '-5px';
+  arrow.style.bottom = placement === 'above' ? '-5px' : 'auto';
+ }
+}
+
+function closeDashboardStatusTooltip() {
+ const state = activeDashboardStatusTooltip;
+ if (!state) return;
+
+ state.tooltip.className = state.originalClassName;
+ if (state.originalStyle === null) {
+  state.tooltip.removeAttribute('style');
+ } else {
+  state.tooltip.setAttribute('style', state.originalStyle);
+ }
+ state.tooltip.removeAttribute('data-placement');
+
+ const arrow = state.tooltip.querySelector('.dashboard-status-tooltip-arrow');
+ if (arrow) {
+  if (state.originalArrowStyle === null) {
+   arrow.removeAttribute('style');
+  } else {
+   arrow.setAttribute('style', state.originalArrowStyle);
+  }
+ }
+
+ if (state.originalNextSibling && state.originalNextSibling.parentNode === state.originalParent) {
+  state.originalParent.insertBefore(state.tooltip, state.originalNextSibling);
+ } else {
+  state.originalParent.appendChild(state.tooltip);
+ }
+
+ activeDashboardStatusTooltip = null;
+}
+
+function initializeDashboardStatusTooltips() {
+ document.querySelectorAll('.dashboard-status-tooltip').forEach(tooltip => {
+  const trigger = tooltip.parentElement;
+  if (!trigger) return;
+
+  trigger.addEventListener('mouseenter', () => {
+   if (activeDashboardStatusTooltip?.tooltip === tooltip) return;
+   closeDashboardStatusTooltip();
+
+   const state = {
+    trigger,
+    tooltip,
+    originalParent: tooltip.parentNode,
+    originalNextSibling: tooltip.nextSibling,
+    originalClassName: tooltip.className,
+    originalStyle: tooltip.getAttribute('style'),
+    originalArrowStyle: tooltip.querySelector('.dashboard-status-tooltip-arrow')?.getAttribute('style') ?? null,
+   };
+   activeDashboardStatusTooltip = state;
+
+   tooltip.classList.remove(
+    'absolute', 'top-full', 'left-1/2', '-translate-x-1/2', 'mt-2', 'mt-3',
+    'opacity-0', 'group-hover:opacity-100', 'scale-95', 'group-hover:scale-100'
+   );
+   tooltip.style.position = 'fixed';
+   tooltip.style.left = '0px';
+   tooltip.style.top = '0px';
+   tooltip.style.margin = '0';
+   tooltip.style.transform = 'none';
+   tooltip.style.zIndex = '10000';
+   tooltip.style.maxWidth = 'calc(100vw - 24px)';
+   tooltip.style.maxHeight = 'calc(100vh - 24px)';
+   tooltip.style.overflowY = 'auto';
+   tooltip.style.visibility = 'hidden';
+   tooltip.style.opacity = '0';
+   document.body.appendChild(tooltip);
+   positionDashboardStatusTooltip(state);
+  });
+
+  trigger.addEventListener('mouseleave', () => {
+   if (activeDashboardStatusTooltip?.tooltip === tooltip) {
+    closeDashboardStatusTooltip();
+   }
+  });
+ });
+}
+
+window.addEventListener('resize', () => positionDashboardStatusTooltip(activeDashboardStatusTooltip));
+window.addEventListener('scroll', () => positionDashboardStatusTooltip(activeDashboardStatusTooltip), true);
+
 // Dashboard Mode Switching
 async function switchDashboardMode(mode) {
  try {
@@ -773,6 +891,8 @@ async function switchDashboardMode(mode) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+ initializeDashboardStatusTooltips();
+
  // Room Search
  document.getElementById('roomSearch').addEventListener('input', function(e) {
  const query = e.target.value.toLowerCase();
