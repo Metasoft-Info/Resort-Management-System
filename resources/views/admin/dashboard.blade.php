@@ -371,13 +371,32 @@
  </a>
  @elseif(($day['full_day'] ?? 'booked') == 'unavailable')
  <!-- Unavailable: morning/night booked separately -->
+ @php
+  $blockingBookings = [
+   'Morning' => $day['morning_booking'] ?? null,
+   'Nights' => $day['night_booking'] ?? null,
+  ];
+ @endphp
  <span class="group relative flex items-center justify-center w-full py-1 px-1.5 rounded-md bg-gray-500/30 border border-dashed border-gray-500 cursor-help">
  <i class="fas fa-calendar-day text-[10px] text-gray-400"></i>
  <span class="ml-1 text-[10px] text-gray-400">Full Day</span>
- <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
+ <div class="dashboard-status-tooltip absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 bg-white rounded-xl shadow-2xl p-3 opacity-0 group-hover:opacity-100 transition-all duration-200 z-[100] pointer-events-none scale-95 group-hover:scale-100">
  <div class="dashboard-status-tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45"></div>
  <div class="text-gray-800 text-xs relative">
- <p class="text-gray-600">Full day unavailable - morning or night already booked</p>
+ <p class="font-semibold text-gray-700">Full day unavailable</p>
+ <p class="text-gray-500 mt-0.5">These booked slots prevent a full-day booking:</p>
+ @foreach($blockingBookings as $slotName => $blockingBooking)
+ @if($blockingBooking)
+ <div class="mt-2 pt-2 border-t border-gray-100">
+ <p class="font-semibold text-rose-600 mb-1">{{ $slotName }} booking</p>
+ <p class="font-bold text-sm text-gray-800 mb-1 truncate">{{ $blockingBooking->customer_name ?? 'N/A' }}</p>
+ <p class="mb-0.5"><i class="fas fa-phone text-gray-400 mr-1 w-3"></i>{{ $blockingBooking->customer_phone ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-building text-gray-400 mr-1 w-3"></i>{{ $blockingBooking->event_type ?? '-' }}</p>
+ <p class="mb-0.5"><i class="fas fa-users text-gray-400 mr-1 w-3"></i>{{ $blockingBooking->number_of_guests ?? 0 }} guests</p>
+ <p class="text-emerald-600 font-semibold mt-1"><i class="fas fa-money-bill mr-1 w-3"></i>Bill: {{ number_format($blockingBooking->total_amount ?? 0, 0) }}</p>
+ </div>
+ @endif
+ @endforeach
  </div>
  </div>
  </span>
