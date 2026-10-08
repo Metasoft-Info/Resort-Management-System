@@ -208,6 +208,11 @@ if [ "$REPO_DIR" != "$APP_DIR" ]; then
     rsync -a --delete \
       --exclude '.git' \
       --exclude '.env' \
+      --exclude '.cpanel.yml' \
+      --exclude '*.sql' \
+      --exclude '*.backup' \
+      --exclude 'DEPLOYMENT_GUIDE.md' \
+      --exclude 'database_backup.sql' \
       --exclude 'storage/app' \
       --exclude 'storage/logs' \
       --exclude 'storage/framework/cache' \

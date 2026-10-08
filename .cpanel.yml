@@ -1,0 +1,10 @@
+---
+deployment:
+  tasks:
+    - >-
+      APP_DIR=/home/tufanconx/public_html
+      REPO_DIR=/home/tufanconx/repo-production
+      DEPLOY_BRANCH=production
+      PHP_BIN=/usr/local/bin/php
+      COMPOSER_BIN="/usr/local/bin/php /opt/cpanel/composer/bin/composer"
+      /bin/bash /home/tufanconx/repo-production/deploy/production_deploy.sh

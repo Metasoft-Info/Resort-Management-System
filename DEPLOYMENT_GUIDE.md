@@ -1,307 +1,40 @@
-# Tufan Convention Resort - cPanel Deployment Guide
+# Production deployment on cPanel
 
-## Files Prepared for Upload
+## Server layout
 
-| File | Location | Purpose |
-|------|----------|---------|
-| `lakeview-deploy.zip` | ~/Desktop/javed/lake-view/ | Main Laravel project |
-| `database_backup.sql` | ~/Desktop/javed/lake-view/ | Database with all data |
-| `.env.production` | Inside the ZIP | Production environment config |
+- cPanel Git repository: `/home/tufanconx/repo-production`
+- Live Laravel application: `/home/tufanconx/public_html`
+- Production branch: `production`
 
----
+`public_html` is the live application directory, not the Git checkout. Do not run `git pull` from `public_html`.
 
-## Step-by-Step Deployment
+## Deploy a GitHub production update
 
-### Step 1: Upload Files to cPanel
+1. Push/merge the tested change to GitHub's `production` branch.
+2. In cPanel, open **Git Version Control** and manage `/home/tufanconx/repo-production`.
+3. Select **Update from Remote**.
+4. Confirm the checked-out branch is `production` and the displayed commit is the new commit.
+5. Select **Deploy HEAD Commit**.
 
-1. **Login to cPanel**: http://tufanconventionresort.com/cpanel
-   - Username: `tufanconx`
-   - Password: `S#hFI8&HAqPF`
+The root `.cpanel.yml` runs `deploy/production_deploy.sh`. It syncs the application to `public_html`, preserves `.env` and runtime storage, runs Laravel migrations, and rebuilds Laravel caches. Back up the database before a production deployment that includes schema migrations.
 
-2. **Go to File Manager** → Navigate to `/home/tufanconx`
+## Make GitHub pushes deploy automatically
 
-3. **Create a folder** named `laravel` in `/home/tufanconx/`
+This cPanel repository uses pull-based deployment. A push to GitHub alone does not update the cPanel checkout. For automatic deployment, add this command once in **cPanel → Cron Jobs** to poll the `production` branch every five minutes:
 
-4. **Upload** `lakeview-deploy.zip` to `/home/tufanconx/laravel/`
-
-5. **Extract** the ZIP file
-
----
-
-### Step 2: Move Public Files to public_html
-
-1. Open **Terminal** in cPanel (or use SSH)
-
-2. Run these commands:
-```bash
-# Backup existing public_html contents
-cd /home/tufanconx
-mv public_html public_html_backup
-
-# Create new public_html pointing to Laravel's public folder
-ln -s /home/tufanconx/laravel/public /home/tufanconx/public_html
+```cron
+*/5 * * * * /bin/bash /home/tufanconx/repo-production/deploy/run-deploy.sh >> /home/tufanconx/deploy-cron.log 2>&1
 ```
 
-**Alternative (without symlink):**
-```bash
-# Move public folder contents to public_html
-cp -r /home/tufanconx/laravel/public/* /home/tufanconx/public_html/
-```
-
-If using the alternative method, **edit** `/home/tufanconx/public_html/index.php`:
-```php
-// Change these lines:
-require __DIR__.'/../vendor/autoload.php';
-$app = require_once __DIR__.'/../bootstrap/app.php';
-
-// To:
-require __DIR__.'/../laravel/vendor/autoload.php';
-$app = require_once __DIR__.'/../laravel/bootstrap/app.php';
-```
-
----
-
-### Step 3: Import Database
-
-1. **Go to phpMyAdmin** in cPanel
-
-2. **Select database**: `tufanconx_tufanresort`
-
-3. Click **Import** tab
-
-4. **Choose file**: `database_backup.sql`
-
-5. Click **Go** to import
-
----
-
-### Step 4: Configure Environment
-
-1. In File Manager, go to `/home/tufanconx/laravel/`
-
-2. **Rename** `.env.production` to `.env`
-
-3. Or create `.env` file with this content:
-
-```env
-APP_NAME="Tufan Convention Resort"
-APP_ENV=production
-APP_KEY=base64:XJnQVldnvQS81rpURKOq3cAHJA15rQ19GlRPGwijBYk=
-APP_DEBUG=false
-APP_URL=http://tufanconventionresort.com
-
-LOG_CHANNEL=stack
-LOG_LEVEL=error
-
-DB_CONNECTION=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_DATABASE=tufanconx_tufanresort
-DB_USERNAME=tufanconx_tufanresort
-DB_PASSWORD=JavedMir41@
-
-BROADCAST_DRIVER=log
-CACHE_DRIVER=file
-FILESYSTEM_DISK=public
-QUEUE_CONNECTION=sync
-SESSION_DRIVER=file
-SESSION_LIFETIME=120
-```
-
----
-
-### Step 5: Set Permissions
-
-Run in cPanel Terminal or SSH:
-```bash
-cd /home/tufanconx/laravel
-
-# Set folder permissions
-chmod -R 755 storage
-chmod -R 755 bootstrap/cache
-
-# Create storage symlink
-php artisan storage:link
-
-# Clear caches
-php artisan config:clear
-php artisan cache:clear
-php artisan view:clear
-php artisan route:clear
-```
-
----
-
-### Step 6: Create .htaccess (if needed)
-
-In `/home/tufanconx/public_html/.htaccess`:
-```apache
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
-    RewriteEngine On
-
-    # Handle Authorization Header
-    RewriteCond %{HTTP:Authorization} .
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
-</IfModule>
-```
-
----
-
-## Verification
-
-After deployment, visit:
-- **Homepage**: http://tufanconventionresort.com
-- **Admin Panel**: http://tufanconventionresort.com/admin/login
-
----
+The poller deploys only when it detects a new production commit. The alternative is enabling the GitHub Actions SSH deployment and configuring its server secrets; do not enable it until those credentials are correctly configured.
 
 ## Troubleshooting
 
-### 500 Internal Server Error
-```bash
-cd /home/tufanconx/laravel
-chmod -R 775 storage
-chmod -R 775 bootstrap/cache
-```
+- `Could not open input file: artisan` means the command was run outside the Laravel root. Use `/home/tufanconx/public_html` for Artisan commands.
+- `origin does not appear to be a git repository` in `public_html` is expected; the Git checkout is `/home/tufanconx/repo-production`.
+- If cPanel says deployment is unavailable, first use **Update from Remote** so the checked-out branch contains `.cpanel.yml`, then verify the branch has no uncommitted changes.
+- If a migration fails, do not drop production tables or mark the migration as complete manually. Keep the error output and inspect the live schema before retrying.
 
-### Images Not Showing
-```bash
-cd /home/tufanconx/laravel
-rm -rf public/storage
-php artisan storage:link
-```
+## Credential handling
 
-### Database Connection Error
-- Verify database credentials in `.env`
-- Make sure database user has all privileges
-
----
-
-## Security Reminder
-
-⚠️ **CHANGE ALL PASSWORDS AFTER DEPLOYMENT:**
-1. cPanel password
-2. Database password (update in `.env` too)
-3. Admin user password in the application
-
----
-
-## Support
-If you face any issues, check Laravel logs at:
-`/home/tufanconx/laravel/storage/logs/laravel.log`
-
----
-
-## GitHub Auto Deploy (Production Branch)
-
-This project now includes:
-
-- GitHub Action workflow: `.github/workflows/deploy-production.yml`
-- Server deploy script: `deploy/production_deploy.sh`
-
-### Branch Strategy
-
-1. Keep your ongoing work in `master` (or any feature branch).
-2. Create PR from `master` -> `production`.
-3. Merge into `production`.
-4. GitHub Actions will auto-deploy to server.
-
-### Required GitHub Repository Secrets
-
-Go to: GitHub repository -> Settings -> Secrets and variables -> Actions
-
-Create these secrets:
-
-- `PROD_SSH_HOST` = your server host (example: `198.54.115.196`)
-- `PROD_SSH_PORT` = SSH port (example: `22`)
-- `PROD_SSH_USER` = SSH user (example: `tufanconx`)
-- `PROD_SSH_PRIVATE_KEY` = private key content (full multi-line key)
-- `PROD_SSH_PASSPHRASE` = private key passphrase (if key is encrypted)
-- `PROD_APP_DIR` = Laravel root path (the folder that contains `artisan`)
-- `PROD_PHP_BIN` = `php` (or full path if needed)
-- `PROD_COMPOSER_BIN` = `composer` (or full path/command if needed)
-
-Examples for `PROD_COMPOSER_BIN` on shared hosting:
-
-- `composer`
-- `/opt/cpanel/composer/bin/composer`
-- `php /opt/cpanel/composer/bin/composer`
-- `php /tmp/composer.phar`
-
-Examples for `PROD_APP_DIR`:
-
-- `/home/tufanconx/laravel`
-- `/home/tufanconx/tufanconventionresort.com` (only if this folder contains `artisan`)
-
-### What Runs Automatically On Each Production Deploy
-
-1. Fetch latest code from `origin/production`
-2. Hard reset working tree to `origin/production`
-3. Install production composer dependencies (or reuse existing `vendor` safely)
-4. Put app in maintenance mode
-5. Run database migrations (`php artisan migrate --force`)
-6. Ensure storage symlink exists
-7. Clear and rebuild Laravel caches
-8. Restart queue workers (if running)
-9. Restore app from maintenance mode
-
-### Notes
-
-- Ensure the server project folder has Git configured with origin pointing to your GitHub repo.
-- Ensure the deploy user has permission to run composer, php artisan, and write to `storage` and `bootstrap/cache`.
-- If the private key is passphrase-protected, use an unencrypted deploy key dedicated for CI/CD.
-
----
-
-## cPanel Fallback: Cron-Based Auto Deploy (No Inbound SSH Needed)
-
-If GitHub Actions cannot reach your server (timeout), use this mode.
-
-Recommended shared-hosting layout:
-
-- Live app directory: `/home/tufanconx/public_html`
-- Git repository clone: `/home/tufanconx/repo-production`
-
-### Included Script
-
-- `deploy/cron_production_poll.sh`
-
-This script checks `origin/production` every run. If there is a new commit, it runs `deploy/production_deploy.sh` automatically.
-
-### How To Enable In cPanel
-
-1. Open **cPanel -> Cron Jobs**.
-2. Add a cron entry to run every minute:
-
-```cron
-*/5 * * * * /bin/bash -lc 'APP_DIR="/home/tufanconx/public_html" REPO_DIR="/home/tufanconx/repo-production" DEPLOY_BRANCH="production" PHP_BIN="php" COMPOSER_BIN="php /opt/cpanel/composer/bin/composer" /home/tufanconx/repo-production/deploy/cron_production_poll.sh >> /home/tufanconx/deploy-cron.log 2>&1'
-```
-
-If `/opt/cpanel/composer/bin/composer` does not exist, try one of these in the cron command:
-
-- `COMPOSER_BIN="composer"`
-- `COMPOSER_BIN="/usr/local/bin/composer"`
-- `COMPOSER_BIN="php /tmp/composer.phar"`
-
-3. Clone your GitHub repository into `/home/tufanconx/repo-production` using cPanel Git Version Control.
-4. Keep your live website in `/home/tufanconx/public_html`.
-
-### Important
-
-- This mode does not require incoming SSH from GitHub.
-- For GitHub SSH deploy workflow, set secret `PROD_ENABLE_SSH_DEPLOY=true`.
-- If `PROD_ENABLE_SSH_DEPLOY` is not `true`, GitHub workflow will skip SSH deploy and finish successfully.
+Never commit `.env`, database exports, passwords, private keys, or cPanel session URLs. Credentials that have ever been committed must be rotated; deleting them from the latest file does not remove them from Git history.
