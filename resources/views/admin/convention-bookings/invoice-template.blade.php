@@ -5,11 +5,11 @@
  <!-- Header with Logo - Centered -->
  <div style="text-align: center; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px;">
  @if($resortInfo && $resortInfo->header_logo)
- <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 70px; margin: 0 auto 6px; display: block;">
+ <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="Tufan Convention Center" style="height: 70px; margin: 0 auto 6px; display: block;">
  @else
  <div style="width: 70px; height: 70px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">TUFAN</div>
  @endif
- <h1 style="font-size: 22px; font-weight: bold; margin: 4px 0; letter-spacing: 2px; text-transform: uppercase;">Tufan Resort</h1>
+ <h1 style="font-size: 22px; font-weight: bold; margin: 4px 0; letter-spacing: 2px; text-transform: uppercase;">Tufan Convention Center</h1>
  <p style="font-size: 11px; margin: 2px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
  <p style="font-size: 12px; margin: 2px 0;">{{ $resortInfo->address ?? 'Kamalnagar, Satkhira Sadar' }}</p>
  <p style="font-size: 12px; margin: 2px 0;">Mobile: {{ $resortInfo->phone ?? '01958216728' }} | Email: {{ $resortInfo->email ?? 'info@tufanconventionresort.com' }}</p>
@@ -263,7 +263,7 @@
 
  <!-- Footer -->
  <div style="text-align: center; padding: 8px 0; border-top: 2px solid #000; margin-top: 5px; background: #f8f8f8;">
- <p style="font-size: 14px; font-weight: bold; color: #000; margin: 0 0 4px;">Thank you for choosing Tufan Resort</p>
+ <p style="font-size: 14px; font-weight: bold; color: #000; margin: 0 0 4px;">Thank you for choosing Tufan Convention Center</p>
  <p style="font-size: 11px; color: #333; margin: 2px 0;">For booking call: {{ $resortInfo->phone ?? '01958216728' }}</p>
  <p style="font-size: 9px; color: #666; margin: 4px 0 0; border-top: 1px dashed #ccc; padding-top: 4px;">Developed By Mir Javed Jeetu | 01811480222</p>
  </div>

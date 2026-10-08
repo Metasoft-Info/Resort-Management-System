@@ -4,7 +4,7 @@
     @include('admin.reports.partials.shared-header', [
         'title' => 'Convention Booking Report',
         'subtitle' => 'Hall Booking, Payment & Outstanding Summary',
-        'headingName' => 'Tufan Resort',
+        'headingName' => 'Tufan Convention Center',
         'headingTagline' => "It's Institution of Tufan Company Limited",
         'contactEmail' => 'info@tufanconventionresort.com',
         'contactPhone' => '01958216728'
@@ -198,7 +198,7 @@
     <div class="mt-6 print:hidden">{{ $bookings->links() }}</div>
 
     @include('admin.reports.partials.shared-footer', [
-        'footerName' => 'Tufan Resort',
+        'footerName' => 'Tufan Convention Center',
         'footerPhone' => '01958216728'
     ])
 </div>
@@ -425,7 +425,7 @@ function showConventionInfo(bookingId) {
                 <div class="space-y-4" id="conventionInfoPrintContent">
                     <!-- Header -->
                     <div class="text-center border-b-2 border-gray-300 pb-4 mb-4">
-                        <h2 class="text-xl font-bold text-gray-800">Tufan Resort</h2>
+                        <h2 class="text-xl font-bold text-gray-800">Tufan Convention Center</h2>
                         <p class="text-sm text-gray-600">Convention Booking Details</p>
                         <p class="text-lg font-bold text-primary-600 mt-2">Booking #CONV-${String(b.id).padStart(5, '0')}</p>
                     </div>
@@ -547,7 +547,7 @@ function showConventionInfo(bookingId) {
                     <!-- Print Footer -->
                     <div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
                         <p>Print Date: ${new Date().toLocaleDateString('en-GB')} | Developed by Mir Javed Jeetu | 01811480222</p>
-                        <p style="margin-top: 2px;">Tufan Resort | 01958216728</p>
+                        <p style="margin-top: 2px;">Tufan Convention Center | 01958216728</p>
                     </div>
                 </div>
             `;
