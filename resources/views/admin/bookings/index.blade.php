@@ -4,9 +4,16 @@
 @section('header', 'Bookings Management')
 
 @section('content')
+@if(request('group'))
+<div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+ <div><h2 class="font-bold text-indigo-900">Group booking · Room-wise bills</h2><p class="text-sm text-indigo-700">Each row has its own guest, payment history and invoice. Open a room booking to print its bill.</p></div>
+ <a href="{{ route('admin.bookings.index', ['status' => 'all']) }}" class="text-sm font-semibold text-indigo-700 underline">View all bookings</a>
+</div>
+@endif
 <!-- Filters Section -->
 <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
  <form method="GET" action="{{ route('admin.bookings.index') }}" class="space-y-4">
+ @if(request('group'))<input type="hidden" name="group" value="{{ request('group') }}">@endif
  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
  <!-- Search -->
  <div>
@@ -39,6 +46,8 @@
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Payment Status</label>
  <select name="payment_status" class="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
  <option value="all" {{ request('payment_status') == 'all' ? 'selected' : '' }}>All</option>
+ <option value="due" {{ request('payment_status') == 'due' ? 'selected' : '' }}>Due Bill Only</option>
+ <option value="complimentary" {{ request('payment_status') == 'complimentary' ? 'selected' : '' }}>Complimentary</option>
  <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
  <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Partial</option>
  <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
@@ -218,6 +227,9 @@
   @if($mDue > 0)
   <div class="text-[10px] text-red-600">Due {{ number_format($mDue) }}</div>
   @endif
+  @if($booking->is_complimentary)
+  <div class="text-[10px] font-semibold text-emerald-700">Complimentary · {{ number_format($booking->getComplimentaryAmount(), 2) }} waived</div>
+  @endif
  </div>
  </div>
  <div class="flex gap-3 mt-3">
@@ -311,6 +323,9 @@
  @endif
  @if($calculatedRemaining > 0)
  <div class="text-xs text-red-600">Due: {{ number_format($calculatedRemaining) }}</div>
+ @endif
+ @if($booking->is_complimentary)
+ <div class="text-xs font-semibold text-emerald-700">Complimentary: {{ number_format($booking->getComplimentaryAmount(), 2) }} waived</div>
  @endif
  </td>
  <td class="px-3 lg:px-4 py-3 whitespace-nowrap">

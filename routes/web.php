@@ -33,6 +33,7 @@ Route::get('/about', [HomeController::class, 'about'])->name('about');
 // Auth routes - Admin Login is the main entry point
 Route::get('/admin', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('admin.login.form');
+Route::get('/admin/session-token', [AuthController::class, 'sessionToken'])->middleware('throttle:60,1')->name('admin.session-token');
 Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login');
 Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
 Route::get('/admin/profile', [AuthController::class, 'profile'])->name('admin.profile');
@@ -57,6 +58,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('room-types', RoomTypeController::class);
     
     // Bookings
+    Route::get('/bookings/{booking}/shift-rooms', [\App\Http\Controllers\RoomShiftController::class, 'available'])->name('bookings.shift-rooms');
+    Route::post('/bookings/{booking}/shift-room', [\App\Http\Controllers\RoomShiftController::class, 'store'])->name('bookings.shift-room');
     Route::delete('/bookings/{booking}/rooms/{roomId}', [BookingController::class, 'removeRoom'])->name('bookings.remove-room');
     Route::post('/bookings/{booking}/update-status', [BookingController::class, 'updateStatus'])->name('bookings.update-status');
     Route::post('/bookings/{booking}/update-time', [BookingController::class, 'updateTime'])->name('bookings.update-time');

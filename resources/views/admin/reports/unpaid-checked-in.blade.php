@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('content')
-<div class="p-6">
+<div class="p-6 report-page">
     @include('admin.reports.partials.shared-header', [
         'title' => 'Checked-in, Not Fully Paid',
         'subtitle' => 'Checked-in bookings with outstanding balance'

@@ -87,9 +87,9 @@
     </button>
 
     <div class="header">
-        <h1>Tufan Convention & Resort</h1>
+        <h1>Tufan Resort</h1>
         <p>It's Institution of Tufan Company Limited</p>
-        <p>Kamalnagar, Satkhira Sadar | Phone: 01958216727</p>
+        <p>Kamalnagar, Satkhira Sadar | Phone: 01958216728</p>
     </div>
 
     <div class="meta">

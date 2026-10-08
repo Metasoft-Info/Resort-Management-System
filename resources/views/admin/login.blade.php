@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Tufan Convention & Resort</title>
+    <title>Admin Login - Tufan Resort</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -35,7 +35,7 @@
                     <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl backdrop-blur-sm mb-6">
                         <i class="fas fa-hotel text-3xl text-white"></i>
                     </div>
-                    <h1 class="text-4xl font-bold mb-2">Tufan Convention & Resort</h1>
+                    <h1 class="text-4xl font-bold mb-2">Tufan Resort</h1>
                     <p class="text-primary-100 text-lg">Admin Dashboard</p>
                 </div>
 
@@ -92,7 +92,7 @@
                     <div class="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl shadow-lg mb-3">
                         <i class="fas fa-hotel text-2xl text-white"></i>
                     </div>
-                    <h1 class="text-2xl font-bold text-gray-800">Tufan Convention & Resort</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Tufan Resort</h1>
                     <p class="text-sm text-gray-500 mt-0.5">Admin Dashboard</p>
                 </div>
 
@@ -112,7 +112,8 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.login') }}" class="space-y-5">
+                <div id="loginError" role="alert" class="hidden bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 mb-4 text-sm"></div>
+                <form id="adminLoginForm" method="POST" action="{{ route('admin.login', [], false) }}" class="space-y-5">
                     @csrf
                     <div>
                         <label class="block text-gray-700 text-sm font-semibold mb-2" for="email">Email Address</label>
@@ -170,5 +171,42 @@
             </div>
         </div>
     </div>
+<script>
+const loginForm = document.getElementById('adminLoginForm');
+loginForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = loginForm.querySelector('button[type="submit"]');
+    if (button.disabled) return;
+    const originalLabel = button.innerHTML;
+    const errorBox = document.getElementById('loginError');
+    button.disabled = true; button.textContent = 'Signing in…'; errorBox.classList.add('hidden');
+    try {
+        // Refresh just before submitting: a sleeping mobile tab or an expired
+        // session must not submit the stale token embedded in its old HTML.
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const tokenResponse = await fetch(@json(route('admin.session-token', [], false)), {
+                credentials: 'same-origin', cache: 'no-store', headers: {'Accept': 'application/json'}
+            });
+            if (!tokenResponse.ok) throw new Error('Could not refresh your session. Please try again.');
+            const session = await tokenResponse.json();
+            loginForm.querySelector('input[name="_token"]').value = session.token;
+            const response = await fetch(loginForm.action, {
+                method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}, body: new FormData(loginForm)
+            });
+            if (response.status === 419 && attempt === 0) continue;
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Unable to sign in. Please try again.');
+            window.location.assign(data.redirect);
+            return;
+        }
+    } catch (error) {
+        errorBox.textContent = error.message || 'Connection interrupted. Please try again.';
+        errorBox.classList.remove('hidden');
+    } finally {
+        button.disabled = false; button.innerHTML = originalLabel;
+    }
+});
+</script>
 </body>
 </html>

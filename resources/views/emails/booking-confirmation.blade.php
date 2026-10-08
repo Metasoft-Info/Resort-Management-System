@@ -16,7 +16,7 @@
                             @if($resortInfo && $resortInfo->header_logo)
                                 <img src="{{ asset('storage/' . $resortInfo->header_logo) }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 60px; margin-bottom: 10px;">
                             @endif
-                            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">{{ $resortInfo->resort_name ?? 'Tufan Convention Resort' }}</h1>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
                             <p style="color: #dcfce7; margin: 5px 0 0; font-size: 14px;">{{ $resortInfo->address ?? '' }}</p>
                         </td>
                     </tr>
@@ -36,7 +36,7 @@
                                 Dear <strong>{{ $booking->customer_name }}</strong>,
                             </p>
                             <p style="font-size: 14px; color: #555; margin: 0 0 20px; line-height: 1.6;">
-                                Thank you for choosing {{ $resortInfo->resort_name ?? 'Tufan Convention Resort' }}. Your booking has been confirmed. Below are the details of your reservation:
+                                Thank you for choosing {{ $resortInfo->resort_name ?? 'Tufan Resort' }}. Your booking has been confirmed. Below are the details of your reservation:
                             </p>
 
                             <!-- Booking Details Table -->
@@ -142,7 +142,7 @@
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #333; padding: 20px; text-align: center;">
-                            <p style="color: #ccc; margin: 0 0 10px; font-size: 14px;">{{ $resortInfo->resort_name ?? 'Tufan Convention Resort' }}</p>
+                            <p style="color: #ccc; margin: 0 0 10px; font-size: 14px;">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</p>
                             <p style="color: #888; margin: 0; font-size: 12px;">{{ $resortInfo->address ?? '' }}</p>
                             <p style="color: #888; margin: 10px 0 0; font-size: 12px;">© {{ date('Y') }} All Rights Reserved</p>
                             <p style="color: #666; margin: 10px 0 0; font-size: 10px;">Developed By Mir Javed Jeetu | 01811480222</p>

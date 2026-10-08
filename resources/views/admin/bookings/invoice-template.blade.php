@@ -2,19 +2,7 @@
 <div id="invoice-print-area" class="hidden print:block">
  <div class="invoice-container bg-white" style="font-family: 'Times New Roman', Times, serif; font-size: 15px; padding: 8mm 12mm; width: 210mm; min-height: 287mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column;">
  
- <!-- Header with Logo - Centered -->
- <div style="text-align: center; margin-bottom: 4px;">
- @php $logoPath = ($resortInfo && $resortInfo->header_logo) ? asset('storage/' . $resortInfo->header_logo) : null; @endphp
- @if($logoPath)
- <img src="{{ $logoPath }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 55px; margin: 0 auto 2px; display: block;">
- @else
- <div style="width: 55px; height: 55px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 2px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">Lake View</div>
- @endif
- <h1 style="font-size: 22px; font-weight: bold; margin: 1px 0; letter-spacing: 3px; text-transform: uppercase;">TUFAN RESORT</h1>
- <p style="font-size: 13px; margin: 1px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
- <p style="font-size: 13px; margin: 1px 0;">{{ $resortInfo->address ?? 'Kamalnagor, Satkhira' }}</p>
- <p style="font-size: 13px; margin: 1px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }}, Mob. {{ $resortInfo->phone ?? '01958 216728' }}</p>
- </div>
+ @include('components.resort-document-heading')
 
  <!-- BILL Title -->
  <div style="text-align: center; margin: 2px 0;">
@@ -90,24 +78,16 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  </tr>
  </thead>
  <tbody>
- @if($allRooms->count() > 0)
- @foreach($allRooms as $index => $room)
- @php
- $roomLine = $roomBreakdown->firstWhere('room_id', $room->id);
- $roomPricePerNight = $roomLine['price_per_night'] ?? ($room->price_per_night ?? $room->roomType?->base_price ?? 0);
- $roomNights = $roomLine['nights'] ?? $invoiceNights;
- $roomAmount = $roomLine['amount'] ?? ($roomNights * $roomPricePerNight);
- @endphp
+ @if($roomBreakdown->isNotEmpty())
+ @foreach($roomBreakdown as $roomLine)
  <tr>
- @if($index === 0)
- <td style="border: 1px solid #000; padding: 4px; text-align: center;" rowspan="{{ $allRooms->count() }}">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
- <td style="border: 1px solid #000; padding: 4px; text-align: center;" rowspan="{{ $allRooms->count() }}">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
- @endif
- <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $room->room_number }}</td>
- <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $room->roomType->name ?? 'Room' }}</td>
- <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $roomNights }}</td>
- <td style="border: 1px solid #000; padding: 4px; text-align: right;">{{ number_format($roomPricePerNight, 0) }}/-</td>
- <td style="border: 1px solid #000; padding: 4px; text-align: right;">{{ number_format($roomAmount, 0) }}/-</td>
+ <td style="border:1px solid #000;padding:4px;text-align:center;">{{ \Carbon\Carbon::parse($roomLine['check_in_date'])->format('d/m/Y') }}</td>
+ <td style="border:1px solid #000;padding:4px;text-align:center;">{{ \Carbon\Carbon::parse($roomLine['check_out_date'])->format('d/m/Y') }}</td>
+ <td style="border:1px solid #000;padding:4px;text-align:center;">{{ $roomLine['room']?->room_number ?? $roomLine['room_number'] ?? '—' }}{{ !empty($roomLine['shifted']) ? ' (shifted)' : '' }}</td>
+ <td style="border:1px solid #000;padding:4px;">{{ $roomLine['room']?->roomType?->name ?? 'Room' }}</td>
+ <td style="border:1px solid #000;padding:4px;text-align:center;">{{ $roomLine['nights'] }}</td>
+ <td style="border:1px solid #000;padding:4px;text-align:right;">{{ number_format($roomLine['price_per_night'], 2) }}</td>
+ <td style="border:1px solid #000;padding:4px;text-align:right;">{{ number_format($roomLine['amount'], 2) }}</td>
  </tr>
  @endforeach
  @else
@@ -132,7 +112,10 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  @if($invoiceExtraCharges > 0)
  <p style="margin: 2px 0; font-size: 14px;"><strong>Extra Charges:</strong> @if($booking->extra_charges_description){{ $booking->extra_charges_description }} - @endif{{ number_format($invoiceExtraCharges, 0) }}</p>
  @endif
- <p style="margin: 2px 0; font-size: 14px;"><strong>Payment Method:</strong> {{ ucfirst($booking->payment_method ?? 'Cash') }}</p>
+ <p style="margin: 2px 0; font-size: 14px;"><strong>Payment Method:</strong> {{ $booking->is_complimentary ? 'Complimentary — no payment required' : ucfirst($booking->payment_method ?? 'Cash') }}</p>
+ @if($booking->is_complimentary && $booking->complimentary_reason)
+ <p style="margin: 2px 0; font-size: 14px;"><strong>Complimentary Reason:</strong> {{ $booking->complimentary_reason }}</p>
+ @endif
  </td>
  <td style="width: 40%; vertical-align: top;">
  <table style="width: 100%; font-size: 14px;">
@@ -140,6 +123,9 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  <td style="padding: 2px 4px; text-align: right;"><strong>Room Total:</strong></td>
  <td style="padding: 2px 4px; text-align: right; min-width: 75px;">{{ number_format($invoiceBaseAmount, 0) }}/-</td>
  </tr>
+ @if($booking->is_complimentary)
+ <tr><td style="padding:2px 4px;text-align:right;">Complimentary:</td><td style="padding:2px 4px;text-align:right;">-{{ number_format($booking->getComplimentaryAmount(), 2) }}</td></tr>
+ @endif
  @if($invoiceDiscountAmount > 0)
  <tr style="color: #c00;">
  <td style="padding: 2px 4px; text-align: right;">Discount @if($booking->discount_type === 'percentage')({{ $booking->discount_percentage }}%)@endif:</td>
@@ -254,7 +240,7 @@ $invoiceRemainingPayment = max(0, $invoiceGrandTotal - $invoiceTotalDeposited);
  <!-- Developer Credit -->
  <div style="text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end;">
  <p style="font-size: 10px; color: #666; margin: 0 0 5px;">Developed By Mir Javed Jeetu | 01811480222</p>
- <p style="font-size: 15px; font-weight: bold; color: #333; margin: 0;">Thank you for choosing TUFAN RESORT</p>
+ <p style="font-size: 15px; font-weight: bold; color: #333; margin: 0;">Thank you for choosing Tufan Resort</p>
  <p style="font-size: 14px; color: #555; margin: 3px 0 0;">For reservations call: {{ $resortInfo->phone ?? '01958 216728' }}</p>
  </div>
  </div>

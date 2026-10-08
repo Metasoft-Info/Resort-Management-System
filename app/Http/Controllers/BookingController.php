@@ -36,15 +36,17 @@ class BookingController extends Controller
                 $query->where('status', $request->status);
             }
             // If 'all' is selected, show all statuses including checked_out
-        } else {
+        } elseif (!in_array($request->payment_status, ['due', 'complimentary']) && !$request->filled('group')) {
             // By default, hide checked_out bookings
             $query->where('status', '!=', 'checked_out');
         }
         
         // Payment status filter
-        if ($request->filled('payment_status') && $request->payment_status !== 'all') {
+        if ($request->filled('payment_status') && !in_array($request->payment_status, ['all', 'due', 'complimentary'])) {
             $query->where('payment_status', $request->payment_status);
         }
+        if ($request->payment_status === 'complimentary') $query->where('is_complimentary', true);
+        if ($request->filled('group')) $query->where('booking_group_id', $request->input('group'));
 
         // Discount approval status filter
         if ($request->filled('discount_status') && $request->discount_status !== 'all') {
@@ -103,7 +105,15 @@ class BookingController extends Controller
             $query->whereDate('created_at', '<=', $request->booking_to);
         }
         
-        $bookings = $query->latest()->paginate(15);
+        if ($request->payment_status === 'due') {
+            $matches = $query->with('roomShifts.fromRoom.roomType')->latest()->get()
+                ->filter(fn ($booking) => $booking->getCalculatedRemaining() > 0)->values();
+            $page = max(1, (int) $request->input('page', 1));
+            $bookings = new \Illuminate\Pagination\LengthAwarePaginator($matches->forPage($page, 15)->values(), $matches->count(), 15, $page,
+                ['path' => $request->url(), 'query' => $request->query()]);
+        } else {
+            $bookings = $query->latest()->paginate(15)->withQueryString();
+        }
         
         // Return JSON for AJAX requests
         if ($request->wantsJson() || $request->ajax()) {
@@ -230,7 +240,8 @@ class BookingController extends Controller
             'additionalGuests', 
             'payments.recordedBy',
             'foodPackage',
-            'bookingRooms.room.roomType'
+            'bookingRooms.room.roomType',
+            'roomShifts.fromRoom.roomType', 'roomShifts.shiftedBy', 'bookingGroup.bookings',
         ]);
         
         // Return JSON for AJAX requests
@@ -239,6 +250,7 @@ class BookingController extends Controller
                 'success' => true,
                 'booking' => $booking,
                 'financials' => $booking->getFinancialBreakdown(),
+                'room_breakdown' => $booking->getRoomBreakdown(),
             ]);
         }
         
@@ -366,6 +378,7 @@ class BookingController extends Controller
 
         $newCheckIn = Carbon::parse($newCheckInDate)->setTimeFromTimeString($newCheckInTime);
         $newCheckOut = Carbon::parse($newCheckOutDate)->setTimeFromTimeString($newCheckOutTime);
+        $this->validateShiftedStayDates($booking, $newCheckIn, $newCheckOut);
 
         if ($newCheckOut->lte($newCheckIn)) {
             return response()->json([
@@ -473,10 +486,10 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'amount' => 'nullable|numeric|min:0',
-            'method' => 'required|in:cash,card,mfs,bkash',
+            'method' => 'required_unless:discount_type,complimentary|nullable|in:cash,card,mfs,bkash',
             'bkash_number' => 'nullable|string|max:20',
             'bank_name' => 'nullable|string|max:100',
-            'discount_type' => 'nullable|in:none,flat,percentage',
+            'discount_type' => 'nullable|in:none,flat,percentage,complimentary',
             'discount_amount' => 'nullable|numeric|min:0',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'discount_reference' => 'nullable|string|max:255',
@@ -506,6 +519,24 @@ class BookingController extends Controller
                 ->firstOrFail();
 
             $lockedBooking->load(['bookingRooms', 'payments']);
+
+            if (($validated['discount_type'] ?? '') === 'complimentary') {
+                if (!Auth::user()->canApproveDiscounts()) return ['error' => 'An authorised discount approver must apply a complimentary stay.'];
+                if ($lockedBooking->is_complimentary) return ['message' => 'This booking is already complimentary.'];
+                if ($paymentAmount > 0 || $lockedBooking->getTotalDeposited() > 0) {
+                    return ['error' => 'Complimentary bookings cannot collect money. Refund any existing deposit first.'];
+                }
+                if (empty(trim($paymentNote ?? ''))) return ['error' => 'Please enter the reason for the complimentary stay.'];
+                $lockedBooking->fill([
+                    'is_complimentary' => true, 'complimentary_reason' => $paymentNote,
+                    'complimentary_at' => now(), 'complimentary_by_id' => $recordedById,
+                ]);
+                $this->syncBookingTotals($lockedBooking);
+                ActivityLog::log('Marked booking complimentary', 'Booking', $lockedBooking->id,
+                    ['waived_amount' => $lockedBooking->getComplimentaryAmount(), 'reason' => $paymentNote]);
+                return ['message' => 'Booking marked complimentary. Nothing is payable and no cash payment was recorded.'];
+            }
+            if ($lockedBooking->is_complimentary) return ['error' => 'This booking is complimentary; no payment is required.'];
 
             // The browser sends a request id for idempotency. This also makes
             // a network retry safe after the first transaction has committed.
@@ -826,6 +857,10 @@ class BookingController extends Controller
             $newCheckOutTime = $validated['check_out_time'] ?? $booking->check_out_time ?? '12:00';
             $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($newCheckInTime);
             $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($newCheckOutTime);
+            $this->validateShiftedStayDates($booking, $newCheckIn, $newCheckOut);
+            if ($roomChanged && $booking->roomShifts()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['room_id' => 'Use Room Shift to change rooms and retain the stay history.']);
+            }
 
             $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
             $checkoutExtended = $newCheckOut->gt($oldCheckOut);
@@ -965,6 +1000,10 @@ class BookingController extends Controller
             $this->syncBookingTotals($booking);
 
             return redirect()->route('admin.bookings.show', $booking)->with('success', 'Booking updated successfully' . ($checkoutExtended && $oldStatus === 'checked_out' ? ' — Status auto-updated to checked-in' : ''));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Preserve normal validation behavior; the compatibility fallback
+            // must never save data rejected by stay-history safeguards.
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Booking update failed', [
                 'booking_id' => $booking->id,
@@ -1032,7 +1071,7 @@ class BookingController extends Controller
             // Keep every normalized room row identical to the parent so the
             // displayed dates, nights and bill always use one date source.
             $bookingRoom->update([
-                'check_in_date' => $newCheckInDate,
+                'check_in_date' => $booking->roomShifts()->exists() ? $bookingRoom->check_in_date : $newCheckInDate,
                 'check_out_date' => $newCheckOutDate,
             ]);
         }
@@ -1046,6 +1085,16 @@ class BookingController extends Controller
         return $date
             ? Carbon::createFromFormat('!Y-m-d', $date, 'Asia/Dhaka')->toDateString()
             : null;
+    }
+
+    private function validateShiftedStayDates(Booking $booking, Carbon $checkIn, Carbon $checkOut): void
+    {
+        $latestShift = $booking->roomShifts()->max('shift_date');
+        if ($latestShift && ($checkIn->toDateString() !== $booking->check_in_date->toDateString() || $checkOut->toDateString() <= $latestShift)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'check_out_date' => 'This stay has room-shift history. Keep the original check-in and a checkout after the latest shift (' . $latestShift . ').',
+            ]);
+        }
     }
 
     /**
@@ -1153,6 +1202,13 @@ class BookingController extends Controller
 
     public function removeRoom(Booking $booking, $roomId)
     {
+        if ($booking->roomShifts()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This booking has room-shift history. Use Room Shift to change the active room so the complete stay and bill history remain intact.',
+            ], 422);
+        }
+
         if (in_array($booking->status, ['checked_out', 'cancelled'])) {
             return response()->json([
                 'success' => false,

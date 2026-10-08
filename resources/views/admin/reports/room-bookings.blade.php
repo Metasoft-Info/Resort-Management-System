@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('content')
-<div class="p-6">
+<div class="p-6 report-page">
     @include('admin.reports.partials.shared-header', [
         'title' => 'Room Booking Report'
     ])
@@ -34,6 +34,8 @@
                     <select name="payment_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                         <option value="">All</option>
                         <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="due" {{ request('payment_status') == 'due' ? 'selected' : '' }}>Due Bill Only</option>
+                        <option value="complimentary" {{ request('payment_status') == 'complimentary' ? 'selected' : '' }}>Complimentary</option>
                         <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Partial</option>
                         <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
                     </select>
@@ -95,7 +97,11 @@
     <!-- Financial Summary -->
     <div class="bg-white rounded-xl shadow-lg p-5 mb-6 print:shadow-none print:border print:border-gray-400 print:rounded-none">
         <h3 class="text-sm font-bold text-gray-700 mb-3 print:text-xs">Financial Summary</h3>
-        <div class="grid grid-cols-2 md:grid-cols-7 gap-3 print:grid-cols-7 print:gap-2 print:text-xs">
+        <div class="report-summary-grid grid grid-cols-2 md:grid-cols-4 gap-3 print:gap-2 print:text-xs">
+            <div class="bg-emerald-50 rounded-lg p-3 text-center border border-emerald-200">
+                <p class="text-gray-500 text-xs">Complimentary value</p>
+                <p class="text-lg font-bold text-emerald-700">BDT {{ number_format($summaryComplimentary, 2) }}</p>
+            </div>
             <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-200 print:p-1 print:border-gray-400">
                 <p class="text-gray-500 text-xs">Room Rent</p>
                 <p class="text-lg font-bold text-blue-700 print:text-sm">BDT {{ number_format($summaryRoomRent, 0) }}</p>
@@ -129,9 +135,10 @@
 
     <!-- Action Buttons -->
     <div class="flex gap-2 mb-4 print:hidden">
-        <button onclick="window.print()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
+        <a href="{{ request()->fullUrlWithQuery(['print_all' => 1, 'page' => 1]) }}" target="_blank" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
             <i class="fas fa-print mr-2"></i>Print
-        </button>
+        </a>
+        <a href="{{ route('admin.reports.room-bookings.export', request()->except(['page', 'print_all'])) }}" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">Export CSV</a>
     </div>
 
     <!-- Bookings Table -->
@@ -201,7 +208,7 @@
                             $roomNum = e($room?->room_number ?? '?');
                             return '<div class="whitespace-nowrap">' . $roomNum . ': ' . number_format($roomLine['price_per_night'], 0) . '</div>';
                         })->join('');
-                        $roomNumbers = $roomBreakdown->map(fn($roomLine) => $roomLine['room']?->room_number)
+                        $roomNumbers = $roomBreakdown->map(fn($roomLine) => $roomLine['room']?->room_number ?? $roomLine['room_number'] ?? null)
                             ->filter()
                             ->join(', ');
                         $pointInTimeStatus = $booking->getStatusAsOfDate($filterEndDate);
@@ -214,7 +221,11 @@
                         <td class="border border-gray-400 px-2 py-1 font-semibold text-primary-700 whitespace-nowrap">{{ $roomNumbers ?: 'N/A' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-gray-600 text-[10px]">{!! $roomRentDisplay !!}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-blue-600 whitespace-nowrap">{{ number_format($roomRent, 0) }}</td>
-                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600 whitespace-nowrap">{{ $discount > 0 ? number_format($discount, 0) : '-' }}</td>
+                        <td class="border border-gray-400 px-2 py-1 text-right text-orange-600">
+                            @if(($financials['complimentary'] ?? 0) > 0)
+                                <strong>Complimentary</strong><br>{{ number_format($financials['complimentary'], 2) }}
+                            @else {{ $discount > 0 ? number_format($discount, 0) : '-' }} @endif
+                        </td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-purple-600 whitespace-nowrap">{{ $extraCharges > 0 ? number_format($extraCharges, 0) : '-' }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right font-semibold whitespace-nowrap">{{ number_format($grandTotal, 0) }}</td>
                         <td class="border border-gray-400 px-2 py-1 text-right text-green-600 whitespace-nowrap">{{ number_format($rowAdvance, 0) }}</td>
@@ -393,6 +404,9 @@
 </style>
 
 <script>
+@if(request()->boolean('print_all'))
+window.addEventListener('load', () => window.print());
+@endif
 // Store booking data for quick access
 const bookingsData = @json($bookings->keyBy('id'));
 
@@ -554,7 +568,7 @@ function showGuestInfo(bookingId) {
                 <div class="space-y-4" id="guestInfoPrintContent">
                     <!-- Header -->
                     <div class="text-center border-b-2 border-gray-300 pb-4 mb-4">
-                        <h2 class="text-xl font-bold text-gray-800">Tufan Convention & Resort</h2>
+                        <h2 class="text-xl font-bold text-gray-800">Tufan Resort</h2>
                         <p class="text-sm text-gray-600">Invoice / Booking Details</p>
                         <p class="text-lg font-bold text-primary-600 mt-2">Booking #${String(b.id).padStart(5, '0')}</p>
                     </div>
@@ -691,7 +705,7 @@ function showGuestInfo(bookingId) {
                     <!-- Print Footer -->
                     <div style="margin-top: 16px; padding-top: 8px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #666;">
                         <p>Print Date: ${new Date().toLocaleDateString('en-GB')} | Developed by Mir Javed Jeetu | 01811480222</p>
-                        <p style="margin-top: 2px;">TUFAN RESORT | 01958216727</p>
+                        <p style="margin-top: 2px;">Tufan Resort | 01958216728</p>
                     </div>
                 </div>
             `;

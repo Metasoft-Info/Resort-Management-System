@@ -8,12 +8,13 @@ use Illuminate\Support\Facades\Response;
 class ReportController extends Controller {
     public function roomBookings(Request $request) {
         $today = date('Y-m-d');
-        $dueOnly = $request->boolean('due_only');
-        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments', 'financialSnapshots']);
+        $dueOnly = $request->boolean('due_only') || $request->payment_status === 'due';
+        $complimentaryOnly = $request->payment_status === 'complimentary';
+        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'roomShifts.fromRoom.roomType', 'payments', 'financialSnapshots']);
 
         // Due Only filter: show only checked-out bookings with remaining payment > 0
         if ($dueOnly) {
-            $query->where('status', 'checked_out');
+            $query->where('status', '!=', 'cancelled');
             // We'll filter by remaining > 0 after fetching since it's calculated
         } elseif ($request->start_date || $request->end_date) {
             $start = $request->start_date ?: $today;
@@ -65,6 +66,8 @@ class ReportController extends Controller {
                       });
                 }
             });
+        } elseif ($complimentaryOnly) {
+            $query->where('is_complimentary', true);
         } else {
             $query->where(function ($q) use ($today) {
                 $q->where('status', 'checked_in')
@@ -95,7 +98,7 @@ class ReportController extends Controller {
                   ->orWhereHas('bookingRooms', fn($bookingRoom) => $bookingRoom->where('room_id', $request->room_id));
             });
         }
-        if($request->payment_status) $query->where('payment_status', $request->payment_status);
+
         if($request->discount_status) {
             if($request->discount_status === 'has_discount') {
                 $query->where(function($q) {
@@ -138,6 +141,19 @@ class ReportController extends Controller {
                 ),
             ];
         });
+
+        // Use the same dated financials for filtering, rows and summary.
+        if ($complimentaryOnly || in_array($request->payment_status, ['pending', 'partial', 'paid'])) {
+            $summaryBookings = $summaryBookings->filter(function ($booking) use ($reportFinancials, $complimentaryOnly, $request) {
+                $values = $reportFinancials->get($booking->id);
+                if ($complimentaryOnly) return ($values['complimentary'] ?? 0) > 0;
+                $paidToDate = max(0, $values['grand_total'] - $values['remaining']);
+                $status = $values['remaining'] <= 0 ? 'paid' : ($paidToDate > 0 ? 'partial' : 'pending');
+                return $status === $request->payment_status;
+            });
+            $reportFinancials = $reportFinancials->only($summaryBookings->pluck('id')->all());
+        }
+        $summaryComplimentary = $reportFinancials->sum('complimentary');
 
         $sumFinancial = fn (string $key) => $reportFinancials->sum(fn ($financials) => (float) ($financials[$key] ?? 0));
         $summaryRoomRent = $sumFinancial('room_rent');
@@ -223,10 +239,11 @@ class ReportController extends Controller {
             )->count();
         }
         
-        if ($dueOnly) {
+        {
+            // Paginate the same filtered collection used by the summary.
             // Manual pagination for due_only since we filter in collection
             $dueBookings = $summaryBookings->sortByDesc('check_in_date')->values();
-            $perPage = 20;
+            $perPage = $request->boolean('print_all') ? max(1, $summaryBookings->count()) : 20;
             $currentPage = request()->get('page', 1);
             $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
                 $dueBookings->forPage($currentPage, $perPage),
@@ -235,8 +252,6 @@ class ReportController extends Controller {
                 $currentPage,
                 ['path' => request()->url(), 'query' => request()->query()]
             );
-        } else {
-            $bookings = $query->orderBy('check_in_date', 'desc')->paginate(20)->withQueryString();
         }
         $roomTypes = RoomType::all();
         $rooms = Room::orderBy('room_number')->get();
@@ -252,6 +267,8 @@ class ReportController extends Controller {
             'summaryRoomRent',
             'summaryDiscount',
             'summaryExtra',
+            'summaryComplimentary',
+            'summaryBookings',
             'reportFinancials',
             'roomTypes',
             'rooms',
@@ -268,122 +285,24 @@ class ReportController extends Controller {
     }
     
     public function exportRoomBookings(Request $request) {
-        $today = date('Y-m-d');
-        $dueOnly = $request->boolean('due_only');
-        $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments', 'financialSnapshots']);
-
-        if ($dueOnly) {
-            $query->where('status', 'checked_out');
-        } elseif ($request->start_date || $request->end_date) {
-            $start = $request->start_date ?: $today;
-            $end = $request->end_date ?: $start;
-
-            $query->where(function ($q) use ($start, $end) {
-                $q->whereBetween(\DB::raw('DATE(check_in_date)'), [$start, $end])
-                  ->orWhereBetween(\DB::raw('DATE(check_out_date)'), [$start, $end])
-                  ->orWhere(function ($qq) use ($start, $end) {
-                      $qq->whereDate('check_in_date', '<=', $end)
-                         ->whereDate('check_out_date', '>=', $start)
-                         ->where('status', '!=', 'cancelled');
-                  })
-                  ->orWhereHas('payments', function ($pq) use ($start, $end) {
-                      $pq->whereDate('payment_date', '>=', $start)
-                         ->whereDate('payment_date', '<=', $end)
-                         ->whereIn('type', ['advance', 'payment', 'refund']);
-                  })
-                  ->orWhereHas('financialSnapshots', function ($sq) use ($start, $end) {
-                      $sq->whereDate('effective_date', '>=', $start)
-                         ->whereDate('effective_date', '<=', $end);
-                  });
-            });
-        } else {
-            $query->where(function ($q) use ($today) {
-                $q->where('status', 'checked_in')
-                  ->orWhere(function ($qq) use ($today) {
-                      $qq->where('status', 'checked_out')
-                         ->whereDate('check_out_date', $today);
-                  })
-                  ->orWhereHas('financialSnapshots', function ($sq) use ($today) {
-                      $sq->whereDate('effective_date', $today);
-                  });
-            });
-        }
-
-        if($request->status) $query->where('status', $request->status);
-        if($request->room_type_id) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('room', fn($room) => $room->where('room_type_id', $request->room_type_id))
-                  ->orWhereHas('bookingRooms.room', fn($room) => $room->where('room_type_id', $request->room_type_id));
-            });
-        }
-        if($request->room_id) {
-            $query->where(function ($q) use ($request) {
-                $q->where('room_id', $request->room_id)
-                  ->orWhereHas('bookingRooms', fn($bookingRoom) => $bookingRoom->where('room_id', $request->room_id));
-            });
-        }
-        if($request->payment_status) $query->where('payment_status', $request->payment_status);
-        if($request->discount_status) {
-            if($request->discount_status === 'has_discount') {
-                $query->where(function($q) {
-                    $q->where('discount_amount', '>', 0)
-                      ->orWhere(function($sq) {
-                          $sq->where('discount_type', 'percentage')->where('discount_percentage', '>', 0);
-                      });
-                });
-            } else {
-                $query->where('discount_status', $request->discount_status);
+        $data = $this->roomBookings($request)->getData();
+        return response()->streamDownload(function () use ($data) {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['ID', 'Customer', 'Phone', 'Rooms', 'Check-In', 'Check-Out', 'Room Rent', 'Discount',
+                'Extra Charges', 'Complimentary', 'Grand Total', 'Advance', 'Deposited', 'Remaining', 'Billing']);
+            foreach ($data['summaryBookings'] as $booking) {
+                $f = $data['reportFinancials']->get($booking->id);
+                $cells = [$booking->id, $booking->customer_name, $booking->customer_phone,
+                    $booking->getRoomBreakdown()->map(fn ($line) => $line['room']?->room_number ?? $line['room_number'] ?? '—')->unique()->join(', '),
+                    $f['check_in_date'], $f['check_out_date'], $f['room_rent'], $f['discount'], $f['extra_charges'],
+                    $f['complimentary'] ?? 0, $f['grand_total'], $f['advance'], $f['deposited'], $f['remaining'],
+                    ($f['complimentary'] ?? 0) > 0 ? 'Complimentary' : ($f['remaining'] > 0 ? 'Due' : 'Paid')];
+                fputcsv($output, array_map(fn ($value) => is_string($value) && preg_match('/^[=+@\\-]/', $value) ? "'" . $value : $value, $cells));
             }
-        }
-        if($request->search) {
-            $query->where(function($q) use ($request) {
-                $q->where('customer_name', 'like', "%{$request->search}%")
-                  ->orWhere('customer_phone', 'like', "%{$request->search}%")
-                  ->orWhere('customer_nid', 'like', "%{$request->search}%")
-                  ->orWhere('company_name', 'like', "%{$request->search}%")
-                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"))
-                  ->orWhereHas('bookingRooms.room', fn($r) => $r->where('room_number', 'like', "%{$request->search}%"));
-            });
-        }
-        
-        $bookings = $query->orderBy('check_in_date', 'desc')->get();
-        if ($dueOnly) {
-            $bookings = $bookings->filter(fn($booking) => $booking->getCalculatedRemaining() > 0)->values();
-        }
-        $filterEndDate = $request->end_date ?: ($request->start_date ?: date('Y-m-d'));
-        $filterStartDate = $request->start_date ?: ($request->end_date ?: date('Y-m-d'));
-        
-        $csvContent = "ID,Customer Name,Phone,NID,Room,Room Type,Check-In,Check-Out,Room Rent,Discount,Extra Charges,Grand Total,Advance,Deposited,Remaining,Payment Status,Status (As of {$filterEndDate})\n";
-        foreach ($bookings as $b) {
-            $financials = $b->getReportFinancials($filterStartDate, $filterEndDate, $dueOnly);
-            $reportCheckInDate = $financials['check_in_date'] ?? $b->check_in_date;
-            $reportCheckOutDate = $financials['check_out_date'] ?? $b->check_out_date;
-            $csvContent .= "\"{$b->id}\",";
-            $csvContent .= "\"" . str_replace('"', '""', $b->customer_name) . "\",";
-            $csvContent .= "\"{$b->customer_phone}\",";
-            $csvContent .= "\"{$b->customer_nid}\",";
-            $csvContent .= "\"" . ($b->room->room_number ?? 'N/A') . "\",";
-            $csvContent .= "\"" . ($b->room->roomType->name ?? 'N/A') . "\",";
-            $csvContent .= "\"{$reportCheckInDate}\",";
-            $csvContent .= "\"{$reportCheckOutDate}\",";
-            $csvContent .= "\"{$financials['room_rent']}\",";
-            $csvContent .= "\"{$financials['discount']}\",";
-            $csvContent .= "\"{$financials['extra_charges']}\",";
-            $csvContent .= "\"{$financials['grand_total']}\",";
-            $csvContent .= "\"{$financials['advance']}\",";
-            $csvContent .= "\"{$financials['deposited']}\",";
-            $csvContent .= "\"{$financials['remaining']}\",";
-            $csvContent .= "\"{$b->payment_status}\",";
-            $csvContent .= "\"" . $b->getStatusAsOfDate($filterEndDate) . "\"\n";
-        }
-        
-        $filename = 'room-bookings-report-' . date('Y-m-d') . '.csv';
-        return Response::make($csvContent, 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename={$filename}",
-        ]);
+            fclose($output);
+        }, 'room-bookings-report-' . now()->format('Y-m-d') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
-    
+
     public function advanceBookings(Request $request) {
         $query = Booking::with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
             ->where('check_in_date', '>', date('Y-m-d'))

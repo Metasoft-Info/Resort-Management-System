@@ -38,6 +38,12 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div>
  <h1 class="text-3xl font-bold text-gray-800">Booking #{{ str_pad($booking->id, 5, '0', STR_PAD_LEFT) }}</h1>
  <p class="text-gray-600 mt-1">Complete booking information and management</p>
+ @if($booking->is_complimentary)
+ <p class="mt-2 text-emerald-700 font-semibold">Complimentary · BDT {{ number_format($booking->getComplimentaryAmount(), 2) }} waived · Nothing payable</p>
+ @endif
+ @if($booking->booking_group_id)
+ <a class="inline-block mt-2 text-indigo-600 underline text-sm" href="{{ route('admin.bookings.index', ['group' => $booking->booking_group_id, 'status' => 'all']) }}">View all room-wise bookings in this group</a>
+ @endif
  </div>
  <div class="flex flex-wrap gap-2">
  <button onclick="printReservationLetter()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
@@ -70,6 +76,9 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <i class="fas fa-plus-circle"></i>
  <span>Extra Charges</span>
  </button>
+ @if(in_array($booking->status, ['confirmed', 'checked_in']) && $checkInDate->lte($today) && $checkOutDate->gt($today))
+ <button onclick="openRoomShift()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"><i class="fas fa-exchange-alt"></i>Room Shift</button>
+ @endif
  <button onclick="openGuestModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition flex items-center gap-2">
  <i class="fas fa-user-plus"></i>
  <span>Add Guest</span>
@@ -273,10 +282,13 @@ $remainingPayment = $booking->getCalculatedRemaining();
  </span>
  </div>
  
- @php $calculatedPaymentStatus = $booking->getCalculatedPaymentStatus(); @endphp
+ @php
+ $calculatedPaymentStatus = $booking->getCalculatedPaymentStatus();
+ $paymentStatusLabel = $booking->is_complimentary ? 'complimentary' : $calculatedPaymentStatus;
+ @endphp
  <!-- Payment Status -->
  <div class="border-2 rounded-lg p-4 text-center
- @if($calculatedPaymentStatus === 'paid') 
+ @if($booking->is_complimentary || $calculatedPaymentStatus === 'paid')
  border-primary-500 bg-green-50
  @elseif($calculatedPaymentStatus === 'partial') 
  border-yellow-500 bg-yellow-50
@@ -284,7 +296,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  border-red-500 bg-red-50
  @endif">
  <i class="fas fa-money-bill-wave text-2xl mb-2
- @if($calculatedPaymentStatus === 'paid') 
+ @if($booking->is_complimentary || $calculatedPaymentStatus === 'paid')
  text-primary-600
  @elseif($calculatedPaymentStatus === 'partial') 
  text-yellow-600
@@ -293,14 +305,14 @@ $remainingPayment = $booking->getCalculatedRemaining();
  @endif"></i>
  <p class="text-xs font-semibold text-gray-600 mb-1">Payment Status</p>
  <span class="inline-block px-3 py-1 rounded-full text-xs font-bold
- @if($calculatedPaymentStatus === 'paid') 
+ @if($booking->is_complimentary || $calculatedPaymentStatus === 'paid')
  bg-green-500 text-white
  @elseif($calculatedPaymentStatus === 'partial') 
  bg-yellow-500 text-gray-900
  @else 
  bg-red-500 text-white
  @endif">
- {{ strtoupper($calculatedPaymentStatus) }}
+ {{ strtoupper($paymentStatusLabel) }}
  </span>
  @if($remainingPayment > 0)
  <p class="text-xs text-gray-600 mt-1">Due: {{ number_format($remainingPayment, 2) }}</p>
@@ -638,6 +650,10 @@ $remainingPayment = $booking->getCalculatedRemaining();
  </div>
  @endif
 
+ @if($booking->is_complimentary)
+ <div class="flex justify-between text-emerald-700 font-semibold"><span>Complimentary:</span><span>-{{ number_format($booking->getComplimentaryAmount(), 2) }}</span></div>
+ <p class="text-sm text-gray-500">{{ $booking->complimentary_reason }}</p>
+ @endif
  <!-- Grand Total -->
  <div class="bg-white text-gray-900 rounded-lg p-3 my-3">
  <div class="flex justify-between items-center">
@@ -667,17 +683,17 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div class="flex justify-between items-center">
  <span>Payment Method:</span>
  <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold uppercase">
- {{ $booking->payment_method }}
+ {{ $booking->is_complimentary ? 'No payment required' : ($booking->payment_method ?? '—') }}
  </span>
  </div>
  <div class="flex justify-between items-center">
  <span>Payment Status:</span>
  <span class="px-3 py-1 rounded-full text-xs font-semibold
- @if($calculatedPaymentStatus === 'paid') bg-green-500 text-white
+ @if($booking->is_complimentary || $calculatedPaymentStatus === 'paid') bg-green-500 text-white
  @elseif($calculatedPaymentStatus === 'partial') bg-yellow-500 text-gray-900
  @else bg-red-500 text-white
  @endif">
- {{ strtoupper($calculatedPaymentStatus) }}
+ {{ strtoupper($paymentStatusLabel) }}
  </span>
  </div>
  </div>
@@ -686,6 +702,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  </div>
  </div>
 
+ @include('admin.bookings.room-shift')
  <!-- Print Invoice (Hidden on screen) -->
  @include('admin.bookings.invoice-template')
  
@@ -1052,6 +1069,9 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <option value="none">No Discount</option>
  <option value="flat">Fixed Amount</option>
  <option value="percentage">Percentage (%)</option>
+ @if(auth()->user()->canApproveDiscounts())
+ <option value="complimentary">Complimentary (fully free)</option>
+ @endif
  </select>
  </div>
  <div id="discount_flat_div" class="hidden">
@@ -1286,6 +1306,20 @@ function togglePaymentModalFields() {
 
 function toggleDiscountFields(forceAutoUpdateAmount = false) {
  const type = document.getElementById('payment_discount_type').value;
+ const complimentary = type === 'complimentary';
+ const method = document.getElementById('payment_modal_method');
+ method.required = !complimentary;
+ method.disabled = complimentary;
+ method.parentElement.classList.toggle('hidden', complimentary);
+ const amount = document.getElementById('payment_amount');
+ amount.readOnly = complimentary;
+ amount.parentElement.classList.toggle('hidden', complimentary);
+ document.querySelector('#paymentForm textarea[name="note"]').required = complimentary;
+ togglePaymentModalFields();
+ if (complimentary) {
+  document.getElementById('payment_modal_bkash').classList.add('hidden');
+  document.getElementById('payment_modal_bank').classList.add('hidden');
+ }
  document.getElementById('discount_flat_div').classList.add('hidden');
  document.getElementById('discount_percentage_div').classList.add('hidden');
  document.getElementById('discount_reference_div').classList.add('hidden');
@@ -1308,6 +1342,7 @@ const remainingBalance = {{ $remainingPayment }};
 
 function getDiscountAmount() {
  const discountType = document.getElementById('payment_discount_type').value;
+ if (discountType === 'complimentary') return remainingBalance;
 
  if (discountType === 'flat') {
  return parseFloat(document.getElementById('discount_amount_input').value) || 0;
@@ -1777,7 +1812,8 @@ async function submitPayment(e) {
  });
 
  if (response.ok) {
- showGlobalModal('success', 'Payment recorded!');
+ const result = await response.json();
+ showGlobalModal('success', result.message || 'Payment recorded!');
  setTimeout(() => location.reload(), 1500);
  } else {
  const data = await response.json();

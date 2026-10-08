@@ -17,7 +17,16 @@ class AuthController extends Controller
             return redirect()->route('admin.dashboard');
         }
         $resortInfo = ResortInfo::first();
-        return view('admin.login', compact('resortInfo'));
+        return response()->view('admin.login', compact('resortInfo'))
+            ->header('Cache-Control', 'no-store, private, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache');
+    }
+
+    public function sessionToken(Request $request)
+    {
+        return response()->json(['token' => $request->session()->token()])
+            ->header('Cache-Control', 'no-store, private, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 
     public function login(Request $request)
@@ -32,7 +41,16 @@ class AuthController extends Controller
             
             ActivityLog::log('User logged in', 'User', Auth::id());
             
-            return redirect()->intended(route('admin.dashboard'));
+            $request->session()->forget('url.intended');
+            if ($request->expectsJson()) {
+                return response()->json(['redirect' => route('admin.dashboard', [], false)])
+                    ->header('Cache-Control', 'no-store, private');
+            }
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'The provided credentials do not match our records.'], 422);
         }
 
         return back()->withErrors([

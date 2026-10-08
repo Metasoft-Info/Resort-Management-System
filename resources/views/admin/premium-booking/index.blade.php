@@ -70,6 +70,9 @@
  </div>
  @endif
 
+ @if(!$existingBooking)
+ @include('admin.premium-booking.billing-mode')
+ @endif
  <!-- Step 1: Room Availability -->
  <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
  <div class="flex items-center mb-3 sm:mb-4">
@@ -174,6 +177,11 @@
  <input type="hidden" id="existing_booking_id" value="{{ $existingBooking->id ?? '' }}">
  
  <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg text-sm"></div>
+ <section id="groupRoomGuests" class="hidden bg-white border border-indigo-200 rounded-xl p-5 mb-6">
+ <h2 class="text-lg font-bold text-gray-800">Room-wise guests &amp; separate bills</h2>
+ <p class="text-sm text-gray-600 mt-1 mb-4">Leave guest details blank to use the main customer below. Each room gets its own booking and bill. Shared discount, extra charges and advance are divided proportionally between rooms; additional guests below belong to the first room.</p>
+ <div id="groupRoomGuestFields" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+ </section>
 
  @if(!isset($existingBooking) || !$existingBooking)
  <!-- Customer Information - Hidden when adding room to existing booking -->
@@ -959,6 +967,7 @@ function proceedToBookingForm() {
  roomsHtml += '</div></div>';
  
  document.getElementById('selectedRoomInfo').innerHTML = roomsHtml;
+ if (typeof renderGroupRoomGuests === 'function') renderGroupRoomGuests();
  
  recalculateAmount();
  document.getElementById('bookingForm').classList.remove('hidden');
@@ -1411,6 +1420,11 @@ async function submitBooking(e) {
  return;
  }
  
+ formData.append('billing_mode', document.querySelector('input[name="billing_mode"]:checked')?.value || 'separate');
+ if (document.querySelector('input[name="billing_mode"]:checked')?.value === 'group') {
+  formData.append('group_request_id', groupBookingRequestId);
+  formData.append('room_guests', JSON.stringify(groupRoomGuests));
+ }
  // Date/time fields
  formData.append('check_in_date', currentSearchDates.checkIn);
  formData.append('check_out_date', currentSearchDates.checkOut);
@@ -1482,7 +1496,7 @@ async function submitBooking(e) {
  if (data.success) {
  const roomCount = selectedRooms.length;
  showGlobalModal('success', `Booking created successfully with ${roomCount} room${roomCount > 1 ? 's' : ''}!`);
- setTimeout(() => { window.location.href = '{{ route("admin.bookings.index") }}'; }, 1500);
+ setTimeout(() => { window.location.href = data.redirect_url || '{{ route("admin.bookings.index") }}'; }, 1500);
  } else {
  // Show detailed error including validation errors
  let errorMsg = data.message || 'Booking failed!';

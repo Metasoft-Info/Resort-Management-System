@@ -34,7 +34,7 @@ class CheckoutInvoiceMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Invoice - Thank You for Staying! - ' . ($this->resortInfo->resort_name ?? 'Tufan Convention Resort') . ' #' . str_pad($this->booking->id, 5, '0', STR_PAD_LEFT),
+            subject: 'Invoice - Thank You for Staying! - ' . ($this->resortInfo->resort_name ?? 'Tufan Resort') . ' #' . str_pad($this->booking->id, 5, '0', STR_PAD_LEFT),
         );
     }
 

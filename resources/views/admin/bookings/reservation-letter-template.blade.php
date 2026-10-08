@@ -3,18 +3,7 @@
  <div class="reservation-container bg-white" style="font-family: 'Times New Roman', Times, serif; font-size: 13px; padding: 10mm 15mm; max-width: 210mm; margin: 0 auto;">
  
  <!-- Header with Logo - Centered -->
- <div style="text-align: center; margin-bottom: 10px;">
- @php $logoPath = ($resortInfo && $resortInfo->header_logo) ? asset('storage/' . $resortInfo->header_logo) : null; @endphp
- @if($logoPath)
- <img src="{{ $logoPath }}" alt="{{ $resortInfo->resort_name ?? 'Resort' }}" style="height: 65px; margin: 0 auto 5px; display: block;">
- @else
- <div style="width: 65px; height: 65px; border: 2px solid #000; border-radius: 50%; margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;">Lake View</div>
- @endif
- <h1 style="font-size: 22px; font-weight: bold; margin: 3px 0; letter-spacing: 1px;">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
- <p style="font-size: 11px; margin: 1px 0; font-style: italic;">It's Institution of Tufan Company Limited</p>
- <p style="font-size: 11px; margin: 1px 0;">{{ $resortInfo->address ?? 'Kamalnagor, Satkhira' }}</p>
- <p style="font-size: 11px; margin: 1px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }}, Mob. {{ $resortInfo->phone ?? '01958 216728' }}</p>
- </div>
+ @include('components.resort-document-heading')
 
  <!-- Title -->
  <div style="text-align: center; margin: 12px 0 10px;">
@@ -228,7 +217,7 @@ $remainingPayment = max(0, $grandTotal - $totalDeposited);
  <p style="margin: 2px 0; font-weight: bold;">Thanking you,</p>
  <p style="margin: 2px 0; font-weight: bold;">{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</p>
  <p style="margin: 2px 0;">{{ $resortInfo->address ?? 'Kamalnagar, Satkhira' }}</p>
- <p style="margin: 2px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }} | Phone: {{ $resortInfo->phone ?? '01958216727' }}</p>
+ <p style="margin: 2px 0;">E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }} | Phone: {{ $resortInfo->phone ?? '01958216728' }}</p>
  </div>
 
  <!-- Developer Credit -->

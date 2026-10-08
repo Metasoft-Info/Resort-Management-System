@@ -102,10 +102,7 @@
         @if($resortInfo && $resortInfo->header_logo)
             <img src="{{ public_path('storage/' . $resortInfo->header_logo) }}" alt="Logo">
         @endif
-        <h1>{{ $resortInfo->resort_name ?? 'Tufan Resort' }}</h1>
-        <p style="font-style: italic;">It's Institution of Tufan Company Limited</p>
-        <p>{{ $resortInfo->address ?? 'Kamalnagor, Satkhira' }}</p>
-        <p>E-mail: {{ $resortInfo->email ?? 'tufanresort@gmail.com' }}, Mob. {{ $resortInfo->phone ?? '01958 216728' }}</p>
+        @include('components.resort-document-heading')
     </div>
 
     <!-- Title -->

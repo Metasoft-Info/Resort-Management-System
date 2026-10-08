@@ -17,5 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response) {
+            if ($response->getStatusCode() === 419 && request()->is('admin/login')) {
+                if (request()->expectsJson()) {
+                    return response()->json(['message' => 'Your session expired. Please try signing in again.'], 419)
+                        ->header('Cache-Control', 'no-store, private');
+                }
+                return redirect()->to(route('admin.login.form', [], false))
+                    ->withInput(request()->only('email'))
+                    ->withErrors(['email' => 'Your sign-in session expired. Please enter your password again.']);
+            }
+            return $response;
+        });
     })->create();

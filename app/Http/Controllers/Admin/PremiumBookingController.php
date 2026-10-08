@@ -167,11 +167,9 @@ class PremiumBookingController extends Controller
     public function book(Request $request)
     {
         try {
-            // DEBUG: Log all incoming request data
-            \Log::info('=== BOOKING REQUEST START ===');
-            \Log::info('All request data:', $request->all());
-            \Log::info('rooms_data raw:', ['raw' => $request->input('rooms_data')]);
-            \Log::info('room_id raw:', ['raw' => $request->input('room_id')]);
+            if (is_string($request->input('room_guests'))) {
+                $request->merge(['room_guests' => json_decode($request->input('room_guests'), true)]);
+            }
             
             // Parse additional_guests if it's a JSON string
             $additionalGuestsRaw = $request->input('additional_guests');
@@ -232,6 +230,16 @@ class PremiumBookingController extends Controller
             }
 
             $validated = $request->validate([
+                'billing_mode' => 'nullable|in:separate,group',
+                'group_request_id' => 'required_if:billing_mode,group|nullable|uuid',
+                'room_guests' => 'nullable|array',
+                'room_guests.*.customer_name' => 'nullable|string|max:255',
+                'room_guests.*.customer_phone' => 'nullable|string|max:30',
+                'room_guests.*.customer_nid' => 'nullable|string|max:100',
+                'room_guests.*.customer_email' => 'nullable|email|max:255',
+                'room_guests.*.customer_address' => 'nullable|string|max:1000',
+                'room_guests.*.company_name' => 'nullable|string|max:255',
+                'room_guests.*.number_of_guests' => 'nullable|integer|min:1|max:100',
                 'room_id' => 'nullable|exists:rooms,id',
                 'check_in_date' => 'required|date',
                 'check_out_date' => 'required|date|after:check_in_date',
@@ -257,9 +265,9 @@ class PremiumBookingController extends Controller
                 'vat_enabled' => 'nullable|boolean',
                 'vat_amount' => 'nullable|numeric',
                 'discount_type' => 'nullable|in:none,percentage,flat',
-                'discount_percentage' => 'nullable|numeric',
-                'discount_amount' => 'nullable|numeric',
-                'extra_charges' => 'nullable|numeric',
+                'discount_percentage' => 'nullable|numeric|min:0|max:100',
+                'discount_amount' => 'nullable|numeric|min:0',
+                'extra_charges' => 'nullable|numeric|min:0',
                 'extra_charges_description' => 'nullable|string',
                 'extra_charges_data' => 'nullable|array',
                 'advance_payment' => 'nullable|numeric|min:0',
@@ -380,6 +388,7 @@ class PremiumBookingController extends Controller
             if (!empty($roomIds)) {
                 $lockedRooms = Room::with('roomType')
                     ->whereIn('id', $roomIds)
+                    ->orderBy('id')
                     ->lockForUpdate()
                     ->get()
                     ->keyBy('id');
@@ -412,6 +421,17 @@ class PremiumBookingController extends Controller
                 }
             }
             
+            if (($validated['billing_mode'] ?? 'separate') === 'group') {
+                $existingGroup = \App\Models\BookingGroup::whereKey($validated['group_request_id'])->lockForUpdate()->first();
+                if ($existingGroup) {
+                    abort_unless((int) $existingGroup->created_by_id === (int) Auth::id(), 403);
+                    DB::commit();
+                    return response()->json(['success' => true, 'message' => 'Group booking already created.',
+                        'booking' => $existingGroup->bookings()->first(),
+                        'redirect_url' => route('admin.bookings.index', ['group' => $existingGroup->id, 'status' => 'all'])]);
+                }
+            }
+
             foreach ($roomIds as $roomId) {
                 // Check if room is already booked for these dates/times
                 $hasConflict = Booking::with('bookingRooms')
@@ -454,6 +474,20 @@ class PremiumBookingController extends Controller
                     'success' => false,
                     'message' => 'Room(s) ' . implode(', ', $unavailableRooms) . ' already booked for these dates. Please select different rooms or dates.'
                 ], 409);
+            }
+
+            if (($validated['billing_mode'] ?? 'separate') === 'group') {
+                if (empty($roomsData)) {
+                    $room = $lockedRooms->get((int) $singleRoomId);
+                    $roomsData = [['roomId' => $room->id, 'roomNumber' => $room->room_number, 'pricePerNight' => $this->resolveRoomRate($room)]];
+                }
+                $groupBookings = app(\App\Services\GroupRoomBookingService::class)->create(
+                    $validated, $roomsData, $validated['room_guests'] ?? [], $validated['group_request_id'], $additionalGuestsData
+                );
+                DB::commit();
+                return response()->json(['success' => true, 'message' => $groupBookings->count() . ' separate room bookings and bills created.',
+                    'booking' => $groupBookings->first(),
+                    'redirect_url' => route('admin.bookings.index', ['group' => $validated['group_request_id'], 'status' => 'all'])]);
             }
 
             $booking = Booking::create($validated);

@@ -19,6 +19,7 @@ class Booking extends Model
         'food_package_id', 'food_package_guests', 'food_package_cost', 'selected_addons', 'addons_cost', 
         'extras', 'additional_guests', 'notes', 'ac_preference', 'vat_enabled', 'vat_amount', 
         'bkash_number', 'bank_name', 'created_by_id', 'updated_by_id',
+        'booking_group_id', 'is_complimentary', 'complimentary_reason', 'complimentary_at', 'complimentary_by_id',
     ];
 
     /**
@@ -59,6 +60,8 @@ class Booking extends Model
             'customer_nid_document' => 'array',
             'passport_document' => 'array',
             'visiting_card' => 'array',
+            'is_complimentary' => 'boolean',
+            'complimentary_at' => 'datetime',
         ];
     }
 
@@ -103,6 +106,16 @@ class Booking extends Model
     public function bookingRooms()
     {
         return $this->hasMany(BookingRoom::class);
+    }
+
+    public function roomShifts()
+    {
+        return $this->hasMany(BookingRoomShift::class)->orderBy('id');
+    }
+
+    public function bookingGroup()
+    {
+        return $this->belongsTo(BookingGroup::class);
     }
 
     // Default hotel check-in/check-out time
@@ -257,6 +270,9 @@ class Booking extends Model
         $bookingRooms = $this->relationLoaded('bookingRooms')
             ? $this->bookingRooms
             : $this->bookingRooms()->with('room.roomType')->get();
+        $hasRoomShiftHistory = $this->relationLoaded('roomShifts')
+            ? $this->roomShifts->isNotEmpty()
+            : ($this->exists && $this->roomShifts()->exists());
 
         // Some callers eager-load only bookingRooms. Load the current room
         // price as well so a stale historical snapshot cannot undercharge.
@@ -311,7 +327,10 @@ class Booking extends Model
                 : null;
             $currentPublishedRate = $room?->price_per_night ?? $room?->roomType?->base_price;
             $snapshotRate = $bookingRoom->price_per_night;
-            $rate = $currentPublishedRate !== null && (float) $currentPublishedRate > 0
+            // Once a room has been shifted, the active assignment already
+            // stores the rate accepted at shift time. Later room price edits
+            // must not silently reprice any part of this stay.
+            $rate = !$hasRoomShiftHistory && $currentPublishedRate !== null && (float) $currentPublishedRate > 0
                 ? (float) $currentPublishedRate
                 : (float) ($snapshotRate ?? 0);
 
@@ -351,7 +370,26 @@ class Booking extends Model
             ]);
         }
 
-        return $breakdown;
+        // Closed room stays remain part of the bill after a shift. They are
+        // separate segments, including a return to a previously used room.
+        $shifts = $this->relationLoaded('roomShifts') ? $this->roomShifts
+            : ($this->exists ? $this->roomShifts()->with('fromRoom.roomType')->get() : collect());
+        foreach ($shifts as $shift) {
+            $breakdown->push([
+                'booking_room_id' => null,
+                'room_id' => $shift->from_room_id,
+                'room' => $shift->fromRoom,
+                'room_number' => $shift->from_room_number,
+                'check_in_date' => $shift->occupied_from,
+                'check_out_date' => $shift->shift_date,
+                'nights' => (int) $shift->billed_nights,
+                'price_per_night' => (float) $shift->previous_rate,
+                'amount' => (float) $shift->billed_amount,
+                'shifted' => true,
+            ]);
+        }
+
+        return $breakdown->sortBy(fn ($line) => (string) $line['check_in_date'])->values();
     }
 
     // Calculate actual room rent from the canonical room breakdown.
@@ -368,6 +406,7 @@ class Booking extends Model
 
     public function getDiscountAmount(): float
     {
+        if ($this->is_complimentary) return 0.0;
         $baseAmount = $this->getCalculatedTotal();
         $discountType = $this->discount_type ?? 'none';
 
@@ -385,6 +424,7 @@ class Booking extends Model
 
     public function getVatAmount(): float
     {
+        if ($this->is_complimentary) return 0.0;
         $afterDiscount = max(0, $this->getCalculatedTotal() - $this->getDiscountAmount());
 
         // VAT is calculated on the amount after discount everywhere.
@@ -436,11 +476,29 @@ class Booking extends Model
     // Get grand total (Room Rent + Extra - Discount + VAT)
     public function getGrandTotal()
     {
+        if ($this->is_complimentary) return 0.0;
         $baseAmount = $this->getCalculatedTotal();
         $afterDiscount = max(0, $baseAmount - $this->getDiscountAmount());
         $extraCharges = max(0, (float) ($this->extra_charges ?? 0));
 
         return round($afterDiscount + $extraCharges + $this->getVatAmount(), 2);
+    }
+
+    public function getComplimentaryAmount(): float
+    {
+        if (!$this->is_complimentary) return 0.0;
+
+        // Report the amount that would otherwise have been payable, including
+        // any approved discount and VAT, rather than the undiscounted room rent.
+        $roomRent = $this->getCalculatedTotal();
+        $discountType = $this->discount_type ?? 'none';
+        $discount = $discountType === 'percentage'
+            ? min($roomRent, $roomRent * min(100, max(0, (float) $this->discount_percentage)) / 100)
+            : ($discountType === 'flat' ? min($roomRent, max(0, (float) $this->discount_amount)) : 0.0);
+        $afterDiscount = max(0, $roomRent - $discount);
+        $vat = $this->vat_enabled ? round($afterDiscount * 0.15, 2) : 0.0;
+
+        return round($afterDiscount + max(0, (float) $this->extra_charges) + $vat, 2);
     }
 
     /**
@@ -512,11 +570,12 @@ class Booking extends Model
         $extraCharges = max(0, round((float) ($this->extra_charges ?? 0), 2));
         $afterDiscount = max(0, $roomRent - $discount);
         $vat = $this->getVatAmount();
-        $grandTotal = round($afterDiscount + $extraCharges + $vat, 2);
+        $grandTotal = $this->is_complimentary ? 0.0 : round($afterDiscount + $extraCharges + $vat, 2);
         $deposited = $this->getTotalDeposited();
 
         return [
             'room_rent' => $roomRent,
+            'complimentary' => $this->getComplimentaryAmount(),
             'discount' => $discount,
             'extra_charges' => $extraCharges,
             'vat' => $vat,
@@ -573,6 +632,7 @@ class Booking extends Model
 
         return [
             'room_rent' => round((float) $snapshot->room_rent, 2),
+            'complimentary' => round((float) $snapshot->complimentary, 2),
             'discount' => round((float) $snapshot->discount, 2),
             'extra_charges' => round((float) $snapshot->extra_charges, 2),
             'vat' => round((float) $snapshot->vat, 2),
@@ -688,6 +748,7 @@ class Booking extends Model
             'check_in_date' => $this->check_in_date?->toDateString(),
             'check_out_date' => $this->check_out_date?->toDateString(),
             'room_rent' => $financials['room_rent'],
+            'complimentary' => $financials['complimentary'],
             'discount' => $financials['discount'],
             'extra_charges' => $financials['extra_charges'],
             'vat' => $financials['vat'],
@@ -714,7 +775,7 @@ class Booking extends Model
             }
         }
 
-        foreach (['room_rent', 'discount', 'extra_charges', 'vat', 'grand_total'] as $amountField) {
+        foreach (['room_rent', 'discount', 'extra_charges', 'vat', 'grand_total', 'complimentary'] as $amountField) {
             if (round((float) $snapshot->{$amountField}, 2) !== round((float) ($payload[$amountField] ?? 0), 2)) {
                 return false;
             }

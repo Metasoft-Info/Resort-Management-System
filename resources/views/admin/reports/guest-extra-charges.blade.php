@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('content')
-<div class="p-6">
+<div class="p-6 report-page">
     @include('admin.reports.partials.shared-header', [
         'title' => 'Guest Extra Charge Report'
     ])

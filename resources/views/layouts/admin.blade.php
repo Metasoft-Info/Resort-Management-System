@@ -857,5 +857,8 @@ function toggleSection(sectionKey) {
  setInterval(loadNotifications, 60000);
  });
  </script>
+@if(request()->routeIs('admin.reports.*'))
+@include('admin.reports.partials.readability')
+@endif
 </body>
 </html>
