@@ -238,6 +238,45 @@ class ReportController extends Controller {
                 )
             )->count();
         }
+
+        // Count room units whose stay started in the selected date range.
+        // A multi-room booking contributes one count per assigned room, not
+        // one count per booking/customer. Cancelled bookings are not sales.
+        $roomsSoldCount = $summaryBookings->sum(function ($booking) use ($filterStartDate, $filterEndDate, $request) {
+            if ($booking->status === 'cancelled' || !$booking->check_in_date) {
+                return 0;
+            }
+
+            $checkInDate = $booking->check_in_date->format('Y-m-d');
+            if ($checkInDate < $filterStartDate || $checkInDate > $filterEndDate) {
+                return 0;
+            }
+
+            $roomAssignments = $booking->bookingRooms->unique('room_id');
+            if ($roomAssignments->isNotEmpty()) {
+                return $roomAssignments->filter(function ($assignment) use ($request) {
+                    if ($request->filled('room_id') && (int) $assignment->room_id !== (int) $request->room_id) {
+                        return false;
+                    }
+
+                    return !$request->filled('room_type_id')
+                        || (int) $assignment->room?->room_type_id === (int) $request->room_type_id;
+                })->count();
+            }
+
+            // Legacy single-room bookings have no normalized assignment row.
+            if (!$booking->room_id) {
+                return 0;
+            }
+            if ($request->filled('room_id') && (int) $booking->room_id !== (int) $request->room_id) {
+                return 0;
+            }
+            if ($request->filled('room_type_id') && (int) $booking->room?->room_type_id !== (int) $request->room_type_id) {
+                return 0;
+            }
+
+            return 1;
+        });
         
         {
             // Paginate the same filtered collection used by the summary.
@@ -276,6 +315,7 @@ class ReportController extends Controller {
             'filterEndDate',
             'filterStartDate',
             'oldGuestCount',
+            'roomsSoldCount',
             'inGuestCount',
             'checkoutCount',
             'dueClearCount',
