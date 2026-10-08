@@ -44,9 +44,19 @@ class GroupRoomBookingService
 
         foreach ($rooms as $index => $room) {
             $guest = $guests[$room['roomId']] ?? [];
+            $useMainCustomer = array_key_exists('use_main_customer', $guest)
+                ? filter_var($guest['use_main_customer'] ?? true, FILTER_VALIDATE_BOOLEAN)
+                : trim((string) ($guest['customer_name'] ?? '')) === '';
+            if (!$useMainCustomer && trim((string) ($guest['customer_name'] ?? '')) === '') {
+                throw ValidationException::withMessages([
+                    'room_guests.' . $room['roomId'] . '.customer_name' => 'Enter a guest name for Room ' . $room['roomNumber'] . ', or select the main customer.',
+                ]);
+            }
             $child = Arr::except($data, ['room_guests', 'billing_mode', 'group_request_id', 'additional_guests']);
-            foreach (['customer_name', 'customer_phone', 'customer_nid', 'customer_email', 'customer_address', 'company_name'] as $field) {
-                if (!empty($guest[$field])) $child[$field] = $guest[$field];
+            if (!$useMainCustomer) {
+                foreach (['customer_name', 'customer_phone', 'customer_nid', 'customer_email', 'customer_address', 'company_name'] as $field) {
+                    if (!empty($guest[$field])) $child[$field] = $guest[$field];
+                }
             }
             // Identity documents belong to the main guest, not a different room's guest.
             if (($child['customer_name'] ?? '') !== $data['customer_name'] || ($child['customer_phone'] ?? '') !== $data['customer_phone']) {

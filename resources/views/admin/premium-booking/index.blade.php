@@ -177,12 +177,6 @@
  <input type="hidden" id="existing_booking_id" value="{{ $existingBooking->id ?? '' }}">
  
  <div id="selectedRoomInfo" class="bg-primary-50 border-l-4 border-primary-600 p-3 sm:p-4 mb-4 sm:mb-6 rounded-lg text-sm"></div>
- <section id="groupRoomGuests" class="hidden bg-white border border-indigo-200 rounded-xl p-5 mb-6">
- <h2 class="text-lg font-bold text-gray-800">Room-wise guests &amp; separate bills</h2>
- <p class="text-sm text-gray-600 mt-1 mb-4">Leave guest details blank to use the main customer below. Each room gets its own booking and bill. Shared discount, extra charges and advance are divided proportionally between rooms; additional guests below belong to the first room.</p>
- <div id="groupRoomGuestFields" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
- </section>
-
  @if(!isset($existingBooking) || !$existingBooking)
  <!-- Customer Information - Hidden when adding room to existing booking -->
  <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
@@ -282,6 +276,19 @@
  </div>
  </div>
  @endif
+
+ <section id="groupRoomGuests" class="hidden w-full min-w-0 overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-white p-4 sm:p-6 mb-5 sm:mb-6">
+ <div class="flex items-start gap-3 mb-4">
+ <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700"><i class="fas fa-file-invoice-dollar"></i></span>
+ <div class="min-w-0">
+ <p class="text-xs font-bold uppercase tracking-wider text-indigo-600">Optional · Per-room setting</p>
+ <h2 class="text-lg sm:text-xl font-bold text-gray-900">Name on each room bill</h2>
+ <p class="mt-1 text-sm leading-relaxed text-gray-600">By default, every room bill uses the main customer entered above. Choose “Different guest” only when a room’s bill should show another person’s name.</p>
+ </div>
+ </div>
+ <div id="groupRoomGuestFields" class="grid min-w-0 grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4"></div>
+ <p class="mt-4 rounded-lg bg-white/80 px-3 py-2 text-xs sm:text-sm text-gray-600"><i class="fas fa-info-circle mr-1 text-indigo-500"></i>Each selected room gets its own booking and bill. Shared discount, extra charge and advance are divided fairly between room bills.</p>
+ </section>
 
  @if(!isset($existingBooking) || !$existingBooking)
  <!-- Additional Guests -->
@@ -654,6 +661,7 @@ async function searchCustomer() {
 
 function fillCustomerInfo(customer) {
  document.getElementById('customer_name').value = customer.customer_name || '';
+ document.getElementById('customer_name').dispatchEvent(new Event('input', {bubbles: true}));
  document.getElementById('customer_nid').value = customer.customer_nid || '';
  document.getElementById('customer_phone').value = customer.customer_phone || '';
  document.getElementById('customer_whatsapp').value = customer.customer_whatsapp || '';
@@ -1537,6 +1545,7 @@ document.getElementById('discount_type').addEventListener('change', recalculateA
  }
  if (params.get('name')) {
  document.getElementById('customer_name').value = decodeURIComponent(params.get('name'));
+ document.getElementById('customer_name').dispatchEvent(new Event('input', {bubbles: true}));
  }
  if (params.get('nid')) {
  document.getElementById('customer_nid').value = params.get('nid');

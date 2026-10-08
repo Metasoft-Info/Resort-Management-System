@@ -233,6 +233,7 @@ class PremiumBookingController extends Controller
                 'billing_mode' => 'nullable|in:separate,group',
                 'group_request_id' => 'required_if:billing_mode,group|nullable|uuid',
                 'room_guests' => 'nullable|array',
+                'room_guests.*.use_main_customer' => 'nullable|boolean',
                 'room_guests.*.customer_name' => 'nullable|string|max:255',
                 'room_guests.*.customer_phone' => 'nullable|string|max:30',
                 'room_guests.*.customer_nid' => 'nullable|string|max:100',
