@@ -1,6 +1,6 @@
 @php
-    $footerName = 'Tufan Resort';
-    $footerPhone = '01958216728';
+    $footerName = $footerName ?? 'Tufan Resort';
+    $footerPhone = $footerPhone ?? '01958216728';
 @endphp
 @include('admin.reports.partials.signature-section')
 
