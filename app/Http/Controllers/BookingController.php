@@ -848,8 +848,16 @@ class BookingController extends Controller
                 'notes' => 'nullable|string',
             ]);
 
-            $roomChanged = (int) $validated['room_id'] !== (int) $booking->room_id;
-            $oldRoomId = $booking->room_id;
+            $assignedRoomIds = $booking->bookingRooms()->pluck('room_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+            $currentRoomId = count($assignedRoomIds) === 1
+                ? $assignedRoomIds[0]
+                : (empty($assignedRoomIds) && $booking->room_id ? (int) $booking->room_id : null);
+            $roomChanged = count($assignedRoomIds) > 1
+                ? !in_array((int) $validated['room_id'], $assignedRoomIds, true)
+                : ($currentRoomId !== null
+                    ? (int) $validated['room_id'] !== $currentRoomId
+                    : !in_array((int) $validated['room_id'], $assignedRoomIds, true));
+            $oldRoomId = $currentRoomId;
             $oldStatus = $booking->status;
             $oldCheckIn = $booking->getCheckInDateTime();
             $oldCheckOut = $booking->getCheckOutDateTime();
@@ -858,8 +866,15 @@ class BookingController extends Controller
             $newCheckIn = \Carbon\Carbon::parse($validated['check_in_date'])->setTimeFromTimeString($newCheckInTime);
             $newCheckOut = \Carbon\Carbon::parse($validated['check_out_date'])->setTimeFromTimeString($newCheckOutTime);
             $this->validateShiftedStayDates($booking, $newCheckIn, $newCheckOut);
-            if ($roomChanged && $booking->roomShifts()->exists()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['room_id' => 'Use Room Shift to change rooms and retain the stay history.']);
+            $today = today('Asia/Dhaka')->toDateString();
+            $isActiveStay = in_array($booking->status, ['confirmed', 'checked_in'], true)
+                && $booking->check_in_date->toDateString() <= $today
+                && $booking->check_out_date->toDateString() > $today;
+            if ($roomChanged && count($assignedRoomIds) > 1) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['room_id' => 'Change rooms for a multi-room booking through its room assignments so none of the booked rooms are lost.']);
+            }
+            if ($roomChanged && ($booking->roomShifts()->exists() || $isActiveStay)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['room_id' => 'Use Room Shift to change rooms during an active stay so the previous room and its bill remain in the booking history.']);
             }
 
             $datesChanged = !$newCheckIn->equalTo($oldCheckIn) || !$newCheckOut->equalTo($oldCheckOut);
