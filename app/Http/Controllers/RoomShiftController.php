@@ -65,6 +65,9 @@ class RoomShiftController extends Controller
                 throw ValidationException::withMessages(['room' => 'The selected room is no longer available for the rest of this stay.']);
             }
             $line = $booking->getRoomBreakdown()->first(fn ($line) => $line['room_id'] === (int) $old->id && empty($line['shifted']));
+            if (!$line) {
+                throw ValidationException::withMessages(['from_room_id' => 'The selected room has no active billable assignment on this booking. Refresh and select the guest’s current room.']);
+            }
             $today = today('Asia/Dhaka');
             $occupiedFrom = Carbon::parse($line['check_in_date']);
             $nights = max(0, (int) $occupiedFrom->diffInDays($today, false));
@@ -90,6 +93,18 @@ class RoomShiftController extends Controller
             $booking->vat_amount = $booking->getVatAmount();
             $booking->updated_by_id = auth()->id();
             $booking->save();
+
+            // Keep the live room board in sync with the room assignment. Do
+            // not release the old room if another stay overlaps it, or if it
+            // was already marked for maintenance/unavailability.
+            if (!in_array($old->status, ['maintenance', 'unavailable'], true)
+                && !$this->hasConflict($booking, $old->id)) {
+                $old->status = 'available';
+                $old->save();
+            }
+            $new->status = 'occupied';
+            $new->save();
+
             ActivityLog::log('Room shifted', 'Booking', $booking->id, $data);
         });
         return response()->json(['message' => 'Room shifted. Previous stay, bill and payment history have been retained.']);

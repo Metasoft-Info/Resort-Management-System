@@ -112,6 +112,65 @@ class BookingRoomAssignmentTest extends TestCase
         $this->assertEquals(6000, $booking->getCalculatedTotal());
     }
 
+    public function test_room_shift_keeps_previous_room_night_in_the_booking_bill(): void
+    {
+        $booking = new Booking();
+        $booking->setRawAttributes([
+            'check_in_date' => '2026-10-11',
+            'check_out_date' => '2026-10-15',
+            'total_amount' => 12000,
+        ], true);
+
+        $newRoom = new class {
+            public string $room_number = '204';
+            public float $price_per_night = 3000;
+            public ?object $roomType = null;
+
+            public function relationLoaded(string $relation): bool
+            {
+                return $relation === 'roomType';
+            }
+        };
+        $activeRoom = new BookingRoom();
+        $activeRoom->setRawAttributes([
+            'room_id' => 7,
+            'price_per_night' => 3000,
+            'check_in_date' => '2026-10-12',
+            'check_out_date' => '2026-10-15',
+        ], true);
+        $activeRoom->setRelation('room', $newRoom);
+
+        $shift = new \App\Models\BookingRoomShift();
+        $shift->setRawAttributes([
+            'from_room_id' => 9,
+            'to_room_id' => 7,
+            'from_room_number' => '301',
+            'to_room_number' => '204',
+            'occupied_from' => '2026-10-11',
+            'shift_date' => '2026-10-12',
+            'previous_rate' => 3000,
+            'new_rate' => 3000,
+            'billed_nights' => 1,
+            'billed_amount' => 3000,
+        ], true);
+        $oldRoom = new class {
+            public string $room_number = '301';
+        };
+        $shift->setRelation('fromRoom', $oldRoom);
+
+        $booking->setRelation('bookingRooms', new Collection([$activeRoom]));
+        $booking->setRelation('roomShifts', new Collection([$shift]));
+
+        $breakdown = $booking->getRoomBreakdown();
+
+        $this->assertSame(['301', '204'], $breakdown->map(
+            fn (array $line) => $line['room_number'] ?? $line['room']?->room_number
+        )->all());
+        $this->assertSame([1, 3], $breakdown->pluck('nights')->all());
+        $this->assertEquals([3000, 9000], $breakdown->pluck('amount')->all());
+        $this->assertEquals(12000, $booking->getCalculatedTotal());
+    }
+
     public function test_current_published_room_rate_replaces_stale_snapshot_rate(): void
     {
         $booking = new Booking();
