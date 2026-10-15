@@ -618,6 +618,7 @@ class Booking extends Model
                 ->first();
         } else {
             $snapshot = $this->financialSnapshots()
+                ->reorder()
                 ->whereDate('effective_date', '<=', $date)
                 ->orderByDesc('effective_date')
                 ->orderByDesc('id')
@@ -757,7 +758,7 @@ class Booking extends Model
             'recorded_by_id' => \Illuminate\Support\Facades\Auth::id(),
         ];
 
-        $latest = $this->financialSnapshots()->latest('id')->first();
+        $latest = $this->financialSnapshots()->reorder()->latest('id')->first();
         if ($latest && $this->snapshotMatches($latest, $payload)) {
             return $latest;
         }
