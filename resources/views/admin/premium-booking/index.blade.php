@@ -151,24 +151,7 @@
  </div>
 
  @if(!isset($existingBooking) || !$existingBooking)
- <!-- Step 2: Customer Search (Optional) - Hidden when adding room to existing booking -->
- <div class="bg-gradient-to-r from-primary-50 to-primary-50 rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
- <div class="flex items-center mb-3 sm:mb-4">
- <i class="fas fa-user-search text-xl sm:text-2xl lg:text-3xl text-primary-600 mr-2 sm:mr-4"></i>
- <div>
- <h2 class="text-base sm:text-lg lg:text-2xl font-bold text-gray-800">Step 2: Customer Search</h2>
- <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Search by Phone, NID, or Passport to auto-fill</p>
- </div>
- </div>
- <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
- <input type="text" id="searchPhone" placeholder="Enter Phone / NID / Passport..." 
- class="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
- <button onclick="searchCustomer()" class="w-full sm:w-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition shadow-lg text-sm">
- <i class="fas fa-search mr-2"></i>Search
- </button>
- </div>
- <div id="customerSearchResults" class="mt-3 sm:mt-4"></div>
- </div>
+ @include('admin.premium-booking.guest-history')
  @endif
 
  <!-- Step 3: Booking Form -->
@@ -197,8 +180,11 @@
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">Phone *</label>
+ <div class="flex gap-2">
  <input type="tel" id="customer_phone" required
- class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ class="min-w-0 flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+ <button type="button" onclick="searchCustomer(document.getElementById('customer_phone').value, {autofill: false, scroll: true})" class="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"><i class="fas fa-history mr-1" aria-hidden="true"></i>History</button>
+ </div>
  </div>
  <div>
  <label class="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">WhatsApp</label>
@@ -333,6 +319,7 @@
  class="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
  <option value="confirmed">Confirmed</option>
  <option value="pending">Pending</option>
+ <option value="checked_in">Check in now</option>
  </select>
  </div>
  <div>
@@ -622,41 +609,6 @@ function normalizeRoomId(id) {
 function isRoomSelected(roomId) {
  const normalizedId = normalizeRoomId(roomId);
  return selectedRooms.some(r => normalizeRoomId(r.roomId) === normalizedId);
-}
-
-// Customer Search
-async function searchCustomer() {
- const searchQuery = document.getElementById('searchPhone').value.trim();
- const resultsDiv = document.getElementById('customerSearchResults');
- 
- if (!searchQuery) {
- resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700">Please enter Phone, NID, or Passport number</p></div>';
- return;
- }
-
- resultsDiv.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-primary-600"></i><p class="text-gray-600 mt-2">Searching...</p></div>';
-
- try {
- // Use dedicated endpoint that returns latest customer data
- const response = await fetch(`{{ route('admin.premium-booking.search-customer') }}?query=${encodeURIComponent(searchQuery)}`, {
- headers: {
- 'Accept': 'application/json',
- 'X-Requested-With': 'XMLHttpRequest'
- }
- });
- 
- const data = await response.json();
-
- if (data.success && data.customer) {
- fillCustomerInfo(data.customer);
- resultsDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4 mt-4"><p class="text-primary-700"><i class="fas fa-check-circle mr-2"></i>Customer found! Latest information auto-filled below.</p></div>';
- } else {
- resultsDiv.innerHTML = '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4"><p class="text-yellow-700"><i class="fas fa-info-circle mr-2"></i>No previous bookings found</p></div>';
- }
- } catch (error) {
- console.error('Search error:', error);
- resultsDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-4"><p class="text-red-600">Error searching customer</p></div>';
- }
 }
 
 function fillCustomerInfo(customer) {
@@ -1644,4 +1596,7 @@ function removeRoom(bookingId, roomId, roomNumber) {
  xhr.send();
 }
 </script>
+@if(!$existingBooking)
+@include('admin.premium-booking.guest-history-script')
+@endif
 @endsection
