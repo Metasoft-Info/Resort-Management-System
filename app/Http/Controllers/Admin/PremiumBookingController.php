@@ -8,6 +8,7 @@ use App\Models\BookingRoom;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Mail\BookingConfirmationMail;
+use App\Services\ReturningGuestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class PremiumBookingController extends Controller
         $roomTypes = RoomType::all();
         $existingBooking = null;
         $preselectedRoom = null;
+        $returningGuestProfile = null;
         
         // If booking_id is provided, load existing booking for adding rooms
         if ($request->has('booking_id')) {
@@ -33,8 +35,13 @@ class PremiumBookingController extends Controller
         if ($request->has('room')) {
             $preselectedRoom = Room::with('roomType')->find($request->room);
         }
+
+        if (!$existingBooking && $request->filled('guest_booking_id')) {
+            $request->validate(['guest_booking_id' => 'required|integer|exists:bookings,id']);
+            $returningGuestProfile = ReturningGuestService::profile(Booking::findOrFail($request->guest_booking_id));
+        }
         
-        return view('admin.premium-booking.index', compact('roomTypes', 'existingBooking', 'preselectedRoom'));
+        return view('admin.premium-booking.index', compact('roomTypes', 'existingBooking', 'preselectedRoom', 'returningGuestProfile'));
     }
 
     /**
@@ -57,42 +64,18 @@ class PremiumBookingController extends Controller
     }
 
     /**
-     * Search for customer by phone, NID, or passport and return the most recently updated record
+     * Find recent stays by phone, NID or passport with reusable guest profiles.
      */
     public function searchCustomer(Request $request)
     {
-        $query = $request->input('query') ?? $request->input('phone');
-        
-        if (!$query) {
-            return response()->json(['success' => false, 'message' => 'Search query required']);
+        $request->validate(['query' => 'nullable|string|max:100', 'phone' => 'nullable|string|max:100']);
+        $query = trim((string) ($request->input('query') ?? $request->input('phone')));
+        if ($query === '') {
+            return response()->json(['success' => false, 'message' => 'Search query required'], 422);
         }
-        
-        // Get the most recently updated booking matching phone, NID, or passport
-        $booking = Booking::where('customer_phone', $query)
-            ->orWhere('customer_nid', $query)
-            ->orWhere('passport_number', $query)
-            ->orderBy('updated_at', 'desc')
-            ->first();
-        
-        if ($booking) {
-            return response()->json([
-                'success' => true,
-                'customer' => [
-                    'customer_name' => $booking->customer_name,
-                    'customer_nid' => $booking->customer_nid,
-                    'customer_phone' => $booking->customer_phone,
-                    'customer_whatsapp' => $booking->customer_whatsapp,
-                    'customer_email' => $booking->customer_email,
-                    'passport_number' => $booking->passport_number,
-                    'customer_address' => $booking->customer_address,
-                    'company_name' => $booking->company_name,
-                    'reference_name' => $booking->reference_name,
-                    'reference_phone' => $booking->reference_phone,
-                ]
-            ]);
-        }
-        
-        return response()->json(['success' => false, 'message' => 'No customer found']);
+
+        return response()->json(app(ReturningGuestService::class)->search($query))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function search(Request $request)
@@ -109,7 +92,7 @@ class PremiumBookingController extends Controller
         $nights = max(1, (int) $checkIn->diffInDays($checkOut));
 
         // Get all rooms
-        $query = Room::with('roomType');
+        $query = Room::with('roomType')->whereNotIn('status', ['maintenance', 'unavailable']);
         
         if ($roomTypeId) {
             $query->where('room_type_id', $roomTypeId);
@@ -258,7 +241,7 @@ class PremiumBookingController extends Controller
                 'reference_phone' => 'nullable|string',
                 'number_of_guests' => 'required|integer|min:1',
                 'ac_preference' => 'required|in:ac,non-ac',
-                'status' => 'required|in:confirmed,pending',
+                'status' => 'required|in:confirmed,pending,checked_in',
                 'notes' => 'nullable|string',
                 // The browser total is only a preview. The server recalculates
                 // it from locked room rates and the selected dates below.
@@ -290,6 +273,15 @@ class PremiumBookingController extends Controller
                 'additional_guests.*.phone' => 'nullable|string',
                 'additional_guests.*.company_name' => 'nullable|string',
             ]);
+
+            $today = today('Asia/Dhaka')->toDateString();
+            if ($validated['status'] === 'checked_in'
+                && (Carbon::parse($validated['check_in_date'])->toDateString() > $today
+                    || Carbon::parse($validated['check_out_date'])->toDateString() <= $today)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Direct check-in requires a stay that includes today, with checkout after today.',
+                ]);
+            }
 
             // Handle file uploads - support pre-uploaded paths and multiple files
             $docFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
@@ -402,6 +394,12 @@ class PremiumBookingController extends Controller
                     ], 422);
                 }
 
+                if ($lockedRooms->contains(fn ($room) => in_array($room->status, ['maintenance', 'unavailable'], true))) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'room_id' => 'A selected room is unavailable or under maintenance. Please select another room.',
+                    ]);
+                }
+
                 // Never trust a price supplied by JavaScript. Store the rate
                 // that was read while the room row was locked.
                 $bookingNights = max(1, (int) $checkIn->diffInDays($checkOut));
@@ -485,6 +483,9 @@ class PremiumBookingController extends Controller
                 $groupBookings = app(\App\Services\GroupRoomBookingService::class)->create(
                     $validated, $roomsData, $validated['room_guests'] ?? [], $validated['group_request_id'], $additionalGuestsData
                 );
+                if ($validated['status'] === 'checked_in') {
+                    Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
+                }
                 DB::commit();
                 return response()->json(['success' => true, 'message' => $groupBookings->count() . ' separate room bookings and bills created.',
                     'booking' => $groupBookings->first(),
@@ -577,6 +578,9 @@ class PremiumBookingController extends Controller
             $booking->payment_status = $booking->getCalculatedPaymentStatus();
             $booking->save();
 
+            if ($validated['status'] === 'checked_in') {
+                Room::whereIn('id', $roomIds)->update(['status' => 'occupied']);
+            }
             DB::commit();
 
             // Send confirmation email if booking is confirmed and customer has email

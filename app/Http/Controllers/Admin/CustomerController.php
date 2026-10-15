@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ConventionBooking;
+use App\Services\ReturningGuestService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -113,7 +114,7 @@ class CustomerController extends Controller
         $phone = urldecode($phone);
         
         // Get customer info from most recent booking
-        $customer = Booking::where('customer_phone', $phone)->latest()->first() 
+        $customer = ReturningGuestService::forPhone($phone)->latest()->first()
                 ?? ConventionBooking::where('customer_phone', $phone)->latest()->first();
 
         if (!$customer) {
@@ -121,8 +122,8 @@ class CustomerController extends Controller
         }
 
         // Get all room bookings for this customer
-        $roomBookings = Booking::where('customer_phone', $phone)
-            ->with(['room.roomType', 'bookingRooms.room.roomType', 'payments'])
+        $roomBookings = ReturningGuestService::forPhone($phone)
+            ->with(['room.roomType', 'bookingRooms.room.roomType', 'roomShifts.fromRoom.roomType', 'payments'])
             ->orderBy('created_at', 'desc')
             ->get();
 

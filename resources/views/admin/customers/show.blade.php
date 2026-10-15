@@ -76,7 +76,7 @@
  <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
  <div class="flex items-center justify-between mb-4">
  <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-bed mr-2 text-blue-600"></i>Room Booking History</h2>
- <a href="{{ route('admin.bookings.create') }}?phone={{ $customer->customer_phone }}&name={{ urlencode($customer->customer_name) }}" 
+ <a href="{{ route('admin.premium-booking.index', ['phone' => $customer->customer_phone]) }}"
  class="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700">
  <i class="fas fa-plus mr-1"></i>New Booking
  </a>
@@ -100,7 +100,7 @@
  @forelse($roomBookings as $booking)
  <tr class="hover:bg-gray-50">
  <td class="px-3 py-2">{{ $booking->created_at->format('d/m/Y') }}</td>
- <td class="px-3 py-2 font-semibold text-primary-700">{{ $booking->bookingRooms->count() > 0 ? $booking->bookingRooms->map(fn($br) => $br->room->room_number)->join(', ') : ($booking->room ? $booking->room->room_number : 'N/A') }}</td>
+ <td class="px-3 py-2 font-semibold text-primary-700">{{ $booking->getRoomBreakdown()->map(fn($line) => $line['room_number'] ?? $line['room']?->room_number)->filter()->unique()->join(', ') ?: 'N/A' }}</td>
  <td class="px-3 py-2">{{ \Carbon\Carbon::parse($booking->check_in_date)->format('d/m/Y') }}</td>
  <td class="px-3 py-2">{{ \Carbon\Carbon::parse($booking->check_out_date)->format('d/m/Y') }}</td>
  <td class="px-3 py-2 text-right font-semibold">{{ number_format($booking->getGrandTotal(), 0) }}</td>
@@ -120,6 +120,7 @@
  <a href="{{ route('admin.bookings.show', $booking) }}" class="text-primary-600 hover:text-primary-800">
  <i class="fas fa-eye"></i>
  </a>
+ <a href="{{ route('admin.premium-booking.index', ['guest_booking_id' => $booking->id]) }}" class="ml-2 inline-block rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">Book again</a>
  </td>
  </tr>
  @empty
