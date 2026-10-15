@@ -174,6 +174,118 @@ class ReturningGuestAndBillCorrectionTest extends TestCase
         $this->assertEquals(1500, Booking::findOrFail(366)->discount_amount);
     }
 
+    private function confirmedReceiptFixture(float $amount = 2000): BookingPayment
+    {
+        Schema::create('activity_logs', function (Blueprint $table) {
+            $table->id(); $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('action'); $table->string('entity_type'); $table->unsignedBigInteger('entity_id');
+            $table->text('changes')->nullable(); $table->timestamps();
+        });
+        $booking = $this->previousStay([
+            'status' => 'checked_in', 'discount_type' => 'none', 'discount_amount' => 0,
+            'payment_status' => 'partial', 'created_at' => '2026-10-14 11:27:24',
+        ]);
+        DB::table('bookings')->where('id', $booking->id)->update(['id' => 366]);
+        DB::table('booking_rooms')->where('booking_id', $booking->id)->update(['booking_id' => 366]);
+        $payment = new BookingPayment();
+        $payment->forceFill([
+            'id' => 347, 'booking_id' => 366, 'amount' => $amount, 'method' => 'cash', 'type' => 'payment',
+            'payment_date' => '2026-10-15', 'recorded_by_id' => 1,
+            'request_id' => '812da458-01c4-47aa-ad68-878da1b1a573',
+        ])->save();
+
+        return $payment;
+    }
+
+    public function test_confirmed_fifty_percent_discount_and_actual_receipt_reconcile_all_bill_totals(): void
+    {
+        $paymentBefore = $this->confirmedReceiptFixture()->getAttributes();
+        $earlierMigration = require database_path('migrations/2026_10_15_000001_clear_booking_366_discount_and_correct_dates.php');
+        $earlierMigration->up();
+        $migration = require database_path('migrations/2026_10_15_000002_correct_booking_366_confirmed_discount_and_receipt.php');
+        $migration->up();
+        $migration->up();
+
+        $booking = Booking::findOrFail(366);
+        $this->assertSame('2026-10-12', $booking->check_in_date->toDateString());
+        $this->assertSame('2026-10-15', $booking->check_out_date->toDateString());
+        $this->assertSame('checked_in', $booking->status);
+        $this->assertSame('percentage', $booking->discount_type);
+        $this->assertEquals(50, $booking->discount_percentage);
+        $this->assertEquals(1500, $booking->discount_amount);
+        $this->assertSame('approved', $booking->discount_status);
+        $this->assertSame('paid', $booking->payment_status);
+        $this->assertEquals(0, $booking->remaining_payment);
+        $financials = $booking->getFinancialBreakdown();
+        foreach (['room_rent' => 3000.0, 'discount' => 1500.0, 'grand_total' => 1500.0, 'deposited' => 1500.0, 'remaining' => 0.0] as $field => $expected) {
+            $this->assertEquals($expected, $financials[$field]);
+        }
+        $report = $booking->getReportFinancials('2026-10-15', '2026-10-15');
+        foreach (['room_rent' => 3000.0, 'discount' => 1500.0, 'grand_total' => 1500.0, 'deposited' => 1500.0, 'remaining' => 0.0] as $field => $expected) {
+            $this->assertEquals($expected, $report[$field]);
+        }
+
+        $payment = BookingPayment::findOrFail(347);
+        $this->assertEquals(1500, $payment->amount);
+        foreach (['id', 'booking_id', 'method', 'type', 'recorded_by_id', 'request_id', 'payment_date', 'created_at'] as $field) {
+            $this->assertSame($paymentBefore[$field], $payment->getAttributes()[$field]);
+        }
+        $this->assertSame(1, substr_count($payment->note, '[Booking 366 correction 2026-10-15]'));
+        $this->assertSame(1, BookingPayment::count());
+        $this->assertSame(2, $booking->financialSnapshots()->count());
+        $this->assertSame(1, DB::table('activity_logs')->count());
+        $audit = json_decode(DB::table('activity_logs')->value('changes'), true);
+        $this->assertEquals(2000, $audit['previous_payment_amount']);
+        $this->assertEquals(1500, $audit['corrected_payment_amount']);
+    }
+
+    public function test_confirmed_receipt_correction_skips_when_new_payment_movements_exist(): void
+    {
+        $this->confirmedReceiptFixture();
+        BookingPayment::create(['booking_id' => 366, 'amount' => 500, 'type' => 'payment', 'method' => 'cash', 'recorded_by_id' => 1]);
+        $migration = require database_path('migrations/2026_10_15_000002_correct_booking_366_confirmed_discount_and_receipt.php');
+        $migration->up();
+
+        $this->assertEquals(2000, BookingPayment::findOrFail(347)->amount);
+        $this->assertSame('none', Booking::findOrFail(366)->discount_type);
+        $this->assertSame(0, DB::table('activity_logs')->count());
+    }
+
+    public function test_report_snapshot_uses_the_latest_effective_bill_with_or_without_eager_loading(): void
+    {
+        $booking = $this->previousStay(['discount_type' => 'percentage', 'discount_percentage' => 50]);
+        foreach ([['2026-10-14', 0, 3000], ['2026-10-15', 1500, 1500]] as [$date, $discount, $total]) {
+            $booking->financialSnapshots()->create([
+                'effective_date' => $date, 'check_in_date' => '2026-10-12', 'check_out_date' => '2026-10-15',
+                'room_rent' => 3000, 'discount' => $discount, 'grand_total' => $total,
+            ]);
+        }
+        $earlier = $booking->getFinancialBreakdownAt('2026-10-14');
+        $latest = $booking->getFinancialBreakdownAt('2026-10-15');
+        $this->assertSame(0.0, $earlier['discount']);
+        $this->assertSame(3000.0, $earlier['grand_total']);
+        $this->assertSame(1500.0, $latest['discount']);
+        $this->assertSame(1500.0, $latest['grand_total']);
+        $booking->load('financialSnapshots');
+        $this->assertSame($earlier, $booking->getFinancialBreakdownAt('2026-10-14'));
+        $this->assertSame($latest, $booking->getFinancialBreakdownAt('2026-10-15'));
+    }
+
+    public function test_confirmed_discount_recovery_handles_an_already_corrected_receipt(): void
+    {
+        $this->confirmedReceiptFixture(1500);
+        $migration = require database_path('migrations/2026_10_15_000002_correct_booking_366_confirmed_discount_and_receipt.php');
+        $migration->up();
+        $migration->up();
+
+        $booking = Booking::findOrFail(366);
+        $this->assertEquals(1500, $booking->getGrandTotal());
+        $this->assertEquals(1500, $booking->getTotalDeposited());
+        $this->assertSame('paid', $booking->payment_status);
+        $this->assertSame(1, $booking->financialSnapshots()->count());
+        $this->assertSame(1, DB::table('activity_logs')->count());
+    }
+
     private function checkinRequest(array $overrides = []): Request
     {
         return Request::create('/admin/premium-booking/book', 'POST', array_merge([
