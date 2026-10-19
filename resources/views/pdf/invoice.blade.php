@@ -135,13 +135,12 @@
         $amountInWords = \App\Helpers\NumberToWords::convertTaka($invoiceGrandTotal);
     @endphp
 
-    <!-- Header -->
-    <div class="header">
-        @if($resortInfo && $resortInfo->header_logo)
-            <img src="{{ public_path('storage/' . $resortInfo->header_logo) }}" alt="Logo">
-        @endif
-        @include('components.resort-document-heading')
-    </div>
+    <!-- Resort room invoice header -->
+    @include('components.resort-invoice-heading', [
+        'invoiceLogoSource' => !empty($resortInfo->header_logo)
+            ? public_path('storage/' . $resortInfo->header_logo)
+            : '',
+    ])
 
     <!-- Title -->
     <div class="title">

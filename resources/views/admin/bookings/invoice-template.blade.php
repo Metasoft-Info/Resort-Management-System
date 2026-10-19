@@ -2,7 +2,7 @@
 <div id="invoice-print-area" class="hidden print:block">
  <div class="invoice-container bg-white" style="font-family: 'Times New Roman', Times, serif; font-size: 15px; padding: 8mm 12mm; width: 210mm; min-height: 287mm; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column;">
  
- @include('components.resort-document-heading')
+ @include('components.resort-invoice-heading')
 
  <!-- BILL Title -->
  <div style="text-align: center; margin: 2px 0;">
