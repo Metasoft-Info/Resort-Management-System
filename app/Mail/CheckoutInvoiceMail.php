@@ -54,9 +54,15 @@ class CheckoutInvoiceMail extends Mailable
     public function attachments(): array
     {
         try {
+            $logoPath = $this->resortInfo?->header_logo
+                ? public_path('storage/' . $this->resortInfo->header_logo)
+                : '';
+            $invoiceLogoSource = $logoPath !== '' && is_file($logoPath) ? $logoPath : '';
+
             $pdf = Pdf::loadView('admin.bookings.invoice-template', [
                 'booking' => $this->booking,
                 'resortInfo' => $this->resortInfo,
+                'invoiceLogoSource' => $invoiceLogoSource,
             ]);
 
             return [
