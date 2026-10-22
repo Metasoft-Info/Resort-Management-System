@@ -86,6 +86,8 @@
             $stayRates = $selectedBooking->getRoomBreakdown()->pluck('price_per_night')->values()->all();
             $stayDiscountType = $selectedBooking->discount_type ?: 'none';
             $stayDiscountValue = $stayDiscountType === 'percentage' ? (float) $selectedBooking->discount_percentage : (float) $selectedBooking->discount_amount;
+            $stayErrorFields = ['check_in_date', 'check_out_date', 'shift_dates', 'shift_rates', 'active_room_rate', 'missing_from_room_id', 'missing_shift_date', 'missing_previous_rate'];
+            $openStayPanel = old('correction_scope') === 'stay' || collect($stayErrorFields)->contains(fn ($field) => $errors->has($field));
         @endphp
 
         <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm md:p-6">
@@ -113,7 +115,23 @@
                     </div>
                 @endforeach
             </div>
+        </section>
 
+        <div class="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" role="tablist" aria-label="Reconciliation tools">
+            <div class="grid gap-2 sm:grid-cols-2">
+                <button type="button" id="reconciliation-finance-tab" role="tab" aria-controls="reconciliation-finance-panel" aria-selected="{{ $openStayPanel ? 'false' : 'true' }}" class="reconciliation-tab flex items-center gap-3 rounded-xl px-4 py-3 text-left transition {{ $openStayPanel ? 'text-slate-600 hover:bg-slate-50' : 'bg-indigo-50 text-indigo-800 shadow-sm ring-1 ring-indigo-100' }}">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700"><i class="fas fa-receipt"></i></span>
+                    <span><span class="block font-bold">Bill &amp; receipts</span><span class="mt-0.5 block text-xs font-normal opacity-75">Correct bill amounts and existing payments</span></span>
+                </button>
+                <button type="button" id="reconciliation-stay-tab" role="tab" aria-controls="reconciliation-stay-panel" aria-selected="{{ $openStayPanel ? 'true' : 'false' }}" class="reconciliation-tab flex items-center gap-3 rounded-xl px-4 py-3 text-left transition {{ $openStayPanel ? 'bg-cyan-50 text-cyan-800 shadow-sm ring-1 ring-cyan-100' : 'text-slate-600 hover:bg-slate-50' }}">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700"><i class="fas fa-clock-rotate-left"></i></span>
+                    <span><span class="block font-bold">Stay &amp; room history</span><span class="mt-0.5 block text-xs font-normal opacity-75">Correct dates and preserved room shifts</span></span>
+                </button>
+            </div>
+        </div>
+
+        <div id="reconciliation-finance-panel" role="tabpanel" tabindex="0" aria-labelledby="reconciliation-finance-tab" {{ $openStayPanel ? 'hidden' : '' }}>
+        <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm md:p-6">
             <div class="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
                 <div>
                     <h3 class="mb-3 font-bold text-slate-800"><i class="fas fa-receipt mr-2 text-indigo-600"></i>Existing payment ledger</h3>
@@ -146,6 +164,7 @@
                 <div>
                     <form method="POST" action="{{ route('admin.booking-reconciliation.room.update', $selectedBooking) }}" id="reconcileForm" class="space-y-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5">
                         @csrf
+                        <input type="hidden" name="correction_scope" value="bill">
                         <div>
                             <h3 class="font-bold text-slate-900"><i class="fas fa-sliders mr-2 text-indigo-600"></i>Correct bill and receipts</h3>
                             <p class="mt-1 text-xs text-slate-500">Enter the discount and the amount actually received for each existing payment row.</p>
@@ -214,7 +233,9 @@
                 </div>
             </div>
         </section>
+        </div>
 
+        <div id="reconciliation-stay-panel" role="tabpanel" tabindex="0" aria-labelledby="reconciliation-stay-tab" {{ $openStayPanel ? '' : 'hidden' }}>
         <section class="rounded-2xl border border-cyan-100 bg-white p-5 shadow-sm md:p-6">
             <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
                 <div><p class="text-xs font-bold uppercase tracking-wider text-cyan-700">Stay and room timeline</p><h3 class="mt-1 text-xl font-bold text-slate-900">Correct dates or retain the previous-room bill</h3><p class="mt-1 max-w-3xl text-sm text-slate-500">This updates the booking dates and recalculates nights/rent without deleting existing shift rows, room IDs, or payment history.</p></div>
@@ -226,6 +247,7 @@
             @else
                 <form method="POST" action="{{ route('admin.booking-reconciliation.stay.update', $selectedBooking) }}" class="mt-5 space-y-5">
                     @csrf
+                    <input type="hidden" name="correction_scope" value="stay">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label class="block text-sm font-semibold text-slate-700">Correct check-in date<input type="date" name="check_in_date" value="{{ old('check_in_date', $selectedBooking->check_in_date?->format('Y-m-d')) }}" required class="stay-checkin mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
                         <label class="block text-sm font-semibold text-slate-700">Correct check-out date<input type="date" name="check_out_date" value="{{ old('check_out_date', $selectedBooking->check_out_date?->format('Y-m-d')) }}" required class="stay-checkout mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
@@ -272,6 +294,7 @@
                 </form>
             @endif
         </section>
+        </div>
 
         <script>
         (() => {
@@ -326,11 +349,14 @@
         </script>
 
         @if($selectedBooking->financialSnapshots->isNotEmpty())
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div class="border-b border-slate-100 px-5 py-4">
-                    <h3 class="font-bold text-slate-800"><i class="fas fa-clock-rotate-left mr-2 text-indigo-600"></i>Recent bill history</h3>
-                    <p class="mt-1 text-xs text-slate-500">Historical snapshots are retained; this tool adds corrected snapshots from the selected effective date onward.</p>
-                </div>
+            <details class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <summary class="cursor-pointer list-none px-5 py-4 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                    <span class="flex items-center justify-between gap-3">
+                        <span><span class="block font-bold text-slate-800"><i class="fas fa-clock-rotate-left mr-2 text-indigo-600"></i>Recent bill history</span><span class="mt-1 block text-xs text-slate-500">Historical snapshots are retained when a correction is applied.</span></span>
+                        <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+                    </span>
+                </summary>
+                <div class="border-t border-slate-100">
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[700px] text-left text-sm">
                         <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Effective date</th><th class="px-4 py-3">Room rent</th><th class="px-4 py-3">Discount</th><th class="px-4 py-3">Bill total</th><th class="px-4 py-3">Reason / recorded by</th></tr></thead>
@@ -347,8 +373,42 @@
                         </tbody>
                     </table>
                 </div>
-            </section>
+                </div>
+            </details>
         @endif
+
+        <script>
+        (() => {
+            const tabs = [...document.querySelectorAll('.reconciliation-tab')];
+            const panels = {
+                'reconciliation-finance-tab': document.getElementById('reconciliation-finance-panel'),
+                'reconciliation-stay-tab': document.getElementById('reconciliation-stay-panel'),
+            };
+            const activeStyles = {
+                'reconciliation-finance-tab': ['bg-indigo-50', 'text-indigo-800', 'shadow-sm', 'ring-1', 'ring-indigo-100'],
+                'reconciliation-stay-tab': ['bg-cyan-50', 'text-cyan-800', 'shadow-sm', 'ring-1', 'ring-cyan-100'],
+            };
+            const activate = selected => tabs.forEach(tab => {
+                const active = tab === selected;
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                tab.tabIndex = active ? 0 : -1;
+                tab.classList.remove(...activeStyles[tab.id], 'text-slate-600');
+                tab.classList.add(...(active ? activeStyles[tab.id] : ['text-slate-600']));
+                panels[tab.id].hidden = !active;
+            });
+            tabs.forEach((tab, index) => {
+                tab.addEventListener('click', () => activate(tab));
+                tab.addEventListener('keydown', event => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+                    tabs[next].focus();
+                    activate(tabs[next]);
+                });
+            });
+            activate(tabs.find(tab => tab.getAttribute('aria-selected') === 'true') || tabs[0]);
+        })();
+        </script>
 
         <script>
         (() => {
