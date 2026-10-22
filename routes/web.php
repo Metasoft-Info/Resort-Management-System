@@ -157,6 +157,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Superadmin-only financial reconciliation for room bookings.
     Route::get('/booking-reconciliation', [BookingReconciliationController::class, 'index'])->name('booking-reconciliation.index');
     Route::post('/booking-reconciliation/room/{booking}', [BookingReconciliationController::class, 'update'])->name('booking-reconciliation.room.update');
+    Route::post('/booking-reconciliation/stay/{booking}', [BookingReconciliationController::class, 'correctStay'])->name('booking-reconciliation.stay.update');
+    Route::get('/booking-reconciliation/convention', [BookingReconciliationController::class, 'conventionIndex'])->name('booking-reconciliation.convention');
+    Route::post('/booking-reconciliation/convention/{conventionBooking}', [BookingReconciliationController::class, 'updateConvention'])->name('booking-reconciliation.convention.update');
 
     // Reports
     Route::get('/reports/room-bookings', [ReportController::class, 'roomBookings'])->name('reports.room-bookings');

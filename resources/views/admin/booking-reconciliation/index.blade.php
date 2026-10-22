@@ -9,10 +9,11 @@
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">Super Admin only</p>
                 <h1 class="mt-1 text-2xl font-bold md:text-3xl">Financial Reconciliation</h1>
-                <p class="mt-2 max-w-3xl text-sm text-indigo-100">Correct a room booking’s discount or an existing payment receipt. The bill, payment status, financial history and reports are recalculated together.</p>
+                <p class="mt-2 max-w-3xl text-sm text-indigo-100">Correct room bills, receipts, stay dates, or existing shift history. Calculations and audit history are updated together.</p>
             </div>
-            <div class="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm">
-                <i class="fas fa-shield-halved mr-2"></i>Every correction requires a reason and is audit logged.
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.booking-reconciliation.convention') }}" class="rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/20"><i class="fas fa-building mr-2"></i>Convention bills</a>
+                <span class="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm"><i class="fas fa-shield-halved mr-2"></i>Reason + confirmation required</span>
             </div>
         </div>
     </div>
@@ -40,7 +41,7 @@
             </div>
             <button class="rounded-xl bg-indigo-700 px-6 py-3 font-semibold text-white hover:bg-indigo-800"><i class="fas fa-search mr-2"></i>Find booking</button>
         </form>
-        <p class="mt-2 text-xs text-slate-500">This tool currently reconciles Resort room-booking finances. Convention bookings and room/date shifts continue through their existing workflows.</p>
+        <p class="mt-2 text-xs text-slate-500">Search room bookings here. Use Convention bills above for hall/event reconciliation. Stay-date and shift corrections preserve existing history.</p>
     </section>
 
     @if($search !== '')
@@ -81,6 +82,10 @@
             $roomNumbers = $selectedBooking->bookingRooms->map(fn($assignment) => $assignment->room?->room_number)->filter()->unique()->implode(', ') ?: $selectedBooking->room?->room_number;
             $discountType = in_array($selectedBooking->discount_type, ['flat', 'percentage'], true) ? $selectedBooking->discount_type : 'none';
             $discountValue = $discountType === 'percentage' ? $selectedBooking->discount_percentage : ($discountType === 'flat' ? $selectedBooking->discount_amount : 0);
+            $activeAssignment = $selectedBooking->bookingRooms->count() === 1 ? $selectedBooking->bookingRooms->first() : null;
+            $stayRates = $selectedBooking->getRoomBreakdown()->pluck('price_per_night')->values()->all();
+            $stayDiscountType = $selectedBooking->discount_type ?: 'none';
+            $stayDiscountValue = $stayDiscountType === 'percentage' ? (float) $selectedBooking->discount_percentage : (float) $selectedBooking->discount_amount;
         @endphp
 
         <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm md:p-6">
@@ -209,6 +214,116 @@
                 </div>
             </div>
         </section>
+
+        <section class="rounded-2xl border border-cyan-100 bg-white p-5 shadow-sm md:p-6">
+            <div class="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
+                <div><p class="text-xs font-bold uppercase tracking-wider text-cyan-700">Stay and room timeline</p><h3 class="mt-1 text-xl font-bold text-slate-900">Correct dates or retain the previous-room bill</h3><p class="mt-1 max-w-3xl text-sm text-slate-500">This updates the booking dates and recalculates nights/rent without deleting existing shift rows, room IDs, or payment history.</p></div>
+                <span class="rounded-full bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-800">Super Admin only · audited</span>
+            </div>
+
+            @if($selectedBooking->roomShifts->isNotEmpty() && !$activeAssignment)
+                <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><strong>This booking has multiple active rooms plus shift history.</strong> The current schema cannot reliably pair each shift with its room line, so this tool blocks timeline edits rather than risking incorrect room bills.</div>
+            @else
+                <form method="POST" action="{{ route('admin.booking-reconciliation.stay.update', $selectedBooking) }}" class="mt-5 space-y-5">
+                    @csrf
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <label class="block text-sm font-semibold text-slate-700">Correct check-in date<input type="date" name="check_in_date" value="{{ old('check_in_date', $selectedBooking->check_in_date?->format('Y-m-d')) }}" required class="stay-checkin mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
+                        <label class="block text-sm font-semibold text-slate-700">Correct check-out date<input type="date" name="check_out_date" value="{{ old('check_out_date', $selectedBooking->check_out_date?->format('Y-m-d')) }}" required class="stay-checkout mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
+                    </div>
+
+                    <div id="stayPreview" class="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4" data-has-shifts="{{ $selectedBooking->roomShifts->isNotEmpty() ? 1 : 0 }}" data-unshifted-rates="{{ json_encode($stayRates) }}" data-active-room-rate="{{ $activeAssignment?->price_per_night ?? 0 }}" data-discount-type="{{ $stayDiscountType }}" data-discount-value="{{ $stayDiscountValue }}" data-extra="{{ $selectedBooking->extra_charges }}" data-vat-enabled="{{ $selectedBooking->vat_enabled ? 1 : 0 }}" data-deposited="{{ $financials['deposited'] }}">
+                        <div class="mb-3 flex items-center justify-between"><h4 class="font-bold text-cyan-950"><i class="fas fa-calculator mr-2"></i>Live stay calculation preview</h4><span class="rounded-full bg-white px-2 py-1 text-xs font-semibold text-cyan-800">Not saved yet</span></div><div class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4"><div><p class="text-xs text-slate-500">Room rent</p><p id="stayPreviewRent" class="font-bold">—</p></div><div><p class="text-xs text-slate-500">Bill total</p><p id="stayPreviewTotal" class="font-bold">—</p></div><div><p class="text-xs text-slate-500">Deposited</p><p id="stayPreviewPaid" class="font-bold">—</p></div><div><p class="text-xs text-slate-500">Remaining</p><p id="stayPreviewDue" class="font-bold">—</p></div></div>
+                    </div>
+
+                    @if($selectedBooking->roomShifts->isNotEmpty())
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full min-w-[680px] text-left text-sm"><thead class="bg-cyan-50 text-xs uppercase text-cyan-900"><tr><th class="px-4 py-3">Retained room segment</th><th class="px-4 py-3">Shift / boundary date</th><th class="px-4 py-3">Previous room nightly rate</th></tr></thead><tbody class="divide-y divide-slate-100">
+                                @foreach($selectedBooking->roomShifts->sortBy('id') as $shift)
+                                    <tr><td class="px-4 py-3"><div class="font-semibold">Room {{ $shift->from_room_number }} → {{ $shift->to_room_number }}</div><div class="text-xs text-slate-500">History #{{ $shift->id }} · {{ $shift->billed_nights }} billed night(s), BDT {{ number_format((float)$shift->billed_amount, 2) }}</div></td><td class="px-4 py-3"><input type="date" name="shift_dates[{{ $shift->id }}]" value="{{ old('shift_dates.'.$shift->id, $shift->shift_date?->format('Y-m-d')) }}" required class="stay-shift-date rounded-lg border border-slate-300 px-3 py-2"></td><td class="px-4 py-3"><div class="flex items-center gap-2"><span class="text-xs text-slate-500">BDT</span><input type="number" min="0" step="0.01" name="shift_rates[{{ $shift->id }}]" value="{{ old('shift_rates.'.$shift->id, number_format((float)$shift->previous_rate, 2, '.', '')) }}" required class="stay-shift-rate w-36 rounded-lg border border-slate-300 px-3 py-2 text-right font-semibold"></div></td></tr>
+                                @endforeach
+                            </tbody></table>
+                        </div>
+                        @if($activeAssignment)
+                            <label class="block max-w-sm text-sm font-semibold text-slate-700">Current room {{ $activeAssignment->room?->room_number }} nightly rate<input type="number" min="0" step="0.01" name="active_room_rate" value="{{ old('active_room_rate', number_format((float)$activeAssignment->price_per_night, 2, '.', '')) }}" class="stay-active-rate mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
+                        @endif
+                        <p class="text-xs text-slate-500">Each corrected boundary becomes the next room segment’s start. The room sequence and original shift IDs stay unchanged; the previous-room bill is recalculated from corrected dates and rates.</p>
+                    @else
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">This booking has no saved room-shift rows. Correcting dates updates all room assignments and recalculates the stay.</div>
+                        @if($selectedBooking->bookingRooms->count() === 1)
+                            <details class="rounded-xl border border-dashed border-cyan-300 bg-cyan-50/50 p-4">
+                                <summary class="cursor-pointer font-semibold text-cyan-900">Add a missing previous-room segment (only if the shift really happened)</summary>
+                                <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                                    <label class="block text-sm font-semibold text-slate-700">Previous room<select name="missing_from_room_id" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"><option value="">Select room</option>@foreach($roomOptions as $roomOption)@if((int)$roomOption->id !== (int)$activeAssignment?->room_id)<option value="{{ $roomOption->id }}" @selected((string)old('missing_from_room_id') === (string)$roomOption->id)>Room {{ $roomOption->room_number }}</option>@endif @endforeach</select></label>
+                                    <label class="block text-sm font-semibold text-slate-700">Shift date<input type="date" name="missing_shift_date" value="{{ old('missing_shift_date') }}" class="stay-missing-date mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
+                                    <label class="block text-sm font-semibold text-slate-700">Previous room rent / night<input type="number" min="0" step="0.01" name="missing_previous_rate" value="{{ old('missing_previous_rate') }}" class="stay-missing-rate mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5"></label>
+                                </div>
+                                <label class="mt-3 flex items-center gap-2 text-sm font-semibold text-cyan-900"><input type="checkbox" id="addMissingShift" name="add_missing_shift" value="1" @checked(old('add_missing_shift')) class="rounded border-cyan-400">I verified this missing room shift and want to add it to the permanent history.</label>
+                                <p class="mt-2 text-xs text-slate-600">The selected previous room will be linked to the currently assigned room. The system creates a new shift record with this superadmin, reason, dates, rates, and recalculated previous-room bill. It does not erase or overwrite existing history.</p>
+                            </details>
+                        @endif
+                    @endif
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-950"><strong><i class="fas fa-calculator mr-2"></i>Automatic recalculation</strong><p class="mt-1">Room rent, VAT, grand total, due, payment status, and financial snapshots are recalculated from the saved room timeline.</p></div>
+                        <label class="block text-sm font-semibold text-slate-700">Reason for date / shift correction <span class="text-rose-600">*</span><textarea name="reason" rows="3" minlength="8" maxlength="1000" required placeholder="Example: Actual stay was 11 Oct in room 301, then shifted to room 204 on 12 Oct." class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal">{{ old('reason') }}</textarea></label>
+                    </div>
+                    <label class="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900"><input type="checkbox" name="confirm_reconcile" value="1" required class="mt-1 rounded border-rose-300 text-rose-700"><span><strong>I checked the actual stay dates and room sequence.</strong> Recalculate the bill and save this correction in the audit history.</span></label>
+                    <button type="submit" class="w-full rounded-xl bg-cyan-700 px-5 py-3 font-bold text-white shadow hover:bg-cyan-800"><i class="fas fa-clock-rotate-left mr-2"></i>Correct stay / shift history and recalculate</button>
+                </form>
+            @endif
+        </section>
+
+        <script>
+        (() => {
+            const card = document.getElementById('stayPreview');
+            if (!card) return;
+            const checkIn = document.querySelector('.stay-checkin');
+            const checkOut = document.querySelector('.stay-checkout');
+            const dateDiff = (start, end) => {
+                if (!start || !end) return 0;
+                const a = Date.parse(start + 'T00:00:00Z');
+                const b = Date.parse(end + 'T00:00:00Z');
+                return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, (b - a) / 86400000) : 0;
+            };
+            const round2 = amount => Math.round((Number(amount) || 0) * 100) / 100;
+            const money = amount => 'BDT ' + round2(amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const update = () => {
+                let rent = 0;
+                if (card.dataset.hasShifts === '1') {
+                    let start = checkIn.value;
+                    document.querySelectorAll('.stay-shift-date').forEach((input, index) => {
+                        rent += dateDiff(start, input.value) * (Number(document.querySelectorAll('.stay-shift-rate')[index]?.value) || 0);
+                        start = input.value || start;
+                    });
+                    rent += dateDiff(start, checkOut.value) * (Number(document.querySelector('.stay-active-rate')?.value || card.dataset.activeRoomRate) || 0);
+                } else if (document.getElementById('addMissingShift')?.checked) {
+                    const shiftDate = document.querySelector('.stay-missing-date')?.value;
+                    rent = dateDiff(checkIn.value, shiftDate) * (Number(document.querySelector('.stay-missing-rate')?.value) || 0)
+                        + dateDiff(shiftDate, checkOut.value) * (Number(card.dataset.activeRoomRate) || 0);
+                } else {
+                    const rates = JSON.parse(card.dataset.unshiftedRates || '[]');
+                    rent = rates.reduce((sum, rate) => sum + dateDiff(checkIn.value, checkOut.value) * (Number(rate) || 0), 0);
+                }
+                rent = round2(rent);
+                const base = Math.max(0, rent);
+                const type = card.dataset.discountType;
+                const discountValue = Number(card.dataset.discountValue) || 0;
+                const discount = type === 'percentage' ? Math.min(base, round2(base * discountValue / 100)) : (type === 'flat' ? Math.min(base, discountValue) : 0);
+                const vat = Number(card.dataset.vatEnabled) ? round2(Math.max(0, base - discount) * 0.15) : 0;
+                const total = round2(Math.max(0, base - discount) + (Number(card.dataset.extra) || 0) + vat);
+                const deposited = Number(card.dataset.deposited) || 0;
+                document.getElementById('stayPreviewRent').textContent = money(rent);
+                document.getElementById('stayPreviewTotal').textContent = money(total);
+                document.getElementById('stayPreviewPaid').textContent = money(deposited);
+                document.getElementById('stayPreviewDue').textContent = money(Math.max(0, total - deposited));
+            };
+            document.querySelectorAll('.stay-checkin, .stay-checkout, .stay-shift-date, .stay-shift-rate, .stay-active-rate, .stay-missing-date, .stay-missing-rate, #addMissingShift').forEach(input => {
+                input?.addEventListener('input', update);
+                input?.addEventListener('change', update);
+            });
+            update();
+        })();
+        </script>
 
         @if($selectedBooking->financialSnapshots->isNotEmpty())
             <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
