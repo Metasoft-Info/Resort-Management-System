@@ -108,9 +108,9 @@ return new class extends Migration
             ]);
 
             $after = $booking->getFinancialBreakdown();
-            if ($after['room_rent'] !== 2000.0 || $after['discount'] !== 200.0
-                || $after['grand_total'] !== 1800.0 || $after['deposited'] !== 1800.0
-                || $after['remaining'] !== 0.0) {
+            if ((float) $after['room_rent'] !== 2000.0 || (float) $after['discount'] !== 200.0
+                || (float) $after['grand_total'] !== 1800.0 || (float) $after['deposited'] !== 1800.0
+                || (float) $after['remaining'] !== 0.0) {
                 $diagnostics = [
                     'financials' => $after,
                     'discount_type' => $booking->discount_type,
