@@ -54,7 +54,7 @@
                             @endphp
                             @if($firstImage)
                             <div class="relative">
-                                <img src="{{ asset('storage/' . $firstImage) }}" alt="{{ $room->name }}" class="w-14 h-14 object-cover rounded-lg shadow-sm">
+                                <img src="{{ asset('storage/' . $firstImage) }}" alt="{{ $room->name }}" loading="lazy" decoding="async" class="w-14 h-14 object-cover rounded-lg shadow-sm">
                                 @if(count($images) > 1)
                                 <span class="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">+{{ count($images) - 1 }}</span>
                                 @endif

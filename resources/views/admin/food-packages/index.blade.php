@@ -19,7 +19,7 @@
  @forelse($foodPackages as $package)
  <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition transform hover:-translate-y-1">
  @if($package->image)
- <img src="{{ asset('storage/' . $package->image) }}" alt="{{ $package->name }}" class="w-full h-48 object-cover">
+ <img src="{{ asset('storage/' . $package->image) }}" alt="{{ $package->name }}" loading="lazy" decoding="async" class="w-full h-48 object-cover">
  @else
  <div class="w-full h-48 bg-gradient-to-br from-primary-400 to-red-400 flex items-center justify-center">
  <i class="fas fa-utensils text-6xl text-white opacity-50"></i>
@@ -109,7 +109,7 @@
  <p class="text-sm text-gray-500 mt-2">JPG, PNG, WEBP (Max 2MB)</p>
  </div>
  </div>
- <input type="file" name="image" id="packageImage" accept="image/*" class="hidden" onchange="previewImage(this)">
+ <input type="file" name="image" id="packageImage" accept="image/*" data-auto-compress-image="1" class="hidden" onchange="previewImage(this)">
  </div>
 
  <div>

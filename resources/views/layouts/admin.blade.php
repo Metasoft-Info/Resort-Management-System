@@ -857,6 +857,82 @@ function toggleSection(sectionKey) {
  setInterval(loadNotifications, 60000);
  });
  </script>
+<script>
+// Compress only explicitly-marked decorative images in the browser, so the
+// server receives smaller uploads without touching guest identity documents.
+(() => {
+    const canProcess = typeof createImageBitmap === 'function' && typeof DataTransfer !== 'undefined';
+    if (!canProcess) return;
+
+    const optimizeImage = async file => {
+        if (!file.type.startsWith('image/') || ['image/gif', 'image/svg+xml', 'image/webp'].includes(file.type) || file.size < 180 * 1024) return file;
+        let bitmap;
+        try {
+            bitmap = await createImageBitmap(file);
+            const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+            const context = canvas.getContext('2d');
+            if (!context) return file;
+            context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.82));
+            if (!blob || blob.type !== 'image/webp' || blob.size >= file.size) return file;
+            const filename = file.name.replace(/\.[^.]+$/, '') + '.webp';
+            return new File([blob], filename, { type: 'image/webp', lastModified: file.lastModified });
+        } catch (_) {
+            return file;
+        } finally {
+            bitmap?.close?.();
+        }
+    };
+    window.optimizeVisualImage = optimizeImage;
+
+    document.addEventListener('submit', async event => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.dataset.visualCompressing === '1') {
+            event.preventDefault();
+            return;
+        }
+        if (form.dataset.visualCompressionDone === '1') {
+            delete form.dataset.visualCompressionDone;
+            return;
+        }
+
+        const inputs = [...form.querySelectorAll('input[type="file"][data-auto-compress-image="1"]')]
+            .filter(input => [...input.files].some(file => file.size >= 180 * 1024 && file.type.startsWith('image/') && !['image/gif', 'image/svg+xml', 'image/webp'].includes(file.type)));
+        if (!inputs.length) return;
+
+        event.preventDefault();
+        form.dataset.visualCompressing = '1';
+        const submitter = event.submitter;
+        if (submitter) submitter.setAttribute('aria-busy', 'true');
+        try {
+            for (const input of inputs) {
+                const transfer = new DataTransfer();
+                for (const file of input.files) transfer.items.add(await optimizeImage(file));
+                input.files = transfer.files;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        } finally {
+            delete form.dataset.visualCompressing;
+            form.dataset.visualCompressionDone = '1';
+            if (submitter) submitter.removeAttribute('aria-busy');
+            if (typeof form.requestSubmit === 'function') {
+                try {
+                    if (submitter) form.requestSubmit(submitter);
+                    else form.requestSubmit();
+                } catch (_) {
+                    form.submit();
+                }
+            } else {
+                form.submit();
+            }
+        }
+    }, true);
+})();
+</script>
 @if(request()->routeIs('admin.reports.*'))
 @include('admin.reports.partials.readability')
 @endif

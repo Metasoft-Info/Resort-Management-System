@@ -525,15 +525,18 @@ let uploadedDocs = {
 };
 
 // Auto-upload files immediately when selected
-function autoUploadFiles(input, field) {
- const files = input.files;
+async function autoUploadFiles(input, field) {
+ const files = [...input.files];
  if (!files || files.length === 0) return;
 
  const previewDiv = document.getElementById(field + '_preview');
  const uploadUrl = '{{ route("admin.premium-booking.upload-doc") }}';
 
  for (let i = 0; i < files.length; i++) {
-  const file = files[i];
+  const selectedFile = files[i];
+  const file = field === 'customer_photo' && typeof window.optimizeVisualImage === 'function'
+   ? await window.optimizeVisualImage(selectedFile)
+   : selectedFile;
   const fileIdx = uploadedDocs[field].length; // track position
 
   // Create preview item with progress

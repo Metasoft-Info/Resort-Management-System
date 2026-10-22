@@ -23,7 +23,7 @@
  $images = is_array($hall->images) ? $hall->images : (json_decode($hall->images, true) ?? []);
  @endphp
  @if(count($images) > 0)
- <img src="{{ asset('storage/' . $images[0]) }}" alt="{{ $hall->name }}" class="w-full h-full object-cover">
+ <img src="{{ asset('storage/' . $images[0]) }}" alt="{{ $hall->name }}" loading="lazy" decoding="async" class="w-full h-full object-cover">
  @if(count($images) > 1)
  <span class="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg">
  <i class="fas fa-images mr-1"></i>{{ count($images) }}images

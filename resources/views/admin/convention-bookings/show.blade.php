@@ -432,7 +432,7 @@
  @foreach($customerPhotos as $idx => $doc)
  <div class="bg-violet-50 p-2 rounded-lg text-center hover:bg-violet-100 transition">
  <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
- <img src="{{ Storage::url($doc) }}" alt="Photo" class="w-full h-24 object-cover rounded mb-1 border">
+  <img src="{{ Storage::url($doc) }}" alt="Photo" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
  <p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
  </a>
  </div>
@@ -448,7 +448,7 @@
  <div class="bg-green-50 p-2 rounded-lg text-center hover:bg-green-100 transition">
  <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
  @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($doc) }}" alt="NID" class="w-full h-24 object-cover rounded mb-1 border">
+  <img src="{{ Storage::url($doc) }}" alt="NID" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
  @else
  <div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-1">
  <i class="fas fa-file-pdf text-green-600 text-3xl"></i>
@@ -469,7 +469,7 @@
  <div class="bg-blue-50 p-2 rounded-lg text-center hover:bg-blue-100 transition">
  <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
  @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-1 border">
+  <img src="{{ Storage::url($doc) }}" alt="Passport" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
  @else
  <div class="w-full h-24 flex items-center justify-center bg-blue-100 rounded mb-1">
  <i class="fas fa-file-pdf text-blue-600 text-3xl"></i>
@@ -490,7 +490,7 @@
  <div class="bg-purple-50 p-2 rounded-lg text-center hover:bg-purple-100 transition">
  <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
  @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-1 border">
+  <img src="{{ Storage::url($doc) }}" alt="Visiting Card" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
  @else
  <div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-1">
  <i class="fas fa-file-pdf text-purple-600 text-3xl"></i>

@@ -51,7 +51,7 @@
  <p class="text-gray-500 text-sm mt-1">Current image</p>
  </div>
  @endif
- <input type="file" name="image" accept="image/*"
+ <input type="file" name="image" accept="image/*" data-auto-compress-image="1"
  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
  <p class="text-gray-500 text-sm mt-1">Leave empty to keep current image. Recommended size: 1920x1080px. Max: 5MB</p>
  @error('image') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror

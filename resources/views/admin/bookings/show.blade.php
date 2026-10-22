@@ -460,7 +460,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
 @foreach($customerPhotos as $idx => $doc)
 <div class="bg-primary-50 p-2 rounded-lg text-center hover:bg-primary-100 transition">
 <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
-<img src="{{ Storage::url($doc) }}" alt="Customer Photo" class="w-full h-24 object-cover rounded mb-1 border">
+<img src="{{ Storage::url($doc) }}" alt="Customer Photo" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
 <p class="text-xs text-gray-700 font-semibold">Photo {{ $idx + 1 }}</p>
 </a>
 </div>
@@ -477,7 +477,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
 <div class="bg-green-50 p-2 rounded-lg text-center hover:bg-green-100 transition">
 <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
 @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-<img src="{{ Storage::url($doc) }}" alt="NID Document" class="w-full h-24 object-cover rounded mb-1 border">
+<img src="{{ Storage::url($doc) }}" alt="NID Document" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
 @else
 <div class="w-full h-24 flex items-center justify-center bg-green-100 rounded mb-1">
 <i class="fas fa-file-pdf text-green-600 text-3xl"></i>
@@ -499,7 +499,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
 <div class="bg-blue-50 p-2 rounded-lg text-center hover:bg-blue-100 transition">
 <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
 @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-<img src="{{ Storage::url($doc) }}" alt="Passport" class="w-full h-24 object-cover rounded mb-1 border">
+<img src="{{ Storage::url($doc) }}" alt="Passport" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
 @else
 <div class="w-full h-24 flex items-center justify-center bg-blue-100 rounded mb-1">
 <i class="fas fa-file-pdf text-blue-600 text-3xl"></i>
@@ -521,7 +521,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
 <div class="bg-purple-50 p-2 rounded-lg text-center hover:bg-purple-100 transition">
 <a href="{{ Storage::url($doc) }}" target="_blank" class="block">
 @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-<img src="{{ Storage::url($doc) }}" alt="Visiting Card" class="w-full h-24 object-cover rounded mb-1 border">
+<img src="{{ Storage::url($doc) }}" alt="Visiting Card" loading="lazy" decoding="async" class="w-full h-24 object-cover rounded mb-1 border">
 @else
 <div class="w-full h-24 flex items-center justify-center bg-purple-100 rounded mb-1">
 <i class="fas fa-file-pdf text-purple-600 text-3xl"></i>
@@ -900,7 +900,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  @foreach($editPhotos as $doc)
  <div class="relative inline-block">
  <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
- <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ <img src="{{ asset('storage/'.$doc) }}" loading="lazy" decoding="async" class="w-16 h-16 object-cover rounded border">
  </a>
  <label class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center cursor-pointer" title="Remove">
  <input type="checkbox" name="remove_customer_photo[]" value="{{ $doc }}" class="hidden">
@@ -910,7 +910,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  @endforeach
  </div>
  @endif
- <input type="file" name="customer_photo[]" accept="image/*" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
+ <input type="file" name="customer_photo[]" accept="image/*" data-auto-compress-image="1" multiple class="w-full text-sm border rounded-lg px-2 py-1.5">
  </div>
  <div>
  <label class="block text-sm font-semibold text-gray-700 mb-1">NID Document</label>
@@ -920,7 +920,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div class="relative inline-block">
  <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
  @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ <img src="{{ asset('storage/'.$doc) }}" loading="lazy" decoding="async" class="w-16 h-16 object-cover rounded border">
  @else
  <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
  @endif
@@ -943,7 +943,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div class="relative inline-block">
  <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
  @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ <img src="{{ asset('storage/'.$doc) }}" loading="lazy" decoding="async" class="w-16 h-16 object-cover rounded border">
  @else
  <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
  @endif
@@ -966,7 +966,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
  <div class="relative inline-block">
  <a href="{{ asset('storage/'.$doc) }}" target="_blank" class="block">
  @if(Str::endsWith(strtolower($doc), ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
- <img src="{{ asset('storage/'.$doc) }}" class="w-16 h-16 object-cover rounded border">
+ <img src="{{ asset('storage/'.$doc) }}" loading="lazy" decoding="async" class="w-16 h-16 object-cover rounded border">
  @else
  <div class="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border"><i class="fas fa-file-pdf text-red-500 text-xl"></i></div>
  @endif

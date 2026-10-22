@@ -76,7 +76,7 @@
  <i class="fas fa-images mr-2 text-primary-600"></i>Hall Images
  </label>
  <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition">
- <input type="file" name="images[]" id="imageInput" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
+ <input type="file" name="images[]" id="imageInput" multiple accept="image/*" data-auto-compress-image="1" class="hidden" onchange="previewImages(this)">
  <label for="imageInput" class="cursor-pointer">
  <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
  <p class="text-gray-600">Click to upload images</p>
