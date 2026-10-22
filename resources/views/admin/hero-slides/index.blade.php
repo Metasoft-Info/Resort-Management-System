@@ -107,7 +107,7 @@
  <p class="text-sm text-gray-500 mt-2">JPG, PNG, WEBP (Max 5MB)</p>
  </div>
  </div>
- <input type="file" name="image" id="slideImage" accept="image/*" class="hidden" 
+ <input type="file" name="image" id="slideImage" accept="image/*" data-auto-compress-image="1" class="hidden"
  onchange="previewImage(this)" required>
  </div>
 

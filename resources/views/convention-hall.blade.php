@@ -32,7 +32,7 @@
  <div class="relative h-80 md:h-96 bg-gradient-to-br from-blue-400 via-primary-400 to-purple-500 overflow-hidden">
  @if(count($images) > 0)
  <!-- Main Image -->
- <img src="{{ asset('storage/' . $images[0]) }}" alt="{{ $hall->name }}" class="w-full h-full object-cover" id="mainImage-{{ $hall->id }}">
+ <img src="{{ asset('storage/' . $images[0]) }}" alt="{{ $hall->name }}" loading="lazy" decoding="async" class="w-full h-full object-cover" id="mainImage-{{ $hall->id }}">
  
  <!-- Image Count Badge -->
  @if(count($images) > 1)
@@ -68,7 +68,7 @@
  <div class="flex gap-2" id="thumbnails-{{ $hall->id }}">
  @foreach($images as $index => $image)
  <button type="button" onclick="setMainImage('{{ $hall->id }}', {{ $index }})" class="flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition {{ $index === 0 ? 'border-primary-500' : 'border-transparent hover:border-primary-300' }}" id="thumb-{{ $hall->id }}-{{ $index }}">
- <img src="{{ asset('storage/' . $image) }}" alt="Image {{ $index + 1 }}" class="w-full h-full object-cover">
+ <img src="{{ asset('storage/' . $image) }}" alt="Image {{ $index + 1 }}" loading="lazy" decoding="async" class="w-full h-full object-cover">
  </button>
  @endforeach
  </div>

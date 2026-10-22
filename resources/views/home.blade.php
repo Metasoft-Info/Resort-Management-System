@@ -10,7 +10,7 @@
  <div id="heroSlider" class="relative h-full">
  @foreach($heroSlides as $index => $slide)
  <div class="hero-slide absolute inset-0 transition-opacity duration-1000 {{ $index === 0 ? 'opacity-100' : 'opacity-0' }}" data-index="{{ $index }}">
- <img src="{{ asset('storage/' . $slide->image) }}" alt="{{ $slide->title }}" class="w-full h-full object-cover">
+ <img src="{{ asset('storage/' . $slide->image) }}" alt="{{ $slide->title }}" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" decoding="async" @if($index === 0) fetchpriority="high" @endif class="w-full h-full object-cover">
  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
  <div class="absolute inset-0 flex items-center justify-center">
  <div class="text-center text-white px-4 max-w-4xl">
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
  <div class="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition transform hover:-translate-y-2">
  <div class="relative h-56 bg-gradient-to-br from-primary-400 via-accent-400 to-pink-400 overflow-hidden">
  @if($room->images && count($room->images) > 0)
- <img src="{{ asset('storage/' . $room->images[0]) }}" alt="{{ $room->name }}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+ <img src="{{ asset('storage/' . $room->images[0]) }}" alt="{{ $room->name }}" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
  @else
  <div class="absolute inset-0 opacity-20" style="background-image: url('data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E');"></div>
  <div class="absolute inset-0 flex items-center justify-center">

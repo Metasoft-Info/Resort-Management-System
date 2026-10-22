@@ -7,7 +7,6 @@ use App\Models\ConventionBooking;
 use App\Models\ConventionHall;
 use App\Models\Room;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -24,62 +23,97 @@ class DashboardController extends Controller
         $hasConventionAccess = $user->hasConventionAccess();
         $currentMode = $user->getDashboardMode();
         
-        // Get rooms that are currently occupied (status checked_in or confirmed with time passed)
+        $todayDate = $today->toDateString();
+
+        // Only load stays that can overlap today; use the same time-aware
+        // occupancy rule for the room cards and the dashboard counters.
         $activeBookings = Booking::with(['bookingRooms', 'room'])
             ->whereIn('status', ['confirmed', 'checked_in'])
-            ->whereNotIn('status', ['cancelled', 'checked_out'])
+            ->where('check_in_date', '<=', $todayDate)
+            ->where('check_out_date', '>=', $todayDate)
             ->get();
         
-        $occupiedRoomIds = [];
+        $currentBookingsByRoom = [];
         $activeBookingIds = [];
         foreach ($activeBookings as $booking) {
             if ($booking->isOccupyingAt($now)) {
                 $activeBookingIds[] = $booking->id;
-                $occupiedRoomIds = array_merge($occupiedRoomIds, $booking->getAllRoomIds());
+                foreach ($booking->getAllRoomIds() as $roomId) {
+                    $currentBookingsByRoom[$roomId] ??= $booking;
+                }
             }
         }
-        $occupiedRoomIds = array_values(array_unique($occupiedRoomIds));
+        $activeBookingIds = array_values(array_unique($activeBookingIds));
+        $occupiedRoomIds = array_keys($currentBookingsByRoom);
+
+        // Fetch upcoming stays once instead of re-reading them for every room.
+        $upcomingBookingsByRoom = [];
+        $upcomingBookings = Booking::with(['bookingRooms', 'room'])
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->where('check_in_date', '>', $todayDate)
+            ->orderBy('check_in_date')
+            ->get();
+        foreach ($upcomingBookings as $booking) {
+            foreach ($booking->getAllRoomIds() as $roomId) {
+                $upcomingBookingsByRoom[$roomId] ??= $booking;
+            }
+        }
         
         $totalRooms = Room::count();
         $availableRoomsCount = $totalRooms - count($occupiedRoomIds);
         
-        // Calculate total revenue using model methods for accuracy (preserves agreed room prices)
-        $roomRevenue = Booking::where('status', '!=', 'cancelled')->get()->sum(fn($b) => $b->getGrandTotal());
+        // Keep the canonical booking calculation, but eager-load its timeline
+        // and process in bounded batches so dashboard memory/query count stays stable.
+        $roomRevenue = 0.0;
+        Booking::with(['bookingRooms.room.roomType', 'room.roomType', 'roomShifts.fromRoom.roomType'])
+            ->where('status', '!=', 'cancelled')
+            ->chunkById(250, function ($bookings) use (&$roomRevenue) {
+                foreach ($bookings as $booking) {
+                    $roomRevenue += $booking->getGrandTotal();
+                }
+            });
         $conventionRevenue = ConventionBooking::where('status', '!=', 'cancelled')->sum('total_amount');
         $totalRevenue = $roomRevenue + $conventionRevenue;
+
+        $totalBookings = Booking::count();
+        $totalConventionBookings = ConventionBooking::count();
+        $todayCheckins = Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count();
+        $todayCheckouts = Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count();
+        $pendingBookings = Booking::where('status', 'pending')->count();
+        $pendingConventionBookings = ConventionBooking::where('status', 'pending')->count();
         
         // Resort Stats
         $resortStats = [
-            'total_bookings' => Booking::count(),
+            'total_bookings' => $totalBookings,
             'active_bookings' => count($activeBookingIds),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
-            'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count(),
+            'today_checkins' => $todayCheckins,
+            'today_checkouts' => $todayCheckouts,
             'room_revenue' => $roomRevenue,
-            'pending_bookings' => Booking::where('status', 'pending')->count(),
+            'pending_bookings' => $pendingBookings,
         ];
         
         // Convention Stats
         $conventionStats = [
-            'total_bookings' => ConventionBooking::count(),
+            'total_bookings' => $totalConventionBookings,
             'active_bookings' => ConventionBooking::whereIn('status', ['confirmed', 'pending'])->count(),
             'total_halls' => ConventionHall::count(),
             'today_events' => ConventionBooking::whereDate('event_date', $today)->whereIn('status', ['confirmed'])->count(),
             'upcoming_events' => ConventionBooking::where('event_date', '>', $today)->whereIn('status', ['confirmed', 'pending'])->count(),
             'convention_revenue' => $conventionRevenue,
-            'pending_bookings' => ConventionBooking::where('status', 'pending')->count(),
+            'pending_bookings' => $pendingConventionBookings,
         ];
         
         // Combined stats for overview
         $stats = [
-            'total_bookings' => Booking::count(),
+            'total_bookings' => $totalBookings,
             'active_bookings' => count($activeBookingIds),
             'total_rooms' => $totalRooms,
             'available_rooms' => $availableRoomsCount,
-            'convention_bookings' => ConventionBooking::count(),
-            'today_checkins' => Booking::whereDate('check_in_date', $today)->whereIn('status', ['confirmed', 'checked_in'])->count(),
-            'today_checkouts' => Booking::whereDate('check_out_date', $today)->where('status', 'checked_out')->count(),
+            'convention_bookings' => $totalConventionBookings,
+            'today_checkins' => $todayCheckins,
+            'today_checkouts' => $todayCheckouts,
             'total_revenue' => $totalRevenue,
             'room_revenue' => $roomRevenue,
             'convention_revenue' => $conventionRevenue,
@@ -96,19 +130,8 @@ class DashboardController extends Controller
             // Determine if room is currently occupied using merged occupied room IDs
             $isOccupied = in_array($room->id, $occupiedRoomIds);
 
-            // Find current booking that is currently occupying this room
-            $currentBooking = Booking::with(['bookingRooms', 'room'])
-                ->whereIn('status', ['confirmed', 'checked_in'])
-                ->get()
-                ->first(fn($b) => $b->isOccupyingAt($now) && in_array($room->id, $b->getAllRoomIds()));
-
-            // Check upcoming bookings
-            $upcomingBooking = Booking::with(['bookingRooms', 'room'])
-                ->whereIn('status', ['confirmed', 'pending'])
-                ->where('check_in_date', '>', $today)
-                ->orderBy('check_in_date')
-                ->get()
-                ->first(fn($b) => in_array($room->id, $b->getAllRoomIds()));
+            $currentBooking = $currentBookingsByRoom[$room->id] ?? null;
+            $upcomingBooking = $upcomingBookingsByRoom[$room->id] ?? null;
 
             $availableFrom = $currentBooking ? $currentBooking->getCheckOutDateTime() : $now;
 
@@ -121,6 +144,17 @@ class DashboardController extends Controller
             ];
         }
 
+        // Load the next seven days of hall bookings in one query, not one
+        // query per hall per day.
+        $firstHallDate = Carbon::today('Asia/Dhaka')->toDateString();
+        $lastHallDate = Carbon::today('Asia/Dhaka')->addDays(6)->toDateString();
+        $hallBookingsByDay = ConventionBooking::with('conventionHall')
+            ->whereDate('event_date', '>=', $firstHallDate)
+            ->whereDate('event_date', '<=', $lastHallDate)
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->get()
+            ->groupBy(fn ($booking) => $booking->hall_id . '|' . Carbon::parse($booking->event_date)->toDateString());
+
         // Hall availability status for today and next 6 days
         $hallsWithStatus = [];
         foreach ($allHalls as $hall) {
@@ -129,12 +163,7 @@ class DashboardController extends Controller
                 $date = Carbon::today()->addDays($i);
                 $dateStr = $date->format('Y-m-d');
                 
-                // Get all bookings for this hall on this date
-                $dayBookings = ConventionBooking::with('conventionHall')
-                    ->where('hall_id', $hall->id)
-                    ->whereDate('event_date', $dateStr)
-                    ->whereIn('status', ['confirmed', 'pending'])
-                    ->get();
+                $dayBookings = $hallBookingsByDay->get($hall->id . '|' . $dateStr, collect());
 
                 $fullDayBooking = $dayBookings->firstWhere('time_slot', 'full_day');
                 $morningBooking = $dayBookings->firstWhere('time_slot', 'morning');
@@ -191,10 +220,20 @@ class DashboardController extends Controller
         // Chart data for last 7 days
         $chartLabels = [];
         $chartBookings = [];
+        $chartStart = Carbon::today('Asia/Dhaka')->subDays(6)->startOfDay();
+        $chartEnd = Carbon::today('Asia/Dhaka')->endOfDay();
+        $bookingCountsByDate = Booking::whereBetween('created_at', [$chartStart, $chartEnd])
+            ->selectRaw('DATE(created_at) as report_date, COUNT(*) as total')
+            ->groupBy('report_date')
+            ->pluck('total', 'report_date');
+        $conventionCountsByDate = ConventionBooking::whereBetween('created_at', [$chartStart, $chartEnd])
+            ->selectRaw('DATE(created_at) as report_date, COUNT(*) as total')
+            ->groupBy('report_date')
+            ->pluck('total', 'report_date');
         for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
+            $date = Carbon::today('Asia/Dhaka')->subDays($i);
             $chartLabels[] = $date->format('D');
-            $chartBookings[] = Booking::whereDate('created_at', $date)->count();
+            $chartBookings[] = (int) $bookingCountsByDate->get($date->toDateString(), 0);
         }
 
         // Revenue data for last 4 weeks
@@ -207,6 +246,7 @@ class DashboardController extends Controller
             $revenueLabels[] = 'Week ' . (4 - $i);
             $weekRoomRevenue = Booking::whereBetween('created_at', [$weekStart, $weekEnd])
                 ->where('status', '!=', 'cancelled')
+                ->with(['bookingRooms.room.roomType', 'room.roomType', 'roomShifts.fromRoom.roomType'])
                 ->get()
                 ->sum(fn($b) => $b->getGrandTotal());
             $weekConventionRevenue = ConventionBooking::whereBetween('created_at', [$weekStart, $weekEnd])
@@ -219,8 +259,8 @@ class DashboardController extends Controller
         // Convention booking chart data
         $conventionChartBookings = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
-            $conventionChartBookings[] = ConventionBooking::whereDate('created_at', $date)->count();
+            $date = Carbon::today('Asia/Dhaka')->subDays($i);
+            $conventionChartBookings[] = (int) $conventionCountsByDate->get($date->toDateString(), 0);
         }
 
         $chartData = [

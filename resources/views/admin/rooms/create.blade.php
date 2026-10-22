@@ -104,7 +104,7 @@
  <p class="text-gray-600">Click to select room images or drag and drop</p>
  <p class="text-sm text-gray-400 mt-1">Supports: JPG, PNG, GIF (Max 2MB each)</p>
  </div>
- <input type="file" name="images[]" id="images" multiple accept="image/*" class="hidden" onchange="previewImages(this)">
+ <input type="file" name="images[]" id="images" multiple accept="image/*" data-auto-compress-image="1" class="hidden" onchange="previewImages(this)">
  <div id="image-preview" class="grid grid-cols-4 gap-4 mt-4"></div>
  </div>
 
