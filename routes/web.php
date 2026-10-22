@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\PremiumConventionController;
 use App\Http\Controllers\Admin\ExtraChargeCategoryController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DiscountApprovalController;
+use App\Http\Controllers\Admin\BookingReconciliationController;
 use App\Http\Controllers\NotificationController;
 
 // Public Website Routes
@@ -152,6 +153,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/discount-approval/{type}/{id}', [DiscountApprovalController::class, 'show'])->name('discount-approval.show');
     Route::post('/discount-approval/{type}/{id}/approve', [DiscountApprovalController::class, 'approve'])->name('discount-approval.approve');
     Route::post('/discount-approval/{type}/{id}/reject', [DiscountApprovalController::class, 'reject'])->name('discount-approval.reject');
+
+    // Superadmin-only financial reconciliation for room bookings.
+    Route::get('/booking-reconciliation', [BookingReconciliationController::class, 'index'])->name('booking-reconciliation.index');
+    Route::post('/booking-reconciliation/room/{booking}', [BookingReconciliationController::class, 'update'])->name('booking-reconciliation.room.update');
 
     // Reports
     Route::get('/reports/room-bookings', [ReportController::class, 'roomBookings'])->name('reports.room-bookings');

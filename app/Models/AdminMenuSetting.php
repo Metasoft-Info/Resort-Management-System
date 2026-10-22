@@ -53,15 +53,22 @@ class AdminMenuSetting extends Model
             ->orderBy('order')
             ->get();
 
-        // Superadmin and admin see all active menus
+        // Superadmin and admin see all active menus, except tools explicitly
+        // reserved for the superadmin role.
         if (in_array($user->role, ['superadmin', 'admin'])) {
-            return $activeMenus->groupBy('group_name');
+            return $activeMenus
+                ->filter(fn ($menu) => $menu->menu_key !== 'booking_reconciliation' || $user->isSuperAdmin())
+                ->groupBy('group_name');
         }
 
         // Filter by user permissions
         $userPermissions = $user->permissions ?? [];
         
         return $activeMenus->filter(function ($menu) use ($userPermissions) {
+            if ($menu->menu_key === 'booking_reconciliation') {
+                return false;
+            }
+
             return in_array($menu->menu_key, $userPermissions) || $menu->menu_key === 'dashboard';
         })->groupBy('group_name');
     }
@@ -100,6 +107,7 @@ class AdminMenuSetting extends Model
             ['menu_key' => 'convention_reports', 'menu_label' => 'Convention Bookings Report', 'menu_icon' => 'fas fa-chart-bar', 'route_name' => 'admin.reports.convention-bookings', 'route_pattern' => 'admin.reports.convention-bookings', 'group_name' => 'Convention Reports', 'order' => 64, 'is_system' => false],
 
             ['menu_key' => 'discount_approval', 'menu_label' => 'Approval Discount', 'menu_icon' => 'fas fa-check-double', 'route_name' => 'admin.discount-approval.index', 'route_pattern' => 'admin.discount-approval.*', 'group_name' => 'Owner', 'order' => 68, 'is_system' => false],
+            ['menu_key' => 'booking_reconciliation', 'menu_label' => 'Financial Reconciliation', 'menu_icon' => 'fas fa-scale-balanced', 'route_name' => 'admin.booking-reconciliation.index', 'route_pattern' => 'admin.booking-reconciliation.*', 'group_name' => 'System', 'order' => 69, 'is_system' => true],
             ['menu_key' => 'police_station_report', 'menu_label' => 'Report for Police Station', 'menu_icon' => 'fas fa-shield-alt', 'route_name' => 'admin.reports.police-station', 'route_pattern' => 'admin.reports.police-station', 'group_name' => 'Room Reports', 'order' => 65, 'is_system' => false],
             ['menu_key' => 'guest_extra_charges_report', 'menu_label' => 'Guest Extra Charge Report', 'menu_icon' => 'fas fa-tags', 'route_name' => 'admin.reports.guest-extra-charges', 'route_pattern' => 'admin.reports.guest-extra-charges', 'group_name' => 'Room Reports', 'order' => 66, 'is_system' => false],
             
