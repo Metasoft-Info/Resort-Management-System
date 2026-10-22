@@ -111,7 +111,25 @@ return new class extends Migration
             if ($after['room_rent'] !== 2000.0 || $after['discount'] !== 200.0
                 || $after['grand_total'] !== 1800.0 || $after['deposited'] !== 1800.0
                 || $after['remaining'] !== 0.0) {
-                throw new RuntimeException('Booking 403 correction did not calculate the confirmed BDT 1,800 paid bill.');
+                $diagnostics = [
+                    'financials' => $after,
+                    'discount_type' => $booking->discount_type,
+                    'discount_amount' => $booking->discount_amount,
+                    'discount_percentage' => $booking->discount_percentage,
+                    'payment_rows' => $booking->payments->map(fn ($row) => [
+                        'id' => $row->id,
+                        'amount' => $row->amount,
+                        'type' => $row->type,
+                    ])->values()->all(),
+                    'room_breakdown' => $booking->getRoomBreakdown()->map(fn ($room) => [
+                        'room_id' => $room['room_id'] ?? null,
+                        'nights' => $room['nights'] ?? null,
+                        'rate' => $room['price_per_night'] ?? null,
+                        'amount' => $room['amount'] ?? null,
+                    ])->all(),
+                ];
+                Log::error('Booking 403 correction calculation mismatch; transaction will roll back.', $diagnostics);
+                throw new RuntimeException('Booking 403 correction calculation mismatch; no data was committed. Details: '.json_encode($diagnostics, JSON_THROW_ON_ERROR));
             }
 
             $booking->total_amount = $after['room_rent'];
