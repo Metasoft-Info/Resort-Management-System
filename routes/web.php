@@ -158,6 +158,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/booking-reconciliation', [BookingReconciliationController::class, 'index'])->name('booking-reconciliation.index');
     Route::post('/booking-reconciliation/room/{booking}', [BookingReconciliationController::class, 'update'])->name('booking-reconciliation.room.update');
     Route::post('/booking-reconciliation/stay/{booking}', [BookingReconciliationController::class, 'correctStay'])->name('booking-reconciliation.stay.update');
+    Route::delete('/booking-reconciliation/room/{booking}', [BookingReconciliationController::class, 'destroyRoomBooking'])->name('booking-reconciliation.room.destroy');
     Route::get('/booking-reconciliation/convention', [BookingReconciliationController::class, 'conventionIndex'])->name('booking-reconciliation.convention');
     Route::post('/booking-reconciliation/convention/{conventionBooking}', [BookingReconciliationController::class, 'updateConvention'])->name('booking-reconciliation.convention.update');
 

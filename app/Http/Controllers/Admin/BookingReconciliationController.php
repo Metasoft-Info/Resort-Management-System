@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Booking;
+use App\Models\BookingGroup;
 use App\Models\ConventionBooking;
 use App\Models\ConventionPayment;
 use App\Models\Room;
@@ -12,6 +13,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class BookingReconciliationController extends Controller
@@ -492,6 +495,102 @@ class BookingReconciliationController extends Controller
 
         return redirect()->route('admin.booking-reconciliation.index', ['q' => $booking->id, 'booking_id' => $booking->id])
             ->with('success', 'Stay dates and retained room-shift billing history were reconciled, recalculated, and audited.');
+    }
+
+    public function destroyRoomBooking(Request $request, Booking $booking)
+    {
+        $this->authorizeSuperAdmin($request);
+
+        $validated = $request->validate([
+            'reason' => 'required|string|min:8|max:1000',
+            'confirm_booking_id' => ['required', 'string', Rule::in([(string) $booking->getKey()])],
+            'confirm_delete' => 'accepted',
+            'return_search' => 'nullable|string|max:100',
+        ]);
+
+        $bookingId = (int) $booking->getKey();
+        $documentPaths = collect(['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'])
+            ->flatMap(fn ($field) => $booking->getDocuments($field))
+            ->filter(fn ($path) => is_string($path) && str_starts_with($path, 'bookings/') && !str_contains('/'.$path.'/', '/../'))
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($bookingId, $validated) {
+            $lockedBooking = Booking::whereKey($bookingId)->lockForUpdate()->firstOrFail();
+            $bookingGroupId = $lockedBooking->booking_group_id;
+            $roomIds = $lockedBooking->getAllRoomIds();
+
+            $lockedBooking->delete();
+
+            if ($bookingGroupId && !Booking::where('booking_group_id', $bookingGroupId)->exists()) {
+                BookingGroup::whereKey($bookingGroupId)->delete();
+            }
+
+            if ($roomIds !== []) {
+                $stillAssignedRoomIds = DB::table('bookings as b')
+                    ->join('booking_rooms as br', 'br.booking_id', '=', 'b.id')
+                    ->whereIn('br.room_id', $roomIds)
+                    ->whereNotIn('b.status', ['cancelled', 'checked_out'])
+                    ->pluck('br.room_id')
+                    ->merge(DB::table('bookings as b')
+                        ->whereIn('b.room_id', $roomIds)
+                        ->whereNotIn('b.status', ['cancelled', 'checked_out'])
+                        ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                            ->from('booking_rooms as br')->whereColumn('br.booking_id', 'b.id'))
+                        ->pluck('b.room_id'))
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->all();
+
+                Room::whereIn('id', array_diff($roomIds, $stillAssignedRoomIds))
+                    ->where('status', 'occupied')
+                    ->update(['status' => 'available']);
+            }
+
+            ActivityLog::where('entity_type', 'Booking')->where('entity_id', $bookingId)->delete();
+
+            ActivityLog::log('Super Admin permanently deleted room booking', 'Booking', $bookingId, [
+                'reason' => trim($validated['reason']),
+                'deleted_at' => now('Asia/Dhaka')->toIso8601String(),
+            ]);
+        });
+
+        foreach ($documentPaths as $path) {
+            if (!$this->bookingDocumentIsStillReferenced($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        $redirect = route('admin.booking-reconciliation.index');
+        $search = trim((string) ($validated['return_search'] ?? ''));
+        if ($search !== '') {
+            $redirect .= '?q='.urlencode($search);
+        }
+
+        return redirect($redirect)->with('success', 'Booking and its bill, receipts, room history, and related records were permanently removed. The deletion reason remains in Activity Logs.');
+    }
+
+    private function bookingDocumentIsStillReferenced(string $path): bool
+    {
+        $documentFields = ['customer_photo', 'customer_nid_document', 'passport_document', 'visiting_card'];
+
+        foreach (Booking::query()->get($documentFields) as $otherBooking) {
+            foreach ($documentFields as $field) {
+                if (in_array($path, $otherBooking->getDocuments($field), true)) {
+                    return true;
+                }
+            }
+        }
+
+        foreach (ConventionBooking::query()->get($documentFields) as $conventionBooking) {
+            foreach ($documentFields as $field) {
+                if (in_array($path, $conventionBooking->getDocuments($field), true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function update(Request $request, Booking $booking)

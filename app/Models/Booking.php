@@ -29,12 +29,14 @@ class Booking extends Model
     {
         parent::boot();
 
-        // When a booking is deleted, also delete its booking_rooms, payments, and additional_guests
+        // Remove booking-owned rows explicitly so deletion behaves consistently
+        // even on installations where an older schema is missing a cascade FK.
         static::deleting(function ($booking) {
             $booking->bookingRooms()->delete();
-            $booking->payments()->delete();
+            $booking->payments()->reorder()->delete();
             $booking->additionalGuests()->delete();
-            \Log::info('Cascade deleted related records for booking', ['booking_id' => $booking->id]);
+            $booking->roomShifts()->reorder()->delete();
+            $booking->financialSnapshots()->reorder()->delete();
         });
 
         // Keep a dated bill snapshot whenever a booking's financial inputs or

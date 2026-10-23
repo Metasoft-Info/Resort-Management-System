@@ -9,7 +9,7 @@
             <div>
                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">Super Admin only</p>
                 <h1 class="mt-1 text-2xl font-bold md:text-3xl">Financial Reconciliation</h1>
-                <p class="mt-2 max-w-3xl text-sm text-indigo-100">Correct room bills, receipts, stay dates, or existing shift history. Calculations and audit history are updated together.</p>
+                <p class="mt-2 max-w-3xl text-sm text-indigo-100">Correct room bills, receipts, stay dates, or shift history, or permanently delete a room booking with its financial records.</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.booking-reconciliation.convention') }}" class="rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/20"><i class="fas fa-building mr-2"></i>Convention bills</a>
@@ -26,7 +26,7 @@
 
     @if($errors->any())
         <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">
-            <p class="font-semibold"><i class="fas fa-triangle-exclamation mr-2"></i>Please review the correction.</p>
+            <p class="font-semibold"><i class="fas fa-triangle-exclamation mr-2"></i>Please review the submitted details.</p>
             <ul class="mt-2 list-inside list-disc text-sm">
                 @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
             </ul>
@@ -295,6 +295,33 @@
             @endif
         </section>
         </div>
+
+        <section class="rounded-2xl border border-rose-300 bg-rose-50 p-5 shadow-sm md:p-6">
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700"><i class="fas fa-trash-can"></i></span>
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-rose-700">Permanent action · Super Admin only</p>
+                    <h3 class="mt-1 text-xl font-bold text-rose-950">Delete this room booking and its account</h3>
+                    <p class="mt-2 max-w-4xl text-sm text-rose-900">This permanently removes the booking, receipts, bill snapshots, room assignments and shifts, and guest records. It will no longer appear in booking or financial reports. The deletion reason and booking ID remain in Activity Logs for accountability; deleted bill and payment amounts are not kept there.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('admin.booking-reconciliation.room.destroy', $selectedBooking) }}" class="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end" onsubmit="return confirm('Permanently delete booking #{{ $selectedBooking->id }} and remove its financial records? This cannot be undone.');">
+                @csrf
+                @method('DELETE')
+                <input type="hidden" name="return_search" value="{{ $search }}">
+                <label class="block text-sm font-semibold text-rose-950">Reason for permanent deletion <span class="text-rose-700">*</span>
+                    <textarea name="reason" rows="3" minlength="8" maxlength="1000" required placeholder="Explain why this booking must be removed." class="mt-1 w-full rounded-lg border border-rose-300 bg-white px-3 py-2.5 font-normal text-slate-800">{{ old('reason') }}</textarea>
+                </label>
+                <div class="space-y-3">
+                    <label class="block text-sm font-semibold text-rose-950">Type booking ID {{ $selectedBooking->id }} to confirm
+                        <input type="text" name="confirm_booking_id" inputmode="numeric" autocomplete="off" required value="{{ old('confirm_booking_id') }}" class="mt-1 w-full rounded-lg border border-rose-300 bg-white px-3 py-2.5 font-normal text-slate-800">
+                    </label>
+                    <label class="flex items-start gap-2 text-sm text-rose-900"><input type="checkbox" name="confirm_delete" value="1" required class="mt-1 rounded border-rose-400 text-rose-700"><span>I verified the booking and understand its bill and payment records will be permanently removed from reports.</span></label>
+                </div>
+                <button type="submit" class="rounded-xl bg-rose-700 px-5 py-3 font-bold text-white shadow hover:bg-rose-800"><i class="fas fa-trash-can mr-2"></i>Delete booking permanently</button>
+            </form>
+        </section>
 
         <script>
         (() => {
