@@ -16,7 +16,7 @@
 4. Confirm the checked-out branch is `production` and the displayed commit is the new commit.
 5. Select **Deploy HEAD Commit**.
 
-The root `.cpanel.yml` runs `deploy/production_deploy.sh`. It syncs the application to `public_html`, preserves `.env` and runtime storage, runs Laravel migrations, and rebuilds Laravel caches. Back up the database before a production deployment that includes schema migrations.
+The root `.cpanel.yml` runs `deploy/production_deploy.sh`. It syncs the application to `public_html`, preserves `.well-known` (cPanel SSL/AutoSSL challenges), `.env`, and runtime storage, runs Laravel migrations, and rebuilds Laravel caches. Back up the database before a production deployment that includes schema migrations.
 
 ## Make GitHub pushes deploy automatically
 

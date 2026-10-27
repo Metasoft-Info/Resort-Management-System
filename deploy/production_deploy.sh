@@ -205,8 +205,10 @@ if [ "$REPO_DIR" != "$APP_DIR" ]; then
   fi
 
   if command -v rsync >/dev/null 2>&1; then
+    # cPanel/AutoSSL owns this directory; protect server-side challenge files from --delete.
     rsync -a --delete \
       --exclude '.git' \
+      --exclude '/.well-known/' \
       --exclude '.env' \
       --exclude '.cpanel.yml' \
       --exclude '*.sql' \
