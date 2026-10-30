@@ -109,29 +109,8 @@ return new class extends Migration
             $this->assertRoomAvailableForCorrectedDates($newRoomId);
 
             $before = $booking->getFinancialBreakdown();
-            $targetRoom = \App\Models\Room::query()->findOrFail($newRoomId);
-            $assignmentModel = $booking->bookingRooms()->firstOrFail();
-            $assignmentModel->room_id = $newRoomId;
-            $assignmentModel->price_per_night = (float) $newRoom->price_per_night;
-            $assignmentModel->setRelation('room', $targetRoom);
-            $booking->room_id = $newRoomId;
-            $booking->notes = str_replace('[Rooms: 201]', '[Rooms: 403]', $notes);
-            $booking->setRelation('bookingRooms', collect([$assignmentModel]));
-            $booking->setRelation('room', $targetRoom);
-            $booking->setRelation('payments', $payments);
-            $booking->setRelation('roomShifts', collect());
-
-            $after = $booking->getFinancialBreakdown();
-            if ($after['room_rent'] !== 3000.0
-                || $after['discount'] !== 1000.0
-                || $after['grand_total'] !== 2000.0
-                || $after['deposited'] !== 2000.0
-                || $after['remaining'] !== 0.0) {
-                throw new RuntimeException('Booking 439 correction did not calculate the confirmed BDT 2,000 bill and zero balance. No correction was committed.');
-            }
-
             $now = now('Asia/Dhaka');
-            DB::table('booking_rooms')
+            $updatedAssignments = DB::table('booking_rooms')
                 ->where('id', $assignment->id)
                 ->where('booking_id', self::BOOKING_ID)
                 ->update([
@@ -140,6 +119,52 @@ return new class extends Migration
                     'updated_at' => $now,
                 ]);
 
+            if ($updatedAssignments !== 1) {
+                throw new RuntimeException('Booking 439 correction stopped because its room assignment changed during deployment. No correction was committed.');
+            }
+
+            $booking->room_id = $newRoomId;
+            $booking->notes = str_replace('[Rooms: 201]', '[Rooms: 403]', $notes);
+            $booking->updated_at = $now;
+            $booking->saveQuietly();
+
+            // Re-read persisted relationships so this calculation matches the
+            // code path used by invoices and reports.
+            $booking->unsetRelation('bookingRooms');
+            $booking->unsetRelation('room');
+            $booking->unsetRelation('roomShifts');
+            $booking->unsetRelation('payments');
+            $booking->load(['bookingRooms.room.roomType', 'room.roomType', 'roomShifts']);
+            $booking->setRelation('payments', $booking->payments()->get());
+
+            $after = $booking->getFinancialBreakdown();
+            if ($after['room_rent'] !== 3000.0
+                || $after['discount'] !== 1000.0
+                || $after['grand_total'] !== 2000.0
+                || $after['deposited'] !== 2000.0
+                || $after['remaining'] !== 0.0
+                || $booking->getCalculatedPaymentStatus() !== 'paid') {
+                $diagnostics = [
+                    'financials' => $after,
+                    'payment_status' => $booking->getCalculatedPaymentStatus(),
+                    'room_breakdown' => $booking->getRoomBreakdown()->map(fn (array $room): array => [
+                        'room_id' => $room['room_id'] ?? null,
+                        'room_number' => $room['room_number'] ?? $room['room']?->room_number,
+                        'nights' => $room['nights'] ?? null,
+                        'rate' => $room['price_per_night'] ?? null,
+                        'amount' => $room['amount'] ?? null,
+                    ])->all(),
+                    'payments' => $booking->payments->map(fn ($row): array => [
+                        'id' => $row->id,
+                        'type' => $row->type,
+                        'method' => $row->method,
+                        'amount' => $row->amount,
+                    ])->all(),
+                ];
+                Log::error('Booking 439 correction calculation mismatch; transaction will roll back.', $diagnostics);
+                throw new RuntimeException('Booking 439 correction did not calculate the confirmed BDT 2,000 bill and zero balance. No correction was committed.');
+            }
+
             $booking->total_amount = $after['room_rent'];
             $booking->vat_amount = $after['vat'];
             $booking->remaining_payment = $after['remaining'];
@@ -147,10 +172,9 @@ return new class extends Migration
             $booking->updated_at = $now;
             $booking->saveQuietly();
 
-            $booking->unsetRelation('bookingRooms');
-            $booking->unsetRelation('room');
+            $booking->refresh();
             $booking->load(['bookingRooms.room.roomType', 'room.roomType', 'roomShifts']);
-            $booking->setRelation('payments', $payments);
+            $booking->setRelation('payments', $booking->payments()->get());
 
             $this->ensureCorrectionSnapshot($booking, '2026-10-27', $now);
             $this->ensureCorrectionSnapshot($booking, '2026-10-28', $now);
