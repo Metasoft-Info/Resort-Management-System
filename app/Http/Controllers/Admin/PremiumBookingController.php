@@ -613,7 +613,7 @@ class PremiumBookingController extends Controller
             \Log::error('Booking creation failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Booking failed: ' . $e->getMessage()
+                'message' => 'Booking could not be saved because of a server error. Please retry; if it happens again, contact the administrator.'
             ], 500);
         }
     }
