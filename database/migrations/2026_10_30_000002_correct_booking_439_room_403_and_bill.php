@@ -142,7 +142,7 @@ return new class extends Migration
                 || $after['discount'] !== 1000.0
                 || $after['grand_total'] !== 2000.0
                 || $after['deposited'] !== 2000.0
-                || $after['remaining'] !== 0.0
+                || round((float) $after['remaining'], 2) !== 0.0
                 || $booking->getCalculatedPaymentStatus() !== 'paid') {
                 $diagnostics = [
                     'financials' => $after,
