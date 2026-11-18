@@ -1107,7 +1107,7 @@ $remainingPayment = $booking->getCalculatedRemaining();
 <div id="extraChargesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
  <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg my-8 mx-4">
  <div class="flex justify-between items-center mb-4">
- <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-plus-circle text-primary-600 mr-2"></i>Extra Charges Add</h3>
+ <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-plus-circle text-primary-600 mr-2"></i>Manage Extra Charges</h3>
  <button onclick="closeExtraChargesModal()" class="text-gray-500 hover:text-gray-700">
  <i class="fas fa-times text-xl"></i>
  </button>
@@ -1170,8 +1170,9 @@ $remainingPayment = $booking->getCalculatedRemaining();
 
  <!-- Submit Button -->
  <div class="flex gap-3 mt-4">
+ <input type="hidden" id="extraChargesExpectedState" value="{{ $extraChargesFingerprint }}">
  <button type="button" onclick="submitAllExtraCharges()" id="submitExtraChargesBtn" disabled class="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
- <i class="fas fa-save mr-2"></i>Save
+ <i class="fas fa-save mr-2"></i>Save charges
  </button>
  <button type="button" onclick="closeExtraChargesModal()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
  Cancel
@@ -1413,14 +1414,26 @@ function calculatePaymentPreview(forceAutoUpdateAmount = false) {
 // Extra Charges Variables
 let extraChargeCategories = [];
 let selectedCharges = [];
+let extraChargeRequestId = null;
+let extraChargeSubmitting = false;
+
+function createExtraChargeRequestId() {
+ if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, character => {
+  const random = Math.random() * 16 | 0;
+  return (character === 'x' ? random : (random & 0x3 | 0x8)).toString(16);
+ });
+}
 
 // Pre-load existing extra charges from booking
 const existingExtraChargesData = @json($booking->extra_charges_data ?? []);
 
 function openExtraChargesModal() {
+ if (extraChargeSubmitting) return;
  document.getElementById('extraChargesModal').classList.remove('hidden');
  document.getElementById('extraChargesModal').classList.add('flex');
  selectedCharges = [];
+ extraChargeRequestId = null;
 
  // Populate from existing data if available
  if (existingExtraChargesData && existingExtraChargesData.length > 0) {
@@ -1442,6 +1455,7 @@ function openExtraChargesModal() {
 }
 
 function closeExtraChargesModal() {
+ if (extraChargeSubmitting) return;
  document.getElementById('extraChargesModal').classList.add('hidden');
  document.getElementById('extraChargesModal').classList.remove('flex');
  selectedCharges = [];
@@ -1493,6 +1507,7 @@ function renderCategoriesList() {
 }
 
 function addCategoryCharge(categoryId) {
+ if (extraChargeSubmitting) return;
  const category = extraChargeCategories.find(c => c.id === categoryId);
  if (!category) return;
  
@@ -1522,6 +1537,7 @@ function addCategoryCharge(categoryId) {
 }
 
 function removeSelectedCharge(index) {
+ if (extraChargeSubmitting) return;
  selectedCharges.splice(index, 1);
  updateSelectedChargesUI();
 }
@@ -1569,6 +1585,7 @@ function toggleManualEntry() {
 }
 
 function addManualCharge() {
+ if (extraChargeSubmitting) return;
  const amount = parseFloat(document.getElementById('manualAmount').value);
  const description = document.getElementById('manualDescription').value.trim();
  
@@ -1597,7 +1614,7 @@ function addManualCharge() {
 }
 
 async function submitAllExtraCharges() {
- if (selectedCharges.length === 0) return;
+ if (selectedCharges.length === 0 || extraChargeSubmitting) return;
 
  let totalAmount = 0;
  let descriptions = [];
@@ -1614,12 +1631,18 @@ async function submitAllExtraCharges() {
  category_id: charge.categoryId,
  name: charge.name,
  price: charge.price,
+ unit: charge.unit,
  quantity: charge.quantity,
  amount: charge.amount
  });
  });
 
  try {
+ if (!extraChargeRequestId) extraChargeRequestId = createExtraChargeRequestId();
+ extraChargeSubmitting = true;
+ const submitButton = document.getElementById('submitExtraChargesBtn');
+ submitButton.disabled = true;
+ submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
  const response = await fetch(`/admin/bookings/{{ $booking->id }}/add-extra-charges`, {
  method: 'POST',
  headers: {
@@ -1627,6 +1650,8 @@ async function submitAllExtraCharges() {
  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
  },
  body: JSON.stringify({
+ request_id: extraChargeRequestId,
+ expected_state_hash: document.getElementById('extraChargesExpectedState').value,
  amount: totalAmount,
  description: descriptions.join('; '),
  items: items
@@ -1634,15 +1659,22 @@ async function submitAllExtraCharges() {
  });
 
  if (response.ok) {
- showGlobalModal('success', 'Extra charges added!');
+  showGlobalModal('success', 'Extra charges saved!');
  setTimeout(() => location.reload(), 1500);
  } else {
  const errorText = await response.text();
  showGlobalModal('error', 'Failed: ' + (errorText.substring(0, 200) || 'Server error'));
+  extraChargeSubmitting = false;
+  submitButton.disabled = false;
+  submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Save charges';
  }
  } catch (error) {
  console.error('Error:', error);
  showGlobalModal('error', 'Failed: ' + error.message);
+ extraChargeSubmitting = false;
+ const submitButton = document.getElementById('submitExtraChargesBtn');
+ submitButton.disabled = false;
+ submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Save charges';
  }
 }
 
