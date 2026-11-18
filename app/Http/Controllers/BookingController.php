@@ -254,7 +254,9 @@ class BookingController extends Controller
             ]);
         }
         
-        return view('admin.bookings.show', compact('booking'));
+        $extraChargesFingerprint = $this->extraChargesFingerprint($booking);
+
+        return view('admin.bookings.show', compact('booking', 'extraChargesFingerprint'));
     }
 
     public function updateStatus(Request $request, Booking $booking)
@@ -646,37 +648,101 @@ class BookingController extends Controller
     public function addExtraCharges(Request $request, Booking $booking)
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'description' => 'required|string',
+            'request_id' => 'required|uuid',
+            'expected_state_hash' => ['required', 'regex:/^[a-f0-9]{64}$/i'],
+            'amount' => 'required|numeric|min:0|max:99999999.99',
+            'description' => 'nullable|string|max:2000',
             'items' => 'nullable|array',
             'items.*.category_id' => 'nullable|integer',
-            'items.*.name' => 'required|string',
-            'items.*.price' => 'required|numeric',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.amount' => 'required|numeric',
+            'items.*.name' => 'required|string|max:255',
+            'items.*.price' => 'required|numeric|min:0|max:99999999.99',
+            'items.*.quantity' => 'required|integer|min:1|max:100000',
+            'items.*.amount' => 'required|numeric|min:0|max:99999999.99',
+            'items.*.unit' => 'nullable|string|max:50',
         ]);
 
-        $newExtraCharges = ($booking->extra_charges ?? 0) + $validated['amount'];
-        $newDescription = $booking->extra_charges_description
-            ? $booking->extra_charges_description . '; ' . $validated['description']
-            : $validated['description'];
-
-        // Store structured extra charge items
-        $existingData = $booking->extra_charges_data ?? [];
-        if (!empty($validated['items'])) {
-            $existingData = array_merge($existingData, $validated['items']);
+        $items = collect($validated['items'] ?? [])->map(function (array $item) {
+            return [
+                'category_id' => $item['category_id'] ?? null,
+                'name' => trim($item['name']),
+                'price' => round((float) $item['price'], 2),
+                'unit' => $item['unit'] ?? null,
+                'quantity' => (int) $item['quantity'],
+                'amount' => round((float) $item['amount'], 2),
+            ];
+        })->values()->all();
+        $total = round((float) collect($items)->sum('amount'), 2);
+        if (abs($total - round((float) $validated['amount'], 2)) > 0.01) {
+            return response()->json(['message' => 'The extra charge total does not match the selected items. Refresh and try again.'], 422);
         }
 
-        $booking->update([
-            'extra_charges' => $newExtraCharges,
-            'extra_charges_description' => $newDescription,
-            'extra_charges_data' => $existingData,
-            'updated_by_id' => Auth::id(),
+        $description = trim((string) ($validated['description'] ?? ''));
+        $payloadHash = hash('sha256', json_encode([
+            'amount' => $total,
+            'description' => $description,
+            'items' => $items,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        $result = DB::transaction(function () use ($booking, $validated, $items, $total, $description, $payloadHash) {
+            $lockedBooking = Booking::whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
+            $previousRequest = DB::table('booking_extra_charge_requests')
+                ->where('booking_id', $lockedBooking->id)
+                ->where('request_id', $validated['request_id'])
+                ->first();
+
+            if ($previousRequest) {
+                return hash_equals($previousRequest->payload_hash, $payloadHash)
+                    ? ['duplicate' => true]
+                    : ['error' => 'This save token was already used for different charge details. Reload the booking and try again.', 'status' => 409];
+            }
+
+            if (!hash_equals($this->extraChargesFingerprint($lockedBooking), $validated['expected_state_hash'])) {
+                return ['error' => 'Extra charges changed in another session. Reload the booking before saving to avoid overwriting the newer bill.', 'status' => 409];
+            }
+
+            $before = [
+                'amount' => round((float) ($lockedBooking->extra_charges ?? 0), 2),
+                'description' => $lockedBooking->extra_charges_description,
+                'items' => is_array($lockedBooking->extra_charges_data) ? array_values($lockedBooking->extra_charges_data) : [],
+            ];
+
+            // The browser submits the complete edited list. Replacing this state
+            // makes retries and repeated saves safe; charges are never appended twice.
+            $lockedBooking->extra_charges = $total;
+            $lockedBooking->extra_charges_description = $description !== '' ? $description : null;
+            $lockedBooking->extra_charges_data = $items;
+            $lockedBooking->updated_by_id = Auth::id();
+            $this->syncBookingTotals($lockedBooking);
+
+            DB::table('booking_extra_charge_requests')->insert([
+                'booking_id' => $lockedBooking->id,
+                'request_id' => $validated['request_id'],
+                'payload_hash' => $payloadHash,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            ActivityLog::log('Updated booking extra charge items', 'Booking', $lockedBooking->id, [
+                'before' => $before,
+                'after' => [
+                    'amount' => $total,
+                    'description' => $description,
+                    'items' => $items,
+                ],
+                'request_id' => $validated['request_id'],
+            ]);
+
+            return ['duplicate' => false];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json(['message' => $result['error']], $result['status']);
+        }
+
+        return response()->json([
+            'message' => $result['duplicate'] ? 'This extra charge save was already applied.' : 'Extra charges saved successfully.',
+            'already_applied' => $result['duplicate'],
         ]);
-
-        $this->syncBookingTotals($booking);
-
-        return response()->json(['message' => 'Extra charges added successfully']);
     }
 
     public function updateCustomer(Request $request, Booking $booking)
@@ -1161,6 +1227,15 @@ class BookingController extends Controller
         $booking->payment_status = $booking->getCalculatedPaymentStatus();
         $booking->updated_by_id = Auth::id();
         $booking->save();
+    }
+
+    private function extraChargesFingerprint(Booking $booking): string
+    {
+        return hash('sha256', json_encode([
+            'amount' => round((float) ($booking->extra_charges ?? 0), 2),
+            'description' => (string) ($booking->extra_charges_description ?? ''),
+            'items' => is_array($booking->extra_charges_data) ? array_values($booking->extra_charges_data) : [],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     public function destroy(Booking $booking)

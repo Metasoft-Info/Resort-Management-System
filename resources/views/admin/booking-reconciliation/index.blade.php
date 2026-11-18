@@ -86,6 +86,7 @@
             $stayRates = $selectedBooking->getRoomBreakdown()->pluck('price_per_night')->values()->all();
             $stayDiscountType = $selectedBooking->discount_type ?: 'none';
             $stayDiscountValue = $stayDiscountType === 'percentage' ? (float) $selectedBooking->discount_percentage : (float) $selectedBooking->discount_amount;
+            $extraChargeItems = is_array($selectedBooking->extra_charges_data) ? array_values($selectedBooking->extra_charges_data) : [];
             $stayErrorFields = ['check_in_date', 'check_out_date', 'shift_dates', 'shift_rates', 'active_room_rate', 'missing_from_room_id', 'missing_shift_date', 'missing_previous_rate'];
             $openStayPanel = old('correction_scope') === 'stay' || collect($stayErrorFields)->contains(fn ($field) => $errors->has($field));
         @endphp
@@ -182,6 +183,51 @@
                                 <input type="number" min="0" step="0.01" name="discount_value" id="discountValue" value="{{ old('discount_value', $discountValue) }}" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
                             </label>
                         </div>
+
+                        <section class="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+                            <label class="flex cursor-pointer items-start gap-3 text-sm text-violet-950">
+                                <input type="checkbox" name="correct_extra_charges" id="correctExtraCharges" value="1" @checked(old('correct_extra_charges')) class="mt-1 rounded border-violet-400 text-violet-700">
+                                <span><strong>Correct extra charges</strong><span class="mt-0.5 block text-xs font-normal text-violet-800">Optional. Select the valid item lines below; unchecked duplicate lines will be removed. The bill, balance, reports, and audit history recalculate together.</span></span>
+                            </label>
+                            <fieldset id="extraChargeCorrectionFields" class="mt-4 space-y-3" @disabled(!old('correct_extra_charges'))>
+                                @if($extraChargeItems !== [])
+                                    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm">
+                                        <span class="font-semibold text-slate-700">Current extra charge total</span>
+                                        <span class="font-extrabold text-violet-800">BDT {{ number_format((float)$selectedBooking->extra_charges, 2) }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600">Keep each correct line checked and uncheck repeated copies. For example, if four bottles of water are correct, keep one matching line.</p>
+                                    <div class="max-h-72 space-y-2 overflow-y-auto pr-1">
+                                        @foreach($extraChargeItems as $index => $item)
+                                            @php
+                                                $itemName = is_array($item) ? (string)($item['name'] ?? 'Extra charge') : 'Unstructured charge';
+                                                $itemQuantity = is_array($item) ? max(1, (int)($item['quantity'] ?? 1)) : 1;
+                                                $itemPrice = is_array($item) ? (float)($item['price'] ?? 0) : 0;
+                                                $itemAmount = is_array($item) ? (float)($item['amount'] ?? 0) : 0;
+                                                $keepOld = old('keep_extra_charge_items');
+                                                $keepChecked = is_array($keepOld) ? in_array((string)$index, array_map('strval', $keepOld), true) : true;
+                                            @endphp
+                                            <label class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-violet-100 bg-white p-3 text-sm">
+                                                <span class="flex min-w-0 items-start gap-3">
+                                                    <input type="checkbox" name="keep_extra_charge_items[]" value="{{ $index }}" @checked($keepChecked) class="mt-1 rounded border-violet-400 text-violet-700">
+                                                    <span><span class="block font-semibold text-slate-800">{{ $itemName }} × {{ $itemQuantity }}</span><span class="block text-xs text-slate-500">Line {{ $index + 1 }} · BDT {{ number_format($itemPrice, 2) }} each</span></span>
+                                                </span>
+                                                <span class="flex items-center gap-2"><span class="text-xs text-slate-500">BDT</span><input type="number" min="0" step="0.01" max="99999999.99" name="extra_charge_items[{{ $index }}][amount]" value="{{ old('extra_charge_items.'.$index.'.amount', number_format($itemAmount, 2, '.', '')) }}" class="extra-charge-reconcile-amount w-32 rounded-lg border border-slate-300 px-3 py-2 text-right font-semibold"></span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <label class="block text-sm font-semibold text-slate-700">Correct extra charge amount (BDT)
+                                            <input type="number" min="0" step="0.01" max="99999999.99" name="extra_charges_manual_amount" value="{{ old('extra_charges_manual_amount', number_format((float)$selectedBooking->extra_charges, 2, '.', '')) }}" class="extra-charge-manual-amount mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
+                                        </label>
+                                        <label class="block text-sm font-semibold text-slate-700">Description
+                                            <input type="text" name="extra_charges_manual_description" value="{{ old('extra_charges_manual_description', $selectedBooking->extra_charges_description) }}" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
+                                        </label>
+                                    </div>
+                                    <p class="text-xs text-slate-600">Enter 0 to remove the extra charge. This booking has no structured item lines.</p>
+                                @endif
+                            </fieldset>
+                        </section>
 
                         @if($selectedBooking->payments->isNotEmpty())
                             <div>
@@ -418,10 +464,24 @@
             const label = document.getElementById('discountValueLabel');
             if (!preview || !typeInput || !valueInput) return;
 
+            const correctExtras = document.getElementById('correctExtraCharges');
+            const extraFields = document.getElementById('extraChargeCorrectionFields');
+            const selectedExtraChargeTotal = () => {
+                if (!correctExtras?.checked) return Number(preview.dataset.extra) || 0;
+                const rows = [...document.querySelectorAll('input[name="keep_extra_charge_items[]"]:checked')];
+                if (rows.length) {
+                    return rows.reduce((total, row) => {
+                        const amount = document.querySelector(`[name="extra_charge_items[${row.value}][amount]"]`);
+                        return total + (Number(amount?.value) || 0);
+                    }, 0);
+                }
+                return Number(document.querySelector('.extra-charge-manual-amount')?.value) || 0;
+            };
+
             const money = value => 'BDT ' + (Number(value) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             const update = () => {
                 const base = Number(preview.dataset.roomRent) || 0;
-                const extra = Number(preview.dataset.extra) || 0;
+                const extra = selectedExtraChargeTotal();
                 const type = typeInput.value;
                 const value = Math.round(Math.max(0, Number(valueInput.value) || 0) * 100) / 100;
                 label.textContent = type === 'percentage' ? 'Discount percent' : (type === 'flat' ? 'Discount amount (BDT)' : 'Discount value (unused)');
@@ -450,6 +510,14 @@
             typeInput.addEventListener('change', update);
             valueInput.addEventListener('input', update);
             document.querySelectorAll('.payment-amount').forEach(input => input.addEventListener('input', update));
+            correctExtras?.addEventListener('change', () => {
+                if (extraFields) extraFields.disabled = !correctExtras.checked;
+                update();
+            });
+            document.querySelectorAll('.extra-charge-reconcile-amount, .extra-charge-manual-amount, input[name="keep_extra_charge_items[]"]').forEach(input => {
+                input.addEventListener('input', update);
+                input.addEventListener('change', update);
+            });
             update();
         })();
         </script>

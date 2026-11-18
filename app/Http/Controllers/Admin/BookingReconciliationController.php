@@ -503,6 +503,13 @@ class BookingReconciliationController extends Controller
             'discount_value' => 'nullable|numeric|min:0|max:99999999.99',
             'payment_amounts' => 'nullable|array',
             'payment_amounts.*' => 'required|numeric|min:0|max:99999999.99',
+            'correct_extra_charges' => 'nullable|accepted',
+            'keep_extra_charge_items' => 'nullable|array',
+            'keep_extra_charge_items.*' => 'required|integer|min:0',
+            'extra_charge_items' => 'nullable|array',
+            'extra_charge_items.*.amount' => 'required|numeric|min:0|max:99999999.99',
+            'extra_charges_manual_amount' => 'nullable|numeric|min:0|max:99999999.99',
+            'extra_charges_manual_description' => 'nullable|string|max:2000',
             'effective_date' => 'required|date_format:Y-m-d',
             'reason' => 'required|string|min:8|max:1000',
             'confirm_reconcile' => 'accepted',
@@ -531,6 +538,68 @@ class BookingReconciliationController extends Controller
             }
 
             $before = $lockedBooking->getFinancialBreakdown();
+            $extraChargesBefore = [
+                'amount' => round((float) ($lockedBooking->extra_charges ?? 0), 2),
+                'description' => $lockedBooking->extra_charges_description,
+                'items' => is_array($lockedBooking->extra_charges_data) ? array_values($lockedBooking->extra_charges_data) : [],
+            ];
+            $extraChargesAfter = $extraChargesBefore;
+            $extraChargesChanged = false;
+            if (isset($validated['correct_extra_charges'])) {
+                if ($extraChargesBefore['items'] !== []) {
+                    $existingIndexes = array_keys($extraChargesBefore['items']);
+                    $keepIndexes = array_values(array_unique(array_map('intval', $validated['keep_extra_charge_items'] ?? [])));
+                    if (array_diff($keepIndexes, $existingIndexes) !== []) {
+                        throw ValidationException::withMessages(['keep_extra_charge_items' => 'The extra charge list changed while this page was open. Reload the booking before reconciling.']);
+                    }
+
+                    $correctedItems = [];
+                    foreach ($keepIndexes as $index) {
+                        $item = $extraChargesBefore['items'][$index] ?? null;
+                        if (!is_array($item)) {
+                            throw ValidationException::withMessages(['keep_extra_charge_items' => 'An existing charge line is malformed. Reload and review the bill before reconciling.']);
+                        }
+                        if (!isset($validated['extra_charge_items'][$index]['amount'])) {
+                            throw ValidationException::withMessages(['extra_charge_items' => 'Enter the corrected amount for every retained charge line.']);
+                        }
+                        $item['amount'] = round((float) $validated['extra_charge_items'][$index]['amount'], 2);
+                        $correctedItems[] = $item;
+                    }
+
+                    $extraAmount = round((float) collect($correctedItems)->sum('amount'), 2);
+                    $descriptionParts = collect($correctedItems)->map(function (array $item) {
+                        $name = trim((string) ($item['name'] ?? 'Extra charge')) ?: 'Extra charge';
+                        $quantity = max(1, (int) ($item['quantity'] ?? 1));
+                        $label = $quantity > 1 ? $name.' × '.$quantity : $name;
+                        return $label.' = '.number_format((float) ($item['amount'] ?? 0), 2, '.', '');
+                    })->all();
+                    $extraChargesAfter = [
+                        'amount' => $extraAmount,
+                        'description' => $descriptionParts !== [] ? implode('; ', $descriptionParts) : null,
+                        'items' => $correctedItems,
+                    ];
+                } else {
+                    if (!array_key_exists('extra_charges_manual_amount', $validated)) {
+                        throw ValidationException::withMessages(['extra_charges_manual_amount' => 'Enter the corrected extra charge amount. Use 0 to remove all charges.']);
+                    }
+                    $extraAmount = round((float) $validated['extra_charges_manual_amount'], 2);
+                    $manualDescription = trim((string) ($validated['extra_charges_manual_description'] ?? ''));
+                    $extraChargesAfter = [
+                        'amount' => $extraAmount,
+                        'description' => $extraAmount > 0 ? ($manualDescription !== '' ? $manualDescription : null) : null,
+                        'items' => [],
+                    ];
+                }
+
+                $extraChargesChanged = $extraChargesBefore['amount'] !== $extraChargesAfter['amount']
+                    || (string) ($extraChargesBefore['description'] ?? '') !== (string) ($extraChargesAfter['description'] ?? '')
+                    || json_encode($extraChargesBefore['items'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                        !== json_encode($extraChargesAfter['items'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $lockedBooking->extra_charges = $extraChargesAfter['amount'];
+                $lockedBooking->extra_charges_description = $extraChargesAfter['description'];
+                $lockedBooking->extra_charges_data = $extraChargesAfter['items'];
+            }
+
             $roomRent = (float) $before['room_rent'];
             $discountType = $validated['discount_type'];
             $discountValue = $discountType === 'none'
@@ -612,9 +681,9 @@ class BookingReconciliationController extends Controller
                 || $oldDiscountValue !== $discountValue
                 || ($nextDiscountAmount > 0 && $lockedBooking->discount_status !== 'approved');
 
-            if (!$discountChanged && empty($paymentChanges)) {
+            if (!$discountChanged && empty($paymentChanges) && !$extraChargesChanged) {
                 throw ValidationException::withMessages([
-                    'reason' => 'There are no financial changes to apply. Adjust a discount or payment amount.',
+                    'reason' => 'There are no financial changes to apply. Adjust a discount, extra charge, or payment amount.',
                 ]);
             }
 
@@ -677,6 +746,8 @@ class BookingReconciliationController extends Controller
                     'reference' => $lockedBooking->discount_reference,
                 ],
                 'payment_changes' => $paymentChanges,
+                'extra_charges_before' => $extraChargesBefore,
+                'extra_charges_after' => $extraChargesAfter,
                 'financials_before' => $before,
                 'financials_after' => $after,
             ]);
@@ -686,7 +757,7 @@ class BookingReconciliationController extends Controller
 
         return redirect()
             ->route('admin.booking-reconciliation.index', ['q' => $booking->id, 'booking_id' => $booking->id])
-            ->with('success', 'Booking financials reconciled. The payment ledger, bill status, and financial snapshot have been recalculated and audited.')
+            ->with('success', 'Booking financials reconciled. Extra charges, payment ledger, bill status, and financial snapshots were recalculated and audited.')
             ->with('reconciled_financials', $result);
     }
 
